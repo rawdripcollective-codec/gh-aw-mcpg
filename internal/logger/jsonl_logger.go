@@ -56,6 +56,9 @@ func InitJSONLLogger(logDir, fileName string) error {
 	)
 
 	// Only initialize global logger if successful (no error)
+	// Unlike FileLogger/MarkdownLogger which return fallback loggers,
+	// JSONLLogger has no fallback mode, so we should not initialize
+	// the global logger when initialization fails
 	if err == nil {
 		initGlobalJSONLLogger(logger)
 	}

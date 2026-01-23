@@ -109,6 +109,7 @@ func initLogger[T closableLogger](
 	if err != nil {
 		// If setup fails, close the file and return the error
 		file.Close()
+		// Return zero value for T (nil for pointer types)
 		var zero T
 		return zero, err
 	}
