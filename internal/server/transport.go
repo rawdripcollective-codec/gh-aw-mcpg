@@ -3,6 +3,7 @@ package server
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"io"
 	"log"
 	"net/http"
@@ -12,6 +13,24 @@ import (
 )
 
 var logTransport = logger.New("server:transport")
+
+// rejectIfShutdownUnified is a middleware that rejects requests with HTTP 503 when gateway is shutting down
+// Per spec 5.1.3: "Immediately reject any new RPC requests to /mcp/{server-name} endpoints with HTTP 503"
+func rejectIfShutdownUnified(unifiedServer *UnifiedServer, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if unifiedServer.IsShutdown() {
+			logTransport.Printf("Rejecting request during shutdown: remote=%s, method=%s, path=%s", r.RemoteAddr, r.Method, r.URL.Path)
+			logger.LogWarn("shutdown", "Request rejected during shutdown, remote=%s, path=%s", r.RemoteAddr, r.URL.Path)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			json.NewEncoder(w).Encode(map[string]string{
+				"error": "Gateway is shutting down",
+			})
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
 
 // HTTPTransport wraps the SDK's HTTP transport
 type HTTPTransport struct {
@@ -120,10 +139,14 @@ func CreateHTTPServerForMCP(addr string, unifiedServer *UnifiedServer, apiKey st
 	// Wrap SDK handler with detailed logging for JSON-RPC translation debugging
 	loggedHandler := WithSDKLogging(streamableHandler, "unified")
 
+	// Apply shutdown check middleware (spec 5.1.3)
+	// This must come before auth to ensure shutdown takes precedence
+	shutdownHandler := rejectIfShutdownUnified(unifiedServer, loggedHandler)
+
 	// Apply auth middleware if API key is configured (spec 7.1)
-	finalHandler := loggedHandler
+	finalHandler := shutdownHandler
 	if apiKey != "" {
-		finalHandler = authMiddleware(apiKey, loggedHandler.ServeHTTP)
+		finalHandler = authMiddleware(apiKey, shutdownHandler.ServeHTTP)
 	}
 
 	// Mount handler at /mcp endpoint (logging is done in the callback above)
