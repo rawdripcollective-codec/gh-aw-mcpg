@@ -12,6 +12,10 @@ import (
 
 var logHandlers = logger.New("server:handlers")
 
+// shutdownErrorJSON is the pre-formatted JSON response for shutdown errors
+// Used by middleware to return HTTP 503 during graceful shutdown (spec 5.1.3)
+const shutdownErrorJSON = `{"error":"Gateway is shutting down"}`
+
 // handleOAuthDiscovery returns a handler for OAuth discovery endpoint
 // Returns 404 since the gateway doesn't use OAuth
 func handleOAuthDiscovery() http.Handler {
