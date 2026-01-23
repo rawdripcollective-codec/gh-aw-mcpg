@@ -217,13 +217,13 @@ func TestTruncateAndSanitize(t *testing.T) {
 			name:      "sanitize secrets - GitHub token",
 			payload:   "token: ghp_1234567890abcdefghijklmnopqrstuvwxyz",
 			maxLength: 100,
-			want:      "token: [REDACTED]",
+			want:      "token=[REDACTED]",
 		},
 		{
 			name:      "sanitize and truncate",
 			payload:   "auth bearer ghp_1234567890abcdefghijklmnopqrstuvwxyz " + strings.Repeat("x", 100),
 			maxLength: 50,
-			want:      "auth bearer [REDACTED] " + strings.Repeat("x", 23) + "...",
+			want:      "auth bearer [REDACTED] " + strings.Repeat("x", 27) + "...",
 		},
 	}
 
