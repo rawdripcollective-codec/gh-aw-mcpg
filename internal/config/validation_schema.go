@@ -24,7 +24,7 @@ var (
 
 	// gatewayVersion stores the version string to include in error messages
 	gatewayVersion = "dev"
-	
+
 	// logSchema is the debug logger for schema validation
 	logSchema = logger.New("config:validation_schema")
 
@@ -86,7 +86,7 @@ func SetGatewayVersion(version string) {
 // these patterns natively, potentially allowing removal of this function entirely.
 func fetchAndFixSchema(url string) ([]byte, error) {
 	logSchema.Printf("Fetching schema from URL: %s", url)
-	
+
 	client := &http.Client{
 		Timeout: 10 * time.Second,
 	}
@@ -102,7 +102,7 @@ func fetchAndFixSchema(url string) ([]byte, error) {
 		logSchema.Printf("Schema fetch returned non-OK status: %d", resp.StatusCode)
 		return nil, fmt.Errorf("failed to fetch schema: HTTP %d", resp.StatusCode)
 	}
-	
+
 	logSchema.Print("Schema fetched successfully, applying fixes")
 
 	schemaBytes, err := io.ReadAll(resp.Body)
@@ -179,19 +179,19 @@ func fetchAndFixSchema(url string) ([]byte, error) {
 func getOrCompileSchema() (*jsonschema.Schema, error) {
 	schemaOnce.Do(func() {
 		logSchema.Print("Compiling JSON schema for the first time")
-		
+
 		// Fetch the schema from the configured URL
-		schemaJSON, err := fetchAndFixSchema(schemaURL)
-		if err != nil {
-			schemaErr = fmt.Errorf("failed to fetch schema: %w", err)
+		schemaJSON, fetchErr := fetchAndFixSchema(schemaURL)
+		if fetchErr != nil {
+			schemaErr = fmt.Errorf("failed to fetch schema: %w", fetchErr)
 			logSchema.Printf("Schema compilation failed: %v", schemaErr)
 			return
 		}
 
 		// Parse the schema to extract its $id
 		var schemaObj map[string]interface{}
-		if err := json.Unmarshal(schemaJSON, &schemaObj); err != nil {
-			schemaErr = fmt.Errorf("failed to parse schema JSON: %w", err)
+		if parseErr := json.Unmarshal(schemaJSON, &schemaObj); parseErr != nil {
+			schemaErr = fmt.Errorf("failed to parse schema JSON: %w", parseErr)
 			return
 		}
 
@@ -206,13 +206,13 @@ func getOrCompileSchema() (*jsonschema.Schema, error) {
 
 		// Add the schema with both URLs (the fetch URL and the $id URL)
 		// This ensures references work correctly regardless of which URL is used
-		if err := compiler.AddResource(schemaURL, strings.NewReader(string(schemaJSON))); err != nil {
-			schemaErr = fmt.Errorf("failed to add schema resource: %w", err)
+		if addErr := compiler.AddResource(schemaURL, strings.NewReader(string(schemaJSON))); addErr != nil {
+			schemaErr = fmt.Errorf("failed to add schema resource: %w", addErr)
 			return
 		}
 		if schemaID != schemaURL {
-			if err := compiler.AddResource(schemaID, strings.NewReader(string(schemaJSON))); err != nil {
-				schemaErr = fmt.Errorf("failed to add schema resource with $id: %w", err)
+			if addErr := compiler.AddResource(schemaID, strings.NewReader(string(schemaJSON))); addErr != nil {
+				schemaErr = fmt.Errorf("failed to add schema resource with $id: %w", addErr)
 				return
 			}
 		}
@@ -223,7 +223,7 @@ func getOrCompileSchema() (*jsonschema.Schema, error) {
 			logSchema.Printf("Schema compilation failed: %v", schemaErr)
 			return
 		}
-		
+
 		logSchema.Print("Schema compiled and cached successfully")
 	})
 
@@ -233,7 +233,7 @@ func getOrCompileSchema() (*jsonschema.Schema, error) {
 // validateJSONSchema validates the raw JSON configuration against the JSON schema
 func validateJSONSchema(data []byte) error {
 	logSchema.Printf("Starting JSON schema validation: data_size=%d bytes", len(data))
-	
+
 	// Get the cached compiled schema (or compile it on first use)
 	schema, err := getOrCompileSchema()
 	if err != nil {
@@ -368,7 +368,7 @@ func formatErrorContext(ve *jsonschema.ValidationError, prefix string) string {
 // This provides additional validation beyond the JSON schema validation
 func validateStringPatterns(stdinCfg *StdinConfig) error {
 	logSchema.Printf("Validating string patterns: server_count=%d", len(stdinCfg.MCPServers))
-	
+
 	// Validate server configurations
 	for name, server := range stdinCfg.MCPServers {
 		jsonPath := fmt.Sprintf("mcpServers.%s", name)

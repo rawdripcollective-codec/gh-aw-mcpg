@@ -308,18 +308,18 @@ func TestExtractEssentialFields(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := extractEssentialFields([]byte(tt.payload))
-			
+
 			if tt.want == nil {
 				assert.Nil(t, result)
 				return
 			}
-			
+
 			require.NotNil(t, result)
 			assert.Equal(t, tt.want["jsonrpc"], result["jsonrpc"])
 			assert.Equal(t, tt.want["method"], result["method"])
 			assert.Equal(t, tt.want["id"], result["id"])
 			assert.Equal(t, tt.want["error"], result["error"])
-			
+
 			// Special handling for params_keys since order may vary
 			if expectedKeys, ok := tt.want["params_keys"].([]string); ok {
 				actualKeys, ok := result["params_keys"].([]string)
