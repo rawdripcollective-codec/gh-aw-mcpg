@@ -4,7 +4,7 @@ Agentic Workflows (AW) adopts a layered approach that combines substrate-enforce
 
 ### Threat Model
 
-We consider an adversary that may compromise untrusted user-level components, e.g., containers, and causes them to behave arbitrarily within the privileges granted to them. The adversary may attempt to:
+We consider an adversary that may compromise untrusted user-level components, e.g., containers, and may cause them to behave arbitrarily within the privileges granted to them. The adversary may attempt to:
 
 - Access or corrupt the memory or state of other components
 - Communicate over unintended channels
@@ -31,9 +31,6 @@ AW trusts declarative configuration artifacts, e.g., Action steps, network-firew
 
 AW additionally relies on plan-level trust to constrain component behavior over time. At this layer, the trusted compiler decomposes a workflow into stages. For each stage, the plan specifies (1) which components are active and their permissions, (2) the data produced by the stage, and (3) how that data may be consumed by subsequent stages. In particular, plan-level trust ensures that important external side effects are explicit and undergo thorough vetting.
 
-A primary instantiation of plan-level trust is the **SafeOutputs** subsystem. SafeOutputs is a set of trusted components that operations on external state. An agent can interact with read-only MCP servers, e.g., the GitHub MCP server, but externalized writes, such as creating GitHub pull requests, are buffered as artifacts by SafeOutputs rather than applied immediately. When the agent finishes, SafeOutput's buffered artifacts can be processed by a deterministic sequence of filters and analyses defined by configuration. These checks can include structural constraints (e.g., limiting the number of pull requests), policy enforcement, and automated sanitization to ensure that sensitive information such as authentication tokens are not exported. These filtered and transformed artifacts are passed to a subsequent stage in which they are externalized.
+A primary instantiation of plan-level trust is the **SafeOutputs** subsystem. SafeOutputs is a set of trusted components that operate on external state. An agent can interact with read-only MCP servers, e.g., the GitHub MCP server, but externalized writes, such as creating GitHub pull requests, are buffered as artifacts by SafeOutputs rather than applied immediately. When the agent finishes, SafeOutputs' buffered artifacts can be processed by a deterministic sequence of filters and analyses defined by configuration. These checks can include structural constraints, e.g., limiting the number of pull requests, policy enforcement, and automated sanitization to ensure that sensitive information such as authentication tokens are not exported. These filtered and transformed artifacts are passed to a subsequent stage in which they are externalized.
 
-Violations at of the planning layer arise from incorrect plan construction, incomplete or overly permissive stage definitions, or errors in the enforcement of plan transitions. This layer does not protect against failures of substrate-level isolation or mis-allocation of permissions at credential-minting or configuration time. However, it limits the blast radius of a compromised component to the stage in which it is active and its influence the artifacts passed to the next stage.
-
----
-
+Security violations at the planning layer arise from incorrect plan construction, incomplete or overly permissive stage definitions, or errors in the enforcement of plan transitions. This layer does not protect against failures of substrate-level isolation or mis-allocation of permissions at credential-minting or configuration time. However, it limits the blast radius of a compromised component to the stage in which it is active and its influence on the artifacts passed to the next stage.
