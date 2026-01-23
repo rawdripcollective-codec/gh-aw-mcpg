@@ -55,12 +55,11 @@ func InitJSONLLogger(logDir, fileName string) error {
 		},
 	)
 
-	if err != nil {
-		return err
+	// Only initialize global logger if successful (no error)
+	if err == nil {
+		initGlobalJSONLLogger(logger)
 	}
-
-	initGlobalJSONLLogger(logger)
-	return nil
+	return err
 }
 
 // Close closes the JSONL log file
