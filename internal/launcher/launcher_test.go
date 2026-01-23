@@ -17,6 +17,8 @@ import (
 )
 
 // loadConfigFromJSON is a test helper that creates a config from JSON via stdin
+// Note: This validates against the JSON schema, so configs must match the schema.
+// For tests that need invalid/non-schema configs, use newTestConfig instead.
 func loadConfigFromJSON(t *testing.T, jsonConfig string) *config.Config {
 	t.Helper()
 
@@ -36,6 +38,19 @@ func loadConfigFromJSON(t *testing.T, jsonConfig string) *config.Config {
 	require.NoError(t, err, "Failed to load config from stdin")
 
 	return cfg
+}
+
+// newTestConfig creates a config directly without going through JSON parsing/schema validation.
+// Use this for unit tests that need to test launcher behavior with non-standard command configurations
+// that don't match the schema (e.g., testing with command="echo" instead of container images).
+func newTestConfig(servers map[string]*config.ServerConfig) *config.Config {
+	return &config.Config{
+		Servers: servers,
+		Gateway: &config.GatewayConfig{
+			Port:   3001,
+			Domain: "localhost",
+		},
+	}
 }
 
 func TestHTTPConnection(t *testing.T) {

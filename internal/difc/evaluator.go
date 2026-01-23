@@ -138,7 +138,8 @@ func (e *Evaluator) evaluateRead(
 	}
 
 	// For reads: agent must be able to handle resource's secrecy
-	// All resource secrecy tags must be present in agent secrecy
+	// Agent secrecy must be superset of resource secrecy (agent has clearance)
+	// Check: resource.Secrecy ⊆ agentSecrecy (all resource secrecy tags are in agent)
 	ok, extraTags := resource.Secrecy.CheckFlow(agentSecrecy)
 	if !ok {
 		logEvaluator.Printf("Read denied: secrecy check failed, extraTags=%v", extraTags)
@@ -183,14 +184,15 @@ func (e *Evaluator) evaluateWrite(
 	}
 
 	// For writes: agent secrecy must flow to resource secrecy
-	// All agent secrecy tags must be present in resource secrecy
+	// Resource secrecy must be superset of agent secrecy (no information leak)
+	// Check: agentSecrecy ⊆ resource.Secrecy (all agent secrecy tags are in resource)
 	ok, extraTags := agentSecrecy.CheckFlow(&resource.Secrecy)
 	if !ok {
 		logEvaluator.Printf("Write denied: secrecy check failed, extraTags=%v", extraTags)
 		result.Decision = AccessDeny
 		result.SecrecyToAdd = extraTags
 		result.Reason = fmt.Sprintf("Agent has secrecy tags %v that cannot flow to '%s'. "+
-			"Agent would need resource to have these secrecy requirements too.",
+			"Resource would need these secrecy requirements to accept the write.",
 			extraTags, resource.Description)
 		return result
 	}

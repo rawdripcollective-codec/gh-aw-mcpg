@@ -8,26 +8,20 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/githubnext/gh-aw-mcpg/internal/config"
 	"github.com/githubnext/gh-aw-mcpg/internal/mcp"
 )
 
 // TestGetOrLaunch_StdioServer_InvalidCommand tests stdio server with invalid command
 func TestGetOrLaunch_StdioServer_InvalidCommand(t *testing.T) {
-	jsonConfig := `{
-		"mcpServers": {
-			"stdio-server": {
-				"type": "stdio",
-				"command": "nonexistent-command-12345",
-				"args": ["--flag"]
-			}
+	cfg := newTestConfig(map[string]*config.ServerConfig{
+		"stdio-server": {
+			Type:    "stdio",
+			Command: "nonexistent-command-12345",
+			Args:    []string{"--flag"},
 		},
-		"gateway": {
-			"port": 3001,
-			"domain": "localhost"
-		}
-	}`
+	})
 
-	cfg := loadConfigFromJSON(t, jsonConfig)
 	ctx := context.Background()
 	l := New(ctx, cfg)
 	defer l.Close()
@@ -41,21 +35,14 @@ func TestGetOrLaunch_StdioServer_InvalidCommand(t *testing.T) {
 
 // TestGetOrLaunch_StdioServer_DockerCommand tests stdio server with Docker command
 func TestGetOrLaunch_StdioServer_DockerCommand(t *testing.T) {
-	jsonConfig := `{
-		"mcpServers": {
-			"docker-server": {
-				"type": "stdio",
-				"command": "docker",
-				"args": ["run", "--rm", "-i", "test-image:latest"]
-			}
+	cfg := newTestConfig(map[string]*config.ServerConfig{
+		"docker-server": {
+			Type:    "stdio",
+			Command: "docker",
+			Args:    []string{"run", "--rm", "-i", "test-image:latest"},
 		},
-		"gateway": {
-			"port": 3001,
-			"domain": "localhost"
-		}
-	}`
+	})
 
-	cfg := loadConfigFromJSON(t, jsonConfig)
 	ctx := context.Background()
 	l := New(ctx, cfg)
 	defer l.Close()
@@ -72,21 +59,14 @@ func TestGetOrLaunch_StdioServer_EnvPassthrough(t *testing.T) {
 	t.Setenv("TEST_PASSTHROUGH_VAR", "test-value-123")
 	t.Setenv("ANOTHER_VAR", "another-value-456")
 
-	jsonConfig := `{
-		"mcpServers": {
-			"env-test-server": {
-				"type": "stdio",
-				"command": "echo",
-				"args": ["-e", "TEST_PASSTHROUGH_VAR", "-e", "ANOTHER_VAR", "hello"]
-			}
+	cfg := newTestConfig(map[string]*config.ServerConfig{
+		"env-test-server": {
+			Type:    "stdio",
+			Command: "echo",
+			Args:    []string{"-e", "TEST_PASSTHROUGH_VAR", "-e", "ANOTHER_VAR", "hello"},
 		},
-		"gateway": {
-			"port": 3001,
-			"domain": "localhost"
-		}
-	}`
+	})
 
-	cfg := loadConfigFromJSON(t, jsonConfig)
 	ctx := context.Background()
 	l := New(ctx, cfg)
 	defer l.Close()
@@ -101,21 +81,14 @@ func TestGetOrLaunch_StdioServer_EnvPassthrough(t *testing.T) {
 // TestGetOrLaunch_StdioServer_EnvPassthroughMissing tests missing env var passthrough
 func TestGetOrLaunch_StdioServer_EnvPassthroughMissing(t *testing.T) {
 	// Do NOT set MISSING_VAR - testing the warning path
-	jsonConfig := `{
-		"mcpServers": {
-			"missing-env-server": {
-				"type": "stdio",
-				"command": "echo",
-				"args": ["-e", "MISSING_VAR", "test"]
-			}
+	cfg := newTestConfig(map[string]*config.ServerConfig{
+		"missing-env-server": {
+			Type:    "stdio",
+			Command: "echo",
+			Args:    []string{"-e", "MISSING_VAR", "test"},
 		},
-		"gateway": {
-			"port": 3001,
-			"domain": "localhost"
-		}
-	}`
+	})
 
-	cfg := loadConfigFromJSON(t, jsonConfig)
 	ctx := context.Background()
 	l := New(ctx, cfg)
 	defer l.Close()
@@ -128,21 +101,14 @@ func TestGetOrLaunch_StdioServer_EnvPassthroughMissing(t *testing.T) {
 
 // TestGetOrLaunch_StdioServer_EnvExplicitValue tests -e flag with explicit value
 func TestGetOrLaunch_StdioServer_EnvExplicitValue(t *testing.T) {
-	jsonConfig := `{
-		"mcpServers": {
-			"explicit-env-server": {
-				"type": "stdio",
-				"command": "echo",
-				"args": ["-e", "VAR=explicit_value", "test"]
-			}
+	cfg := newTestConfig(map[string]*config.ServerConfig{
+		"explicit-env-server": {
+			Type:    "stdio",
+			Command: "echo",
+			Args:    []string{"-e", "VAR=explicit_value", "test"},
 		},
-		"gateway": {
-			"port": 3001,
-			"domain": "localhost"
-		}
-	}`
+	})
 
-	cfg := loadConfigFromJSON(t, jsonConfig)
 	ctx := context.Background()
 	l := New(ctx, cfg)
 	defer l.Close()
@@ -159,21 +125,14 @@ func TestGetOrLaunch_StdioServer_EnvLongValue(t *testing.T) {
 	longValue := "this-is-a-very-long-value-that-should-be-truncated-in-logs"
 	t.Setenv("LONG_VAR", longValue)
 
-	jsonConfig := `{
-		"mcpServers": {
-			"long-env-server": {
-				"type": "stdio",
-				"command": "echo",
-				"args": ["-e", "LONG_VAR", "test"]
-			}
+	cfg := newTestConfig(map[string]*config.ServerConfig{
+		"long-env-server": {
+			Type:    "stdio",
+			Command: "echo",
+			Args:    []string{"-e", "LONG_VAR", "test"},
 		},
-		"gateway": {
-			"port": 3001,
-			"domain": "localhost"
-		}
-	}`
+	})
 
-	cfg := loadConfigFromJSON(t, jsonConfig)
 	ctx := context.Background()
 	l := New(ctx, cfg)
 	defer l.Close()
@@ -190,21 +149,14 @@ func TestGetOrLaunch_StdioServer_MultipleEnvFlags(t *testing.T) {
 	t.Setenv("VAR2", "value2")
 	t.Setenv("VAR3", "value3")
 
-	jsonConfig := `{
-		"mcpServers": {
-			"multi-env-server": {
-				"type": "stdio",
-				"command": "echo",
-				"args": ["-e", "VAR1", "-e", "VAR2", "-e", "VAR3", "test"]
-			}
+	cfg := newTestConfig(map[string]*config.ServerConfig{
+		"multi-env-server": {
+			Type:    "stdio",
+			Command: "echo",
+			Args:    []string{"-e", "VAR1", "-e", "VAR2", "-e", "VAR3", "test"},
 		},
-		"gateway": {
-			"port": 3001,
-			"domain": "localhost"
-		}
-	}`
+	})
 
-	cfg := loadConfigFromJSON(t, jsonConfig)
 	ctx := context.Background()
 	l := New(ctx, cfg)
 	defer l.Close()
@@ -217,21 +169,14 @@ func TestGetOrLaunch_StdioServer_MultipleEnvFlags(t *testing.T) {
 
 // TestGetOrLaunch_StdioServer_EnvFlagAtEnd tests -e flag at end of args (no value)
 func TestGetOrLaunch_StdioServer_EnvFlagAtEnd(t *testing.T) {
-	jsonConfig := `{
-		"mcpServers": {
-			"env-at-end-server": {
-				"type": "stdio",
-				"command": "echo",
-				"args": ["test", "-e"]
-			}
+	cfg := newTestConfig(map[string]*config.ServerConfig{
+		"env-at-end-server": {
+			Type:    "stdio",
+			Command: "echo",
+			Args:    []string{"test", "-e"},
 		},
-		"gateway": {
-			"port": 3001,
-			"domain": "localhost"
-		}
-	}`
+	})
 
-	cfg := loadConfigFromJSON(t, jsonConfig)
 	ctx := context.Background()
 	l := New(ctx, cfg)
 	defer l.Close()
@@ -244,25 +189,18 @@ func TestGetOrLaunch_StdioServer_EnvFlagAtEnd(t *testing.T) {
 
 // TestGetOrLaunch_StdioServer_WithEnvMap tests stdio server with env map
 func TestGetOrLaunch_StdioServer_WithEnvMap(t *testing.T) {
-	jsonConfig := `{
-		"mcpServers": {
-			"env-map-server": {
-				"type": "stdio",
-				"command": "echo",
-				"args": ["test"],
-				"env": {
-					"CUSTOM_VAR": "custom-value",
-					"API_KEY": "secret-key-12345678"
-				}
-			}
+	cfg := newTestConfig(map[string]*config.ServerConfig{
+		"env-map-server": {
+			Type:    "stdio",
+			Command: "echo",
+			Args:    []string{"test"},
+			Env: map[string]string{
+				"CUSTOM_VAR": "custom-value",
+				"API_KEY":    "secret-key-12345678",
+			},
 		},
-		"gateway": {
-			"port": 3001,
-			"domain": "localhost"
-		}
-	}`
+	})
 
-	cfg := loadConfigFromJSON(t, jsonConfig)
 	ctx := context.Background()
 	l := New(ctx, cfg)
 	defer l.Close()
@@ -275,22 +213,15 @@ func TestGetOrLaunch_StdioServer_WithEnvMap(t *testing.T) {
 
 // TestGetOrLaunch_StdioServer_EmptyEnvMap tests empty env map
 func TestGetOrLaunch_StdioServer_EmptyEnvMap(t *testing.T) {
-	jsonConfig := `{
-		"mcpServers": {
-			"empty-env-server": {
-				"type": "stdio",
-				"command": "echo",
-				"args": ["test"],
-				"env": {}
-			}
+	cfg := newTestConfig(map[string]*config.ServerConfig{
+		"empty-env-server": {
+			Type:    "stdio",
+			Command: "echo",
+			Args:    []string{"test"},
+			Env:     map[string]string{},
 		},
-		"gateway": {
-			"port": 3001,
-			"domain": "localhost"
-		}
-	}`
+	})
 
-	cfg := loadConfigFromJSON(t, jsonConfig)
 	ctx := context.Background()
 	l := New(ctx, cfg)
 	defer l.Close()
@@ -303,21 +234,14 @@ func TestGetOrLaunch_StdioServer_EmptyEnvMap(t *testing.T) {
 
 // TestGetOrLaunch_DirectCommandInContainer tests direct command in container detection
 func TestGetOrLaunch_DirectCommandInContainer(t *testing.T) {
-	jsonConfig := `{
-		"mcpServers": {
-			"direct-command-server": {
-				"type": "stdio",
-				"command": "python",
-				"args": ["-m", "server"]
-			}
+	cfg := newTestConfig(map[string]*config.ServerConfig{
+		"direct-command-server": {
+			Type:    "stdio",
+			Command: "python",
+			Args:    []string{"-m", "server"},
 		},
-		"gateway": {
-			"port": 3001,
-			"domain": "localhost"
-		}
-	}`
+	})
 
-	cfg := loadConfigFromJSON(t, jsonConfig)
 	ctx := context.Background()
 	l := New(ctx, cfg)
 	defer l.Close()
@@ -335,21 +259,14 @@ func TestGetOrLaunch_DirectCommandInContainer(t *testing.T) {
 
 // TestGetOrLaunch_DockerCommandInContainer tests Docker command in container (no warning)
 func TestGetOrLaunch_DockerCommandInContainer(t *testing.T) {
-	jsonConfig := `{
-		"mcpServers": {
-			"docker-in-container": {
-				"type": "stdio",
-				"command": "docker",
-				"args": ["run", "-i", "test:latest"]
-			}
+	cfg := newTestConfig(map[string]*config.ServerConfig{
+		"docker-in-container": {
+			Type:    "stdio",
+			Command: "docker",
+			Args:    []string{"run", "-i", "test:latest"},
 		},
-		"gateway": {
-			"port": 3001,
-			"domain": "localhost"
-		}
-	}`
+	})
 
-	cfg := loadConfigFromJSON(t, jsonConfig)
 	ctx := context.Background()
 	l := New(ctx, cfg)
 	defer l.Close()
@@ -366,20 +283,13 @@ func TestGetOrLaunch_DockerCommandInContainer(t *testing.T) {
 // TestGetOrLaunch_ConcurrentLaunch tests concurrent launches of same server (double-check lock)
 func TestGetOrLaunch_ConcurrentLaunch(t *testing.T) {
 	// Use HTTP server since stdio servers actually launch processes
-	jsonConfig := `{
-		"mcpServers": {
-			"concurrent-server": {
-				"type": "http",
-				"url": "http://nonexistent.local"
-			}
+	cfg := newTestConfig(map[string]*config.ServerConfig{
+		"concurrent-server": {
+			Type: "http",
+			URL:  "http://nonexistent.local",
 		},
-		"gateway": {
-			"port": 3001,
-			"domain": "localhost"
-		}
-	}`
+	})
 
-	cfg := loadConfigFromJSON(t, jsonConfig)
 	ctx := context.Background()
 	l := New(ctx, cfg)
 	defer l.Close()
@@ -433,20 +343,13 @@ func TestGetOrLaunch_ConcurrentLaunch(t *testing.T) {
 
 // TestGetOrLaunch_RaceConditionDoubleCheck tests the double-check locking pattern
 func TestGetOrLaunch_RaceConditionDoubleCheck(t *testing.T) {
-	jsonConfig := `{
-		"mcpServers": {
-			"race-test-server": {
-				"type": "http",
-				"url": "http://localhost:9999"
-			}
+	cfg := newTestConfig(map[string]*config.ServerConfig{
+		"race-test-server": {
+			Type: "http",
+			URL:  "http://localhost:9999",
 		},
-		"gateway": {
-			"port": 3001,
-			"domain": "localhost"
-		}
-	}`
+	})
 
-	cfg := loadConfigFromJSON(t, jsonConfig)
 	ctx := context.Background()
 	l := New(ctx, cfg)
 	defer l.Close()
@@ -492,20 +395,13 @@ func TestGetOrLaunch_RaceConditionDoubleCheck(t *testing.T) {
 
 // TestGetOrLaunch_HTTPConnectionError tests HTTP connection creation failure
 func TestGetOrLaunch_HTTPConnectionError(t *testing.T) {
-	jsonConfig := `{
-		"mcpServers": {
-			"bad-http-server": {
-				"type": "http",
-				"url": "://invalid-url-format"
-			}
+	cfg := newTestConfig(map[string]*config.ServerConfig{
+		"bad-http-server": {
+			Type: "http",
+			URL:  "://invalid-url-format",
 		},
-		"gateway": {
-			"port": 3001,
-			"domain": "localhost"
-		}
-	}`
+	})
 
-	cfg := loadConfigFromJSON(t, jsonConfig)
 	ctx := context.Background()
 	l := New(ctx, cfg)
 	defer l.Close()
@@ -524,21 +420,14 @@ func TestGetOrLaunch_HTTPConnectionError(t *testing.T) {
 
 // TestGetOrLaunch_StdioConnectionError tests stdio connection creation failure
 func TestGetOrLaunch_StdioConnectionError(t *testing.T) {
-	jsonConfig := `{
-		"mcpServers": {
-			"bad-stdio-server": {
-				"type": "stdio",
-				"command": "/nonexistent/path/to/binary",
-				"args": []
-			}
+	cfg := newTestConfig(map[string]*config.ServerConfig{
+		"bad-stdio-server": {
+			Type:    "stdio",
+			Command: "/nonexistent/path/to/binary",
+			Args:    []string{},
 		},
-		"gateway": {
-			"port": 3001,
-			"domain": "localhost"
-		}
-	}`
+	})
 
-	cfg := loadConfigFromJSON(t, jsonConfig)
 	ctx := context.Background()
 	l := New(ctx, cfg)
 	defer l.Close()
@@ -557,22 +446,15 @@ func TestGetOrLaunch_StdioConnectionError(t *testing.T) {
 
 // TestGetOrLaunch_ErrorLogging_DirectCommand tests error logging for direct command
 func TestGetOrLaunch_ErrorLogging_DirectCommand(t *testing.T) {
-	jsonConfig := `{
-		"mcpServers": {
-			"error-logging-server": {
-				"type": "stdio",
-				"command": "nonexistent-binary",
-				"args": ["--test"],
-				"env": {"TEST": "value"}
-			}
+	cfg := newTestConfig(map[string]*config.ServerConfig{
+		"error-logging-server": {
+			Type:    "stdio",
+			Command: "nonexistent-binary",
+			Args:    []string{"--test"},
+			Env:     map[string]string{"TEST": "value"},
 		},
-		"gateway": {
-			"port": 3001,
-			"domain": "localhost"
-		}
-	}`
+	})
 
-	cfg := loadConfigFromJSON(t, jsonConfig)
 	ctx := context.Background()
 	l := New(ctx, cfg)
 	defer l.Close()
@@ -585,21 +467,14 @@ func TestGetOrLaunch_ErrorLogging_DirectCommand(t *testing.T) {
 
 // TestGetOrLaunch_ErrorLogging_DirectCommandInContainer tests error logging for direct command in container
 func TestGetOrLaunch_ErrorLogging_DirectCommandInContainer(t *testing.T) {
-	jsonConfig := `{
-		"mcpServers": {
-			"error-container-server": {
-				"type": "stdio",
-				"command": "missing-command",
-				"args": []
-			}
+	cfg := newTestConfig(map[string]*config.ServerConfig{
+		"error-container-server": {
+			Type:    "stdio",
+			Command: "missing-command",
+			Args:    []string{},
 		},
-		"gateway": {
-			"port": 3001,
-			"domain": "localhost"
-		}
-	}`
+	})
 
-	cfg := loadConfigFromJSON(t, jsonConfig)
 	ctx := context.Background()
 	l := New(ctx, cfg)
 	defer l.Close()
@@ -624,7 +499,8 @@ func TestGetOrLaunch_ContainerFieldConversion(t *testing.T) {
 		},
 		"gateway": {
 			"port": 3001,
-			"domain": "localhost"
+			"domain": "localhost",
+			"apiKey": "test-api-key"
 		}
 	}`
 

@@ -133,9 +133,10 @@ func TestEvaluator_Evaluate_ReadWrite(t *testing.T) {
 
 	t.Run("ReadWrite denied when read constraint fails", func(t *testing.T) {
 		// Agent lacks secrecy tag needed to read
+		// Note: Agent should NOT have integrity tags that resource doesn't have,
+		// otherwise integrity check fails first (resource integrity must flow to agent)
 		agentSecrecy := NewSecrecyLabel()
-		agentIntegrity := NewIntegrityLabel()
-		agentIntegrity.Label.Add("trusted")
+		agentIntegrity := NewIntegrityLabel() // No integrity requirements
 
 		resource := NewLabeledResource("private-file")
 		resource.Secrecy.Label.Add("private")
@@ -176,9 +177,14 @@ func TestEvaluator_Evaluate_ReadWrite(t *testing.T) {
 		agentIntegrity.Label.Add("verified")
 
 		resource := NewLabeledResource("complex-resource")
+		// For READ: agent secrecy ⊇ resource secrecy (agent has clearance)
 		resource.Secrecy.Label.Add("secret")
 		resource.Secrecy.Label.Add("confidential")
+		resource.Secrecy.Label.Add("internal") // Resource must accept all agent secrecy for WRITE
+		// For READ: resource integrity ⊇ agent integrity (resource is trusted enough)
+		// For WRITE: agent integrity ⊇ resource integrity (agent is trusted enough)
 		resource.Integrity.Label.Add("production")
+		resource.Integrity.Label.Add("verified")
 
 		result := eval.Evaluate(agentSecrecy, agentIntegrity, resource, OperationReadWrite)
 
@@ -581,8 +587,9 @@ func TestEvaluator_FilterCollection_Advanced(t *testing.T) {
 		agentSecrecy := NewSecrecyLabel()
 		agentSecrecy.Label.Add("public")
 		agentSecrecy.Label.Add("internal")
+		// Note: Agent should NOT have integrity requirements if we want to test secrecy filtering
+		// on resources with no integrity tags (read check requires resource to have agent's integrity tags)
 		agentIntegrity := NewIntegrityLabel()
-		agentIntegrity.Label.Add("trusted")
 
 		collection := &CollectionLabeledData{
 			Items: []LabeledItem{
@@ -615,7 +622,7 @@ func TestEvaluator_FilterCollection_Advanced(t *testing.T) {
 					Labels: &LabeledResource{
 						Description: "low integrity",
 						Secrecy:     *NewSecrecyLabelWithTags([]Tag{"public"}),
-						Integrity:   *NewIntegrityLabel(), // No trusted tag
+						Integrity:   *NewIntegrityLabel(),
 					},
 				},
 			},
@@ -624,9 +631,8 @@ func TestEvaluator_FilterCollection_Advanced(t *testing.T) {
 		filtered := eval.FilterCollection(agentSecrecy, agentIntegrity, collection, OperationRead)
 
 		assert.Equal(t, 4, filtered.TotalCount)
-		// Items 0, 1, and 3 should be accessible (agent has required secrecy, integrity check should pass for reads)
-		// Actually for reads: agent integrity must be >= resource integrity (trust check)
-		// Since resource has empty integrity and agent has "trusted", agent is over-qualified
+		// Items 0, 1, and 3 should be accessible (agent has required secrecy tags)
+		// Item 2 (secret) should be filtered (agent lacks "secret" secrecy tag)
 		assert.Equal(t, 3, filtered.GetAccessibleCount(), "public, internal, and low-integrity should be accessible")
 		assert.Equal(t, 1, filtered.GetFilteredCount(), "secret should be filtered")
 	})
