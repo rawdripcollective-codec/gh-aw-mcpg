@@ -3,7 +3,11 @@ package difc
 import (
 	"fmt"
 	"strings"
+
+	"github.com/githubnext/gh-aw-mcpg/internal/logger"
 )
+
+var logEvaluator = logger.New("difc:evaluator")
 
 // OperationType indicates the nature of the resource access
 type OperationType int
@@ -74,6 +78,8 @@ func (e *Evaluator) Evaluate(
 	resource *LabeledResource,
 	operation OperationType,
 ) *EvaluationResult {
+	logEvaluator.Printf("Evaluating access: operation=%s, resource=%s", operation, resource.Description)
+
 	result := &EvaluationResult{
 		Decision:        AccessAllow,
 		SecrecyToAdd:    []Tag{},
@@ -109,6 +115,9 @@ func (e *Evaluator) evaluateRead(
 	agentIntegrity *IntegrityLabel,
 	resource *LabeledResource,
 ) *EvaluationResult {
+	logEvaluator.Printf("Evaluating read access: resource=%s, agentSecrecy=%v, agentIntegrity=%v",
+		resource.Description, agentSecrecy.Label.GetTags(), agentIntegrity.Label.GetTags())
+
 	result := &EvaluationResult{
 		Decision:        AccessAllow,
 		SecrecyToAdd:    []Tag{},
@@ -119,6 +128,7 @@ func (e *Evaluator) evaluateRead(
 	// Agent must trust the resource (resource has all integrity tags agent requires)
 	ok, missingTags := resource.Integrity.CheckFlow(agentIntegrity)
 	if !ok {
+		logEvaluator.Printf("Read denied: integrity check failed, missingTags=%v", missingTags)
 		result.Decision = AccessDeny
 		result.IntegrityToDrop = missingTags
 		result.Reason = fmt.Sprintf("Resource '%s' has lower integrity than agent requires. "+
@@ -131,6 +141,7 @@ func (e *Evaluator) evaluateRead(
 	// All resource secrecy tags must be present in agent secrecy
 	ok, extraTags := resource.Secrecy.CheckFlow(agentSecrecy)
 	if !ok {
+		logEvaluator.Printf("Read denied: secrecy check failed, extraTags=%v", extraTags)
 		result.Decision = AccessDeny
 		result.SecrecyToAdd = extraTags
 		result.Reason = fmt.Sprintf("Resource '%s' has secrecy requirements that agent doesn't meet. "+
@@ -139,6 +150,7 @@ func (e *Evaluator) evaluateRead(
 		return result
 	}
 
+	logEvaluator.Printf("Read access allowed: resource=%s", resource.Description)
 	return result
 }
 
@@ -148,6 +160,9 @@ func (e *Evaluator) evaluateWrite(
 	agentIntegrity *IntegrityLabel,
 	resource *LabeledResource,
 ) *EvaluationResult {
+	logEvaluator.Printf("Evaluating write access: resource=%s, agentSecrecy=%v, agentIntegrity=%v",
+		resource.Description, agentSecrecy.Label.GetTags(), agentIntegrity.Label.GetTags())
+
 	result := &EvaluationResult{
 		Decision:        AccessAllow,
 		SecrecyToAdd:    []Tag{},
@@ -158,6 +173,7 @@ func (e *Evaluator) evaluateWrite(
 	// Agent must be trustworthy enough (agent has all integrity tags resource requires)
 	ok, missingTags := agentIntegrity.CheckFlow(&resource.Integrity)
 	if !ok {
+		logEvaluator.Printf("Write denied: integrity check failed, missingTags=%v", missingTags)
 		result.Decision = AccessDeny
 		result.IntegrityToDrop = missingTags
 		result.Reason = fmt.Sprintf("Agent lacks required integrity to write to '%s'. "+
@@ -170,6 +186,7 @@ func (e *Evaluator) evaluateWrite(
 	// All agent secrecy tags must be present in resource secrecy
 	ok, extraTags := agentSecrecy.CheckFlow(&resource.Secrecy)
 	if !ok {
+		logEvaluator.Printf("Write denied: secrecy check failed, extraTags=%v", extraTags)
 		result.Decision = AccessDeny
 		result.SecrecyToAdd = extraTags
 		result.Reason = fmt.Sprintf("Agent has secrecy tags %v that cannot flow to '%s'. "+
@@ -178,6 +195,7 @@ func (e *Evaluator) evaluateWrite(
 		return result
 	}
 
+	logEvaluator.Printf("Write access allowed: resource=%s", resource.Description)
 	return result
 }
 
@@ -227,6 +245,8 @@ func (e *Evaluator) FilterCollection(
 	collection *CollectionLabeledData,
 	operation OperationType,
 ) *FilteredCollectionLabeledData {
+	logEvaluator.Printf("Filtering collection: operation=%s, totalItems=%d", operation, len(collection.Items))
+
 	filtered := &FilteredCollectionLabeledData{
 		Accessible:   []LabeledItem{},
 		Filtered:     []LabeledItem{},
@@ -244,5 +264,7 @@ func (e *Evaluator) FilterCollection(
 		}
 	}
 
+	logEvaluator.Printf("Collection filtered: accessible=%d, filtered=%d, total=%d",
+		len(filtered.Accessible), len(filtered.Filtered), filtered.TotalCount)
 	return filtered
 }

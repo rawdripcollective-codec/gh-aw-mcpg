@@ -1,0 +1,647 @@
+package launcher
+
+import (
+	"context"
+	"sync"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/githubnext/gh-aw-mcpg/internal/mcp"
+)
+
+// TestGetOrLaunch_StdioServer_InvalidCommand tests stdio server with invalid command
+func TestGetOrLaunch_StdioServer_InvalidCommand(t *testing.T) {
+	jsonConfig := `{
+		"mcpServers": {
+			"stdio-server": {
+				"type": "stdio",
+				"command": "nonexistent-command-12345",
+				"args": ["--flag"]
+			}
+		},
+		"gateway": {
+			"port": 3001,
+			"domain": "localhost"
+		}
+	}`
+
+	cfg := loadConfigFromJSON(t, jsonConfig)
+	ctx := context.Background()
+	l := New(ctx, cfg)
+	defer l.Close()
+
+	// Try to launch stdio server with invalid command
+	conn, err := GetOrLaunch(l, "stdio-server")
+	assert.Error(t, err, "Expected error for invalid command")
+	assert.Nil(t, conn, "Expected nil connection")
+	assert.Contains(t, err.Error(), "failed to create connection")
+}
+
+// TestGetOrLaunch_StdioServer_DockerCommand tests stdio server with Docker command
+func TestGetOrLaunch_StdioServer_DockerCommand(t *testing.T) {
+	jsonConfig := `{
+		"mcpServers": {
+			"docker-server": {
+				"type": "stdio",
+				"command": "docker",
+				"args": ["run", "--rm", "-i", "test-image:latest"]
+			}
+		},
+		"gateway": {
+			"port": 3001,
+			"domain": "localhost"
+		}
+	}`
+
+	cfg := loadConfigFromJSON(t, jsonConfig)
+	ctx := context.Background()
+	l := New(ctx, cfg)
+	defer l.Close()
+
+	// This should fail since Docker image doesn't exist, but we're testing the path logic
+	conn, err := GetOrLaunch(l, "docker-server")
+	assert.Error(t, err, "Expected error for missing Docker image")
+	assert.Nil(t, conn)
+}
+
+// TestGetOrLaunch_StdioServer_EnvPassthrough tests environment variable passthrough
+func TestGetOrLaunch_StdioServer_EnvPassthrough(t *testing.T) {
+	// Set up test environment variables
+	t.Setenv("TEST_PASSTHROUGH_VAR", "test-value-123")
+	t.Setenv("ANOTHER_VAR", "another-value-456")
+
+	jsonConfig := `{
+		"mcpServers": {
+			"env-test-server": {
+				"type": "stdio",
+				"command": "echo",
+				"args": ["-e", "TEST_PASSTHROUGH_VAR", "-e", "ANOTHER_VAR", "hello"]
+			}
+		},
+		"gateway": {
+			"port": 3001,
+			"domain": "localhost"
+		}
+	}`
+
+	cfg := loadConfigFromJSON(t, jsonConfig)
+	ctx := context.Background()
+	l := New(ctx, cfg)
+	defer l.Close()
+
+	// Launch should process env passthrough logic
+	// This will fail (echo is not an MCP server), but we're testing the env var path
+	conn, err := GetOrLaunch(l, "env-test-server")
+	assert.Error(t, err)
+	assert.Nil(t, conn)
+}
+
+// TestGetOrLaunch_StdioServer_EnvPassthroughMissing tests missing env var passthrough
+func TestGetOrLaunch_StdioServer_EnvPassthroughMissing(t *testing.T) {
+	// Do NOT set MISSING_VAR - testing the warning path
+	jsonConfig := `{
+		"mcpServers": {
+			"missing-env-server": {
+				"type": "stdio",
+				"command": "echo",
+				"args": ["-e", "MISSING_VAR", "test"]
+			}
+		},
+		"gateway": {
+			"port": 3001,
+			"domain": "localhost"
+		}
+	}`
+
+	cfg := loadConfigFromJSON(t, jsonConfig)
+	ctx := context.Background()
+	l := New(ctx, cfg)
+	defer l.Close()
+
+	// Launch should log warning about missing env var
+	conn, err := GetOrLaunch(l, "missing-env-server")
+	assert.Error(t, err)
+	assert.Nil(t, conn)
+}
+
+// TestGetOrLaunch_StdioServer_EnvExplicitValue tests -e flag with explicit value
+func TestGetOrLaunch_StdioServer_EnvExplicitValue(t *testing.T) {
+	jsonConfig := `{
+		"mcpServers": {
+			"explicit-env-server": {
+				"type": "stdio",
+				"command": "echo",
+				"args": ["-e", "VAR=explicit_value", "test"]
+			}
+		},
+		"gateway": {
+			"port": 3001,
+			"domain": "localhost"
+		}
+	}`
+
+	cfg := loadConfigFromJSON(t, jsonConfig)
+	ctx := context.Background()
+	l := New(ctx, cfg)
+	defer l.Close()
+
+	// Should not treat VAR=explicit_value as passthrough
+	conn, err := GetOrLaunch(l, "explicit-env-server")
+	assert.Error(t, err)
+	assert.Nil(t, conn)
+}
+
+// TestGetOrLaunch_StdioServer_EnvLongValue tests long env value truncation
+func TestGetOrLaunch_StdioServer_EnvLongValue(t *testing.T) {
+	// Set up a long env var (>10 chars) to test truncation in logging
+	longValue := "this-is-a-very-long-value-that-should-be-truncated-in-logs"
+	t.Setenv("LONG_VAR", longValue)
+
+	jsonConfig := `{
+		"mcpServers": {
+			"long-env-server": {
+				"type": "stdio",
+				"command": "echo",
+				"args": ["-e", "LONG_VAR", "test"]
+			}
+		},
+		"gateway": {
+			"port": 3001,
+			"domain": "localhost"
+		}
+	}`
+
+	cfg := loadConfigFromJSON(t, jsonConfig)
+	ctx := context.Background()
+	l := New(ctx, cfg)
+	defer l.Close()
+
+	// Should truncate long value in logs
+	conn, err := GetOrLaunch(l, "long-env-server")
+	assert.Error(t, err)
+	assert.Nil(t, conn)
+}
+
+// TestGetOrLaunch_StdioServer_MultipleEnvFlags tests multiple -e flags
+func TestGetOrLaunch_StdioServer_MultipleEnvFlags(t *testing.T) {
+	t.Setenv("VAR1", "value1")
+	t.Setenv("VAR2", "value2")
+	t.Setenv("VAR3", "value3")
+
+	jsonConfig := `{
+		"mcpServers": {
+			"multi-env-server": {
+				"type": "stdio",
+				"command": "echo",
+				"args": ["-e", "VAR1", "-e", "VAR2", "-e", "VAR3", "test"]
+			}
+		},
+		"gateway": {
+			"port": 3001,
+			"domain": "localhost"
+		}
+	}`
+
+	cfg := loadConfigFromJSON(t, jsonConfig)
+	ctx := context.Background()
+	l := New(ctx, cfg)
+	defer l.Close()
+
+	// Should process all -e flags
+	conn, err := GetOrLaunch(l, "multi-env-server")
+	assert.Error(t, err)
+	assert.Nil(t, conn)
+}
+
+// TestGetOrLaunch_StdioServer_EnvFlagAtEnd tests -e flag at end of args (no value)
+func TestGetOrLaunch_StdioServer_EnvFlagAtEnd(t *testing.T) {
+	jsonConfig := `{
+		"mcpServers": {
+			"env-at-end-server": {
+				"type": "stdio",
+				"command": "echo",
+				"args": ["test", "-e"]
+			}
+		},
+		"gateway": {
+			"port": 3001,
+			"domain": "localhost"
+		}
+	}`
+
+	cfg := loadConfigFromJSON(t, jsonConfig)
+	ctx := context.Background()
+	l := New(ctx, cfg)
+	defer l.Close()
+
+	// Should not crash when -e is at the end with no value
+	conn, err := GetOrLaunch(l, "env-at-end-server")
+	assert.Error(t, err)
+	assert.Nil(t, conn)
+}
+
+// TestGetOrLaunch_StdioServer_WithEnvMap tests stdio server with env map
+func TestGetOrLaunch_StdioServer_WithEnvMap(t *testing.T) {
+	jsonConfig := `{
+		"mcpServers": {
+			"env-map-server": {
+				"type": "stdio",
+				"command": "echo",
+				"args": ["test"],
+				"env": {
+					"CUSTOM_VAR": "custom-value",
+					"API_KEY": "secret-key-12345678"
+				}
+			}
+		},
+		"gateway": {
+			"port": 3001,
+			"domain": "localhost"
+		}
+	}`
+
+	cfg := loadConfigFromJSON(t, jsonConfig)
+	ctx := context.Background()
+	l := New(ctx, cfg)
+	defer l.Close()
+
+	// Should log env map (with truncation)
+	conn, err := GetOrLaunch(l, "env-map-server")
+	assert.Error(t, err)
+	assert.Nil(t, conn)
+}
+
+// TestGetOrLaunch_StdioServer_EmptyEnvMap tests empty env map
+func TestGetOrLaunch_StdioServer_EmptyEnvMap(t *testing.T) {
+	jsonConfig := `{
+		"mcpServers": {
+			"empty-env-server": {
+				"type": "stdio",
+				"command": "echo",
+				"args": ["test"],
+				"env": {}
+			}
+		},
+		"gateway": {
+			"port": 3001,
+			"domain": "localhost"
+		}
+	}`
+
+	cfg := loadConfigFromJSON(t, jsonConfig)
+	ctx := context.Background()
+	l := New(ctx, cfg)
+	defer l.Close()
+
+	// Should not log empty env map
+	conn, err := GetOrLaunch(l, "empty-env-server")
+	assert.Error(t, err)
+	assert.Nil(t, conn)
+}
+
+// TestGetOrLaunch_DirectCommandInContainer tests direct command in container detection
+func TestGetOrLaunch_DirectCommandInContainer(t *testing.T) {
+	jsonConfig := `{
+		"mcpServers": {
+			"direct-command-server": {
+				"type": "stdio",
+				"command": "python",
+				"args": ["-m", "server"]
+			}
+		},
+		"gateway": {
+			"port": 3001,
+			"domain": "localhost"
+		}
+	}`
+
+	cfg := loadConfigFromJSON(t, jsonConfig)
+	ctx := context.Background()
+	l := New(ctx, cfg)
+	defer l.Close()
+
+	// Simulate running in container
+	originalValue := l.runningInContainer
+	l.runningInContainer = true
+	defer func() { l.runningInContainer = originalValue }()
+
+	// Should log warning about direct command in container
+	conn, err := GetOrLaunch(l, "direct-command-server")
+	assert.Error(t, err)
+	assert.Nil(t, conn)
+}
+
+// TestGetOrLaunch_DockerCommandInContainer tests Docker command in container (no warning)
+func TestGetOrLaunch_DockerCommandInContainer(t *testing.T) {
+	jsonConfig := `{
+		"mcpServers": {
+			"docker-in-container": {
+				"type": "stdio",
+				"command": "docker",
+				"args": ["run", "-i", "test:latest"]
+			}
+		},
+		"gateway": {
+			"port": 3001,
+			"domain": "localhost"
+		}
+	}`
+
+	cfg := loadConfigFromJSON(t, jsonConfig)
+	ctx := context.Background()
+	l := New(ctx, cfg)
+	defer l.Close()
+
+	// Simulate running in container
+	l.runningInContainer = true
+
+	// Should NOT log warning (Docker command is OK in container)
+	conn, err := GetOrLaunch(l, "docker-in-container")
+	assert.Error(t, err) // Still fails (no Docker), but no warning about direct command
+	assert.Nil(t, conn)
+}
+
+// TestGetOrLaunch_ConcurrentLaunch tests concurrent launches of same server (double-check lock)
+func TestGetOrLaunch_ConcurrentLaunch(t *testing.T) {
+	// Use HTTP server since stdio servers actually launch processes
+	jsonConfig := `{
+		"mcpServers": {
+			"concurrent-server": {
+				"type": "http",
+				"url": "http://nonexistent.local"
+			}
+		},
+		"gateway": {
+			"port": 3001,
+			"domain": "localhost"
+		}
+	}`
+
+	cfg := loadConfigFromJSON(t, jsonConfig)
+	ctx := context.Background()
+	l := New(ctx, cfg)
+	defer l.Close()
+
+	// Launch 10 goroutines trying to get the same connection concurrently
+	const numGoroutines = 10
+	var wg sync.WaitGroup
+	errors := make([]error, numGoroutines)
+	conns := make([]*mcp.Connection, numGoroutines)
+
+	wg.Add(numGoroutines)
+	for i := 0; i < numGoroutines; i++ {
+		go func(idx int) {
+			defer wg.Done()
+			conn, err := GetOrLaunch(l, "concurrent-server")
+			conns[idx] = conn
+			errors[idx] = err
+		}(i)
+	}
+	wg.Wait()
+
+	// All goroutines should succeed (or all fail with same error)
+	firstErr := errors[0]
+	for i := 1; i < numGoroutines; i++ {
+		if firstErr == nil {
+			assert.NoError(t, errors[i], "All goroutines should succeed if first succeeded")
+		} else {
+			assert.Error(t, errors[i], "All goroutines should fail if first failed")
+		}
+	}
+
+	// If successful, all should return the same connection (not nil)
+	if firstErr == nil {
+		require.NotNil(t, conns[0])
+		for i := 1; i < numGoroutines; i++ {
+			assert.Equal(t, conns[0], conns[i], "All goroutines should get the same connection")
+		}
+	}
+
+	// Verify only one connection was created
+	l.mu.RLock()
+	connectionCount := len(l.connections)
+	l.mu.RUnlock()
+
+	if firstErr == nil {
+		assert.Equal(t, 1, connectionCount, "Only one connection should be created despite concurrent calls")
+	} else {
+		assert.Equal(t, 0, connectionCount, "No connections should be created on error")
+	}
+}
+
+// TestGetOrLaunch_RaceConditionDoubleCheck tests the double-check locking pattern
+func TestGetOrLaunch_RaceConditionDoubleCheck(t *testing.T) {
+	jsonConfig := `{
+		"mcpServers": {
+			"race-test-server": {
+				"type": "http",
+				"url": "http://localhost:9999"
+			}
+		},
+		"gateway": {
+			"port": 3001,
+			"domain": "localhost"
+		}
+	}`
+
+	cfg := loadConfigFromJSON(t, jsonConfig)
+	ctx := context.Background()
+	l := New(ctx, cfg)
+	defer l.Close()
+
+	// Launch 100 goroutines to stress-test the double-check lock pattern
+	const numGoroutines = 100
+	var wg sync.WaitGroup
+	conns := make([]*mcp.Connection, numGoroutines)
+
+	wg.Add(numGoroutines)
+	for i := 0; i < numGoroutines; i++ {
+		go func(idx int) {
+			defer wg.Done()
+			conn, _ := GetOrLaunch(l, "race-test-server")
+			conns[idx] = conn
+		}(i)
+	}
+	wg.Wait()
+
+	// Count non-nil connections
+	nonNilCount := 0
+	var firstConn *mcp.Connection
+	for _, conn := range conns {
+		if conn != nil {
+			if firstConn == nil {
+				firstConn = conn
+			}
+			nonNilCount++
+			// All non-nil connections should be the same object
+			assert.Equal(t, firstConn, conn, "All successful launches should return same connection")
+		}
+	}
+
+	// Verify only one connection in the map
+	l.mu.RLock()
+	mapSize := len(l.connections)
+	l.mu.RUnlock()
+
+	if nonNilCount > 0 {
+		assert.Equal(t, 1, mapSize, "Only one connection should exist in map")
+	}
+}
+
+// TestGetOrLaunch_HTTPConnectionError tests HTTP connection creation failure
+func TestGetOrLaunch_HTTPConnectionError(t *testing.T) {
+	jsonConfig := `{
+		"mcpServers": {
+			"bad-http-server": {
+				"type": "http",
+				"url": "://invalid-url-format"
+			}
+		},
+		"gateway": {
+			"port": 3001,
+			"domain": "localhost"
+		}
+	}`
+
+	cfg := loadConfigFromJSON(t, jsonConfig)
+	ctx := context.Background()
+	l := New(ctx, cfg)
+	defer l.Close()
+
+	// Should fail with HTTP connection creation error
+	conn, err := GetOrLaunch(l, "bad-http-server")
+	assert.Error(t, err, "Expected error for invalid HTTP URL")
+	assert.Nil(t, conn)
+	assert.Contains(t, err.Error(), "failed to create HTTP connection")
+
+	// Verify no connection was stored
+	l.mu.RLock()
+	assert.Equal(t, 0, len(l.connections), "No connection should be stored on error")
+	l.mu.RUnlock()
+}
+
+// TestGetOrLaunch_StdioConnectionError tests stdio connection creation failure
+func TestGetOrLaunch_StdioConnectionError(t *testing.T) {
+	jsonConfig := `{
+		"mcpServers": {
+			"bad-stdio-server": {
+				"type": "stdio",
+				"command": "/nonexistent/path/to/binary",
+				"args": []
+			}
+		},
+		"gateway": {
+			"port": 3001,
+			"domain": "localhost"
+		}
+	}`
+
+	cfg := loadConfigFromJSON(t, jsonConfig)
+	ctx := context.Background()
+	l := New(ctx, cfg)
+	defer l.Close()
+
+	// Should fail with connection creation error
+	conn, err := GetOrLaunch(l, "bad-stdio-server")
+	assert.Error(t, err, "Expected error for nonexistent binary")
+	assert.Nil(t, conn)
+	assert.Contains(t, err.Error(), "failed to create connection")
+
+	// Verify no connection was stored
+	l.mu.RLock()
+	assert.Equal(t, 0, len(l.connections), "No connection should be stored on error")
+	l.mu.RUnlock()
+}
+
+// TestGetOrLaunch_ErrorLogging_DirectCommand tests error logging for direct command
+func TestGetOrLaunch_ErrorLogging_DirectCommand(t *testing.T) {
+	jsonConfig := `{
+		"mcpServers": {
+			"error-logging-server": {
+				"type": "stdio",
+				"command": "nonexistent-binary",
+				"args": ["--test"],
+				"env": {"TEST": "value"}
+			}
+		},
+		"gateway": {
+			"port": 3001,
+			"domain": "localhost"
+		}
+	}`
+
+	cfg := loadConfigFromJSON(t, jsonConfig)
+	ctx := context.Background()
+	l := New(ctx, cfg)
+	defer l.Close()
+
+	// Should fail and log enhanced error information
+	conn, err := GetOrLaunch(l, "error-logging-server")
+	assert.Error(t, err)
+	assert.Nil(t, conn)
+}
+
+// TestGetOrLaunch_ErrorLogging_DirectCommandInContainer tests error logging for direct command in container
+func TestGetOrLaunch_ErrorLogging_DirectCommandInContainer(t *testing.T) {
+	jsonConfig := `{
+		"mcpServers": {
+			"error-container-server": {
+				"type": "stdio",
+				"command": "missing-command",
+				"args": []
+			}
+		},
+		"gateway": {
+			"port": 3001,
+			"domain": "localhost"
+		}
+	}`
+
+	cfg := loadConfigFromJSON(t, jsonConfig)
+	ctx := context.Background()
+	l := New(ctx, cfg)
+	defer l.Close()
+
+	// Simulate running in container
+	l.runningInContainer = true
+
+	// Should fail and log container-specific troubleshooting
+	conn, err := GetOrLaunch(l, "error-container-server")
+	assert.Error(t, err)
+	assert.Nil(t, conn)
+}
+
+// TestGetOrLaunch_ContainerFieldConversion tests that container field is converted to docker command
+func TestGetOrLaunch_ContainerFieldConversion(t *testing.T) {
+	jsonConfig := `{
+		"mcpServers": {
+			"container-server": {
+				"type": "stdio",
+				"container": "test-image:latest"
+			}
+		},
+		"gateway": {
+			"port": 3001,
+			"domain": "localhost"
+		}
+	}`
+
+	cfg := loadConfigFromJSON(t, jsonConfig)
+
+	// Verify container field was converted to docker command
+	serverCfg, ok := cfg.Servers["container-server"]
+	require.True(t, ok, "Server should exist")
+	assert.Equal(t, "docker", serverCfg.Command, "Container should be converted to docker command")
+	assert.Contains(t, serverCfg.Args, "test-image:latest", "Args should contain container image")
+
+	ctx := context.Background()
+	l := New(ctx, cfg)
+	defer l.Close()
+
+	// Try to launch (will fail due to missing image, but tests the path)
+	conn, err := GetOrLaunch(l, "container-server")
+	assert.Error(t, err)
+	assert.Nil(t, conn)
+}

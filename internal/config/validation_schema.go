@@ -7,9 +7,11 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/githubnext/gh-aw-mcpg/internal/config/rules"
+	"github.com/githubnext/gh-aw-mcpg/internal/logger"
 	"github.com/santhosh-tekuri/jsonschema/v5"
 )
 
@@ -22,6 +24,29 @@ var (
 
 	// gatewayVersion stores the version string to include in error messages
 	gatewayVersion = "dev"
+
+	// logSchema is the debug logger for schema validation
+	logSchema = logger.New("config:validation_schema")
+
+	// Schema URL configuration
+	// This URL points to the source of truth for the MCP Gateway configuration schema.
+	//
+	// Build Reproducibility:
+	// For production builds, consider pinning to a specific commit SHA or version tag:
+	//   - Commit SHA: "https://raw.githubusercontent.com/githubnext/gh-aw/<commit-sha>/docs/public/schemas/mcp-gateway-config.schema.json"
+	//   - Version tag: "https://raw.githubusercontent.com/githubnext/gh-aw/v1.0.0/docs/public/schemas/mcp-gateway-config.schema.json"
+	//
+	// Using 'main' branch ensures we always use the latest schema but may introduce
+	// changes that break builds. For stable releases, pin to a specific version.
+	//
+	// Alternative: Embed the schema using go:embed directive for zero network dependency.
+	schemaURL = "https://raw.githubusercontent.com/githubnext/gh-aw/main/docs/public/schemas/mcp-gateway-config.schema.json"
+
+	// Schema caching to avoid recompiling the JSON schema on every validation
+	// This improves performance by compiling the schema once and reusing it
+	schemaOnce   sync.Once
+	cachedSchema *jsonschema.Schema
+	schemaErr    error
 )
 
 // SetGatewayVersion sets the gateway version for error reporting
@@ -31,22 +56,54 @@ func SetGatewayVersion(version string) {
 	}
 }
 
-// fetchAndFixSchema fetches the JSON schema from the remote URL and fixes
-// regex patterns that use negative lookahead (not supported in JSON Schema Draft 7)
+// fetchAndFixSchema fetches the JSON schema from the remote URL and applies
+// workarounds for JSON Schema Draft 7 limitations.
+//
+// Background:
+// The MCP Gateway configuration schema uses regex patterns with negative lookahead
+// assertions (e.g., "(?!stdio|http)") to exclude specific values. However, JSON Schema
+// Draft 7's pattern validation uses ECMA-262 regex syntax, which does not support
+// negative lookahead in all implementations.
+//
+// Workaround Strategy:
+// Instead of using pattern-based exclusions, we replace them with semantic equivalents:
+//
+//  1. For customServerConfig.type:
+//     - Original: pattern: "^(?!stdio$|http$).*"
+//     - Fixed: not: { enum: ["stdio", "http"] }
+//     - This achieves the same validation goal using JSON Schema's "not" keyword
+//
+//  2. For customSchemas patternProperties:
+//     - Original: "^(?!stdio$|http$)[a-z][a-z0-9-]*$"
+//     - Fixed: "^[a-z][a-z0-9-]*$" (combined with oneOf constraint)
+//     - The oneOf logic in the schema ensures stdio/http are validated separately
+//
+// These replacements maintain semantic equivalence while using only Draft 7 features.
+//
+// Future Consideration:
+// TODO: Investigate if JSON Schema v6 (library upgrade) or Draft 2019-09+/2020-12
+// (newer spec) eliminate this workaround. The jsonschema/v6 Go library may handle
+// these patterns natively, potentially allowing removal of this function entirely.
 func fetchAndFixSchema(url string) ([]byte, error) {
+	logSchema.Printf("Fetching schema from URL: %s", url)
+
 	client := &http.Client{
 		Timeout: 10 * time.Second,
 	}
 
 	resp, err := client.Get(url)
 	if err != nil {
+		logSchema.Printf("Schema fetch failed: %v", err)
 		return nil, fmt.Errorf("failed to fetch schema from %s: %w", url, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		logSchema.Printf("Schema fetch returned non-OK status: %d", resp.StatusCode)
 		return nil, fmt.Errorf("failed to fetch schema: HTTP %d", resp.StatusCode)
 	}
+
+	logSchema.Print("Schema fetched successfully, applying fixes")
 
 	schemaBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -108,51 +165,79 @@ func fetchAndFixSchema(url string) ([]byte, error) {
 	return fixedBytes, nil
 }
 
+// getOrCompileSchema retrieves the cached compiled schema or compiles it on first use.
+// This function uses sync.Once to ensure thread-safe, one-time schema compilation,
+// which significantly improves performance by avoiding repeated schema fetching and
+// compilation on every validation call.
+//
+// The schema is fetched from the remote URL on first call and cached for subsequent uses.
+// If schema compilation fails, the error is also cached to avoid repeated fetch attempts.
+//
+// Returns:
+//   - Compiled JSON schema on success
+//   - Error if schema fetch or compilation fails
+func getOrCompileSchema() (*jsonschema.Schema, error) {
+	schemaOnce.Do(func() {
+		logSchema.Print("Compiling JSON schema for the first time")
+
+		// Fetch the schema from the configured URL
+		schemaJSON, fetchErr := fetchAndFixSchema(schemaURL)
+		if fetchErr != nil {
+			schemaErr = fmt.Errorf("failed to fetch schema: %w", fetchErr)
+			logSchema.Printf("Schema compilation failed: %v", schemaErr)
+			return
+		}
+
+		// Parse the schema to extract its $id
+		var schemaObj map[string]interface{}
+		if parseErr := json.Unmarshal(schemaJSON, &schemaObj); parseErr != nil {
+			schemaErr = fmt.Errorf("failed to parse schema JSON: %w", parseErr)
+			return
+		}
+
+		schemaID, ok := schemaObj["$id"].(string)
+		if !ok || schemaID == "" {
+			schemaID = schemaURL
+		}
+
+		// Compile the schema
+		compiler := jsonschema.NewCompiler()
+		compiler.Draft = jsonschema.Draft7
+
+		// Add the schema with both URLs (the fetch URL and the $id URL)
+		// This ensures references work correctly regardless of which URL is used
+		if addErr := compiler.AddResource(schemaURL, strings.NewReader(string(schemaJSON))); addErr != nil {
+			schemaErr = fmt.Errorf("failed to add schema resource: %w", addErr)
+			return
+		}
+		if schemaID != schemaURL {
+			if addErr := compiler.AddResource(schemaID, strings.NewReader(string(schemaJSON))); addErr != nil {
+				schemaErr = fmt.Errorf("failed to add schema resource with $id: %w", addErr)
+				return
+			}
+		}
+
+		cachedSchema, schemaErr = compiler.Compile(schemaID)
+		if schemaErr != nil {
+			schemaErr = fmt.Errorf("failed to compile schema: %w", schemaErr)
+			logSchema.Printf("Schema compilation failed: %v", schemaErr)
+			return
+		}
+
+		logSchema.Print("Schema compiled and cached successfully")
+	})
+
+	return cachedSchema, schemaErr
+}
+
 // validateJSONSchema validates the raw JSON configuration against the JSON schema
 func validateJSONSchema(data []byte) error {
-	// Fetch the schema from the remote URL (source of truth)
-	schemaURL := "https://raw.githubusercontent.com/githubnext/gh-aw/main/docs/public/schemas/mcp-gateway-config.schema.json"
-	schemaJSON, err := fetchAndFixSchema(schemaURL)
+	logSchema.Printf("Starting JSON schema validation: data_size=%d bytes", len(data))
+
+	// Get the cached compiled schema (or compile it on first use)
+	schema, err := getOrCompileSchema()
 	if err != nil {
-		return fmt.Errorf("failed to fetch schema: %w", err)
-	}
-
-	// Parse the schema
-	var schemaData interface{}
-	if err := json.Unmarshal(schemaJSON, &schemaData); err != nil {
-		return fmt.Errorf("failed to parse schema: %w", err)
-	}
-
-	// Compile the schema
-	compiler := jsonschema.NewCompiler()
-	compiler.Draft = jsonschema.Draft7
-
-	// Add the schema with its $id from the remote schema
-	// Note: The remote schema uses https://docs.github.com/gh-aw/schemas/mcp-gateway-config.schema.json
-	// as its $id, so we need to register it there as well
-	var schemaObj map[string]interface{}
-	if err := json.Unmarshal(schemaJSON, &schemaObj); err != nil {
-		return fmt.Errorf("failed to parse schema JSON: %w", err)
-	}
-
-	schemaID, ok := schemaObj["$id"].(string)
-	if !ok || schemaID == "" {
-		schemaID = schemaURL
-	}
-
-	// Add the schema with both URLs
-	if err := compiler.AddResource(schemaURL, strings.NewReader(string(schemaJSON))); err != nil {
-		return fmt.Errorf("failed to add schema resource: %w", err)
-	}
-	if schemaID != schemaURL {
-		if err := compiler.AddResource(schemaID, strings.NewReader(string(schemaJSON))); err != nil {
-			return fmt.Errorf("failed to add schema resource with $id: %w", err)
-		}
-	}
-
-	schema, err := compiler.Compile(schemaID)
-	if err != nil {
-		return fmt.Errorf("failed to compile schema: %w", err)
+		return err
 	}
 
 	// Parse the configuration
@@ -163,9 +248,11 @@ func validateJSONSchema(data []byte) error {
 
 	// Validate the configuration
 	if err := schema.Validate(configObj); err != nil {
+		logSchema.Printf("Schema validation failed: %v", err)
 		return formatSchemaError(err)
 	}
 
+	logSchema.Print("Schema validation completed successfully")
 	return nil
 }
 
@@ -280,9 +367,12 @@ func formatErrorContext(ve *jsonschema.ValidationError, prefix string) string {
 // validateStringPatterns validates string fields against regex patterns from the schema
 // This provides additional validation beyond the JSON schema validation
 func validateStringPatterns(stdinCfg *StdinConfig) error {
+	logSchema.Printf("Validating string patterns: server_count=%d", len(stdinCfg.MCPServers))
+
 	// Validate server configurations
 	for name, server := range stdinCfg.MCPServers {
 		jsonPath := fmt.Sprintf("mcpServers.%s", name)
+		logSchema.Printf("Validating server: name=%s, type=%s", name, server.Type)
 
 		// Validate container pattern for stdio servers
 		if server.Type == "" || server.Type == "stdio" || server.Type == "local" {
