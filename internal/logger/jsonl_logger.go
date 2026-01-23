@@ -37,21 +37,29 @@ type JSONLRPCMessage struct {
 
 // InitJSONLLogger initializes the global JSONL logger
 func InitJSONLLogger(logDir, fileName string) error {
-	jl := &JSONLLogger{
-		logDir:   logDir,
-		fileName: fileName,
-	}
+	logger, err := initLogger(
+		logDir, fileName, os.O_APPEND,
+		// Setup function: configure the logger after file is opened
+		func(file *os.File, logDir, fileName string) (*JSONLLogger, error) {
+			jl := &JSONLLogger{
+				logDir:   logDir,
+				fileName: fileName,
+				logFile:  file,
+				encoder:  json.NewEncoder(file),
+			}
+			return jl, nil
+		},
+		// Error handler: return error immediately (no fallback)
+		func(err error, logDir, fileName string) (*JSONLLogger, error) {
+			return nil, err
+		},
+	)
 
-	// Try to initialize the log file
-	file, err := initLogFile(logDir, fileName, os.O_APPEND)
 	if err != nil {
 		return err
 	}
 
-	jl.logFile = file
-	jl.encoder = json.NewEncoder(file)
-
-	initGlobalJSONLLogger(jl)
+	initGlobalJSONLLogger(logger)
 	return nil
 }
 

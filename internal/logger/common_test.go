@@ -403,3 +403,311 @@ func TestInitLogFile_ConcurrentCreation(t *testing.T) {
 		}
 	}
 }
+
+// Tests for initLogger generic function
+
+// TestInitLogger_FileLogger verifies that the generic initLogger function
+// works correctly for FileLogger initialization
+func TestInitLogger_FileLogger(t *testing.T) {
+	tmpDir := t.TempDir()
+	logDir := filepath.Join(tmpDir, "logs")
+	fileName := "test.log"
+
+	// Test successful initialization
+	logger, err := initLogger(
+		logDir, fileName, os.O_APPEND,
+		func(file *os.File, logDir, fileName string) (*FileLogger, error) {
+			fl := &FileLogger{
+				logDir:   logDir,
+				fileName: fileName,
+				logFile:  file,
+			}
+			return fl, nil
+		},
+		func(err error, logDir, fileName string) (*FileLogger, error) {
+			// Should not be called on success
+			t.Errorf("Error handler should not be called on successful initialization")
+			return nil, err
+		},
+	)
+
+	require.NoError(t, err, "initLogger should not return error")
+	require.NotNil(t, logger, "logger should not be nil")
+	assert.Equal(t, logDir, logger.logDir, "logDir should match")
+	assert.Equal(t, fileName, logger.fileName, "fileName should match")
+	assert.NotNil(t, logger.logFile, "logFile should not be nil")
+
+	// Verify the log file was created
+	logPath := filepath.Join(logDir, fileName)
+	_, err = os.Stat(logPath)
+	assert.NoError(t, err, "Log file should exist")
+
+	// Clean up
+	logger.Close()
+}
+
+// TestInitLogger_FileLoggerFallback verifies error handling for FileLogger
+func TestInitLogger_FileLoggerFallback(t *testing.T) {
+	// Use a non-writable directory to trigger error
+	logDir := "/root/nonexistent/directory"
+	fileName := "test.log"
+
+	errorHandlerCalled := false
+
+	logger, err := initLogger(
+		logDir, fileName, os.O_APPEND,
+		func(file *os.File, logDir, fileName string) (*FileLogger, error) {
+			// Should not be called on error
+			t.Errorf("Setup handler should not be called on error")
+			return nil, nil
+		},
+		func(err error, logDir, fileName string) (*FileLogger, error) {
+			errorHandlerCalled = true
+			assert.Error(t, err, "Error should be passed to handler")
+			// Return fallback logger
+			fl := &FileLogger{
+				logDir:      logDir,
+				fileName:    fileName,
+				useFallback: true,
+			}
+			return fl, nil
+		},
+	)
+
+	assert.True(t, errorHandlerCalled, "Error handler should be called")
+	require.NoError(t, err, "initLogger should not return error for fallback")
+	require.NotNil(t, logger, "logger should not be nil")
+	assert.True(t, logger.useFallback, "useFallback should be true")
+	assert.Nil(t, logger.logFile, "logFile should be nil for fallback")
+}
+
+// TestInitLogger_JSONLLogger verifies that the generic initLogger function
+// works correctly for JSONLLogger initialization
+func TestInitLogger_JSONLLogger(t *testing.T) {
+	tmpDir := t.TempDir()
+	logDir := filepath.Join(tmpDir, "logs")
+	fileName := "test.jsonl"
+
+	logger, err := initLogger(
+		logDir, fileName, os.O_APPEND,
+		func(file *os.File, logDir, fileName string) (*JSONLLogger, error) {
+			jl := &JSONLLogger{
+				logDir:   logDir,
+				fileName: fileName,
+				logFile:  file,
+			}
+			return jl, nil
+		},
+		func(err error, logDir, fileName string) (*JSONLLogger, error) {
+			// Should not be called on success
+			t.Errorf("Error handler should not be called on successful initialization")
+			return nil, err
+		},
+	)
+
+	require.NoError(t, err, "initLogger should not return error")
+	require.NotNil(t, logger, "logger should not be nil")
+	assert.Equal(t, logDir, logger.logDir, "logDir should match")
+	assert.Equal(t, fileName, logger.fileName, "fileName should match")
+	assert.NotNil(t, logger.logFile, "logFile should not be nil")
+
+	// Verify the log file was created
+	logPath := filepath.Join(logDir, fileName)
+	_, err = os.Stat(logPath)
+	assert.NoError(t, err, "Log file should exist")
+
+	// Clean up
+	logger.Close()
+}
+
+// TestInitLogger_JSONLLoggerError verifies error handling for JSONLLogger
+func TestInitLogger_JSONLLoggerError(t *testing.T) {
+	// Use a non-writable directory to trigger error
+	logDir := "/root/nonexistent/directory"
+	fileName := "test.jsonl"
+
+	errorHandlerCalled := false
+
+	logger, err := initLogger(
+		logDir, fileName, os.O_APPEND,
+		func(file *os.File, logDir, fileName string) (*JSONLLogger, error) {
+			// Should not be called on error
+			t.Errorf("Setup handler should not be called on error")
+			return nil, nil
+		},
+		func(err error, logDir, fileName string) (*JSONLLogger, error) {
+			errorHandlerCalled = true
+			assert.Error(t, err, "Error should be passed to handler")
+			// Return error (no fallback for JSONL)
+			return nil, err
+		},
+	)
+
+	assert.True(t, errorHandlerCalled, "Error handler should be called")
+	assert.Error(t, err, "initLogger should return error")
+	assert.Nil(t, logger, "logger should be nil on error")
+}
+
+// TestInitLogger_MarkdownLogger verifies that the generic initLogger function
+// works correctly for MarkdownLogger initialization
+func TestInitLogger_MarkdownLogger(t *testing.T) {
+	tmpDir := t.TempDir()
+	logDir := filepath.Join(tmpDir, "logs")
+	fileName := "test.md"
+
+	logger, err := initLogger(
+		logDir, fileName, os.O_TRUNC,
+		func(file *os.File, logDir, fileName string) (*MarkdownLogger, error) {
+			ml := &MarkdownLogger{
+				logDir:      logDir,
+				fileName:    fileName,
+				logFile:     file,
+				initialized: false,
+			}
+			return ml, nil
+		},
+		func(err error, logDir, fileName string) (*MarkdownLogger, error) {
+			// Should not be called on success
+			t.Errorf("Error handler should not be called on successful initialization")
+			return nil, err
+		},
+	)
+
+	require.NoError(t, err, "initLogger should not return error")
+	require.NotNil(t, logger, "logger should not be nil")
+	assert.Equal(t, logDir, logger.logDir, "logDir should match")
+	assert.Equal(t, fileName, logger.fileName, "fileName should match")
+	assert.NotNil(t, logger.logFile, "logFile should not be nil")
+	assert.False(t, logger.initialized, "initialized should be false")
+
+	// Verify the log file was created
+	logPath := filepath.Join(logDir, fileName)
+	_, err = os.Stat(logPath)
+	assert.NoError(t, err, "Log file should exist")
+
+	// Clean up
+	logger.Close()
+}
+
+// TestInitLogger_MarkdownLoggerFallback verifies error handling for MarkdownLogger
+func TestInitLogger_MarkdownLoggerFallback(t *testing.T) {
+	// Use a non-writable directory to trigger error
+	logDir := "/root/nonexistent/directory"
+	fileName := "test.md"
+
+	errorHandlerCalled := false
+
+	logger, err := initLogger(
+		logDir, fileName, os.O_TRUNC,
+		func(file *os.File, logDir, fileName string) (*MarkdownLogger, error) {
+			// Should not be called on error
+			t.Errorf("Setup handler should not be called on error")
+			return nil, nil
+		},
+		func(err error, logDir, fileName string) (*MarkdownLogger, error) {
+			errorHandlerCalled = true
+			assert.Error(t, err, "Error should be passed to handler")
+			// Return fallback logger
+			ml := &MarkdownLogger{
+				logDir:      logDir,
+				fileName:    fileName,
+				useFallback: true,
+			}
+			return ml, nil
+		},
+	)
+
+	assert.True(t, errorHandlerCalled, "Error handler should be called")
+	require.NoError(t, err, "initLogger should not return error for fallback")
+	require.NotNil(t, logger, "logger should not be nil")
+	assert.True(t, logger.useFallback, "useFallback should be true")
+	assert.Nil(t, logger.logFile, "logFile should be nil for fallback")
+}
+
+// TestInitLogger_SetupError verifies that setup errors are handled correctly
+func TestInitLogger_SetupError(t *testing.T) {
+	tmpDir := t.TempDir()
+	logDir := filepath.Join(tmpDir, "logs")
+	fileName := "test.log"
+
+	logger, err := initLogger(
+		logDir, fileName, os.O_APPEND,
+		func(file *os.File, logDir, fileName string) (*FileLogger, error) {
+			// Simulate setup error
+			return nil, assert.AnError
+		},
+		func(err error, logDir, fileName string) (*FileLogger, error) {
+			// Should not be called for setup errors
+			t.Errorf("Error handler should not be called for setup errors")
+			return nil, err
+		},
+	)
+
+	assert.Error(t, err, "initLogger should return error on setup failure")
+	assert.Equal(t, assert.AnError, err, "Error should match setup error")
+	assert.Nil(t, logger, "logger should be nil on setup error")
+
+	// Verify the log file was created but then closed
+	logPath := filepath.Join(logDir, fileName)
+	_, err = os.Stat(logPath)
+	assert.NoError(t, err, "Log file should exist even after setup error")
+}
+
+// TestInitLogger_FileFlags verifies that different file flags are respected
+func TestInitLogger_FileFlags(t *testing.T) {
+	tmpDir := t.TempDir()
+	logDir := filepath.Join(tmpDir, "logs")
+	fileName := "test-flags.log"
+	logPath := filepath.Join(logDir, fileName)
+
+	// Create initial file with some content
+	err := os.MkdirAll(logDir, 0755)
+	require.NoError(t, err, "Failed to create log directory")
+	err = os.WriteFile(logPath, []byte("initial content\n"), 0644)
+	require.NoError(t, err, "Failed to write initial content")
+
+	// Test O_APPEND - should preserve content
+	logger1, err := initLogger(
+		logDir, fileName, os.O_APPEND,
+		func(file *os.File, logDir, fileName string) (*FileLogger, error) {
+			// Write additional content
+			_, err := file.WriteString("appended content\n")
+			require.NoError(t, err, "Failed to write content")
+			return &FileLogger{logFile: file}, nil
+		},
+		func(err error, logDir, fileName string) (*FileLogger, error) {
+			return nil, err
+		},
+	)
+	require.NoError(t, err, "initLogger should not return error")
+	logger1.Close()
+
+	// Read file and verify content was appended
+	content, err := os.ReadFile(logPath)
+	require.NoError(t, err, "Failed to read file")
+	assert.Contains(t, string(content), "initial content", "File should contain initial content")
+	assert.Contains(t, string(content), "appended content", "File should contain appended content")
+
+	// Test O_TRUNC - should replace content
+	logger2, err := initLogger(
+		logDir, fileName, os.O_TRUNC,
+		func(file *os.File, logDir, fileName string) (*MarkdownLogger, error) {
+			// Write new content
+			_, err := file.WriteString("new content\n")
+			require.NoError(t, err, "Failed to write content")
+			return &MarkdownLogger{logFile: file}, nil
+		},
+		func(err error, logDir, fileName string) (*MarkdownLogger, error) {
+			return nil, err
+		},
+	)
+	require.NoError(t, err, "initLogger should not return error")
+	logger2.Close()
+
+	// Read file and verify content was truncated
+	content, err = os.ReadFile(logPath)
+	require.NoError(t, err, "Failed to read file")
+	assert.NotContains(t, string(content), "initial content", "File should not contain initial content")
+	assert.NotContains(t, string(content), "appended content", "File should not contain appended content")
+	assert.Contains(t, string(content), "new content", "File should contain new content")
+}
