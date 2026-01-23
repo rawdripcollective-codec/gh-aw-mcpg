@@ -3,7 +3,6 @@ package server
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -26,9 +25,8 @@ func rejectIfShutdown(unifiedServer *UnifiedServer, next http.Handler) http.Hand
 			logger.LogWarn("shutdown", "Request rejected during shutdown, remote=%s, path=%s", r.RemoteAddr, r.URL.Path)
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusServiceUnavailable)
-			json.NewEncoder(w).Encode(map[string]string{
-				"error": "Gateway is shutting down",
-			})
+			// Use pre-formatted JSON to avoid encoding errors
+			w.Write([]byte(`{"error":"Gateway is shutting down"}`))
 			return
 		}
 		next.ServeHTTP(w, r)
