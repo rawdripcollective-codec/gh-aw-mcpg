@@ -26,25 +26,31 @@ var (
 
 // InitMarkdownLogger initializes the global markdown logger
 func InitMarkdownLogger(logDir, fileName string) error {
-	ml := &MarkdownLogger{
-		logDir:   logDir,
-		fileName: fileName,
-	}
+	logger, err := initLogger(
+		logDir, fileName, os.O_TRUNC,
+		// Setup function: configure the logger after file is opened
+		func(file *os.File, logDir, fileName string) (*MarkdownLogger, error) {
+			ml := &MarkdownLogger{
+				logDir:      logDir,
+				fileName:    fileName,
+				logFile:     file,
+				initialized: false, // Will be initialized on first write
+			}
+			return ml, nil
+		},
+		// Error handler: set fallback mode (no stdout redirect)
+		func(err error, logDir, fileName string) (*MarkdownLogger, error) {
+			ml := &MarkdownLogger{
+				logDir:      logDir,
+				fileName:    fileName,
+				useFallback: true,
+			}
+			return ml, nil
+		},
+	)
 
-	// Try to initialize the log file
-	file, err := initLogFile(logDir, fileName, os.O_TRUNC)
-	if err != nil {
-		// File initialization failed - set fallback mode
-		ml.useFallback = true
-		initGlobalMarkdownLogger(ml)
-		return nil
-	}
-
-	ml.logFile = file
-	ml.initialized = false // Will be initialized on first write
-
-	initGlobalMarkdownLogger(ml)
-	return nil
+	initGlobalMarkdownLogger(logger)
+	return err
 }
 
 // initializeFile writes the HTML details header on first write

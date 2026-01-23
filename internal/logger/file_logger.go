@@ -28,30 +28,35 @@ var (
 // InitFileLogger initializes the global file logger
 // If the log directory doesn't exist and can't be created, falls back to stdout
 func InitFileLogger(logDir, fileName string) error {
-	fl := &FileLogger{
-		logDir:   logDir,
-		fileName: fileName,
-	}
+	logger, err := initLogger(
+		logDir, fileName, os.O_APPEND,
+		// Setup function: configure the logger after file is opened
+		func(file *os.File, logDir, fileName string) (*FileLogger, error) {
+			fl := &FileLogger{
+				logDir:   logDir,
+				fileName: fileName,
+				logFile:  file,
+				logger:   log.New(file, "", 0),
+			}
+			log.Printf("Logging to file: %s", filepath.Join(logDir, fileName))
+			return fl, nil
+		},
+		// Error handler: fallback to stdout on error
+		func(err error, logDir, fileName string) (*FileLogger, error) {
+			log.Printf("WARNING: Failed to initialize log file: %v", err)
+			log.Printf("WARNING: Falling back to stdout for logging")
+			fl := &FileLogger{
+				logDir:      logDir,
+				fileName:    fileName,
+				useFallback: true,
+				logger:      log.New(os.Stdout, "", 0), // We'll add our own timestamp
+			}
+			return fl, nil
+		},
+	)
 
-	// Try to initialize the log file
-	file, err := initLogFile(logDir, fileName, os.O_APPEND)
-	if err != nil {
-		// File initialization failed - fallback to stdout
-		log.Printf("WARNING: Failed to initialize log file: %v", err)
-		log.Printf("WARNING: Falling back to stdout for logging")
-		fl.useFallback = true
-		fl.logger = log.New(os.Stdout, "", 0) // We'll add our own timestamp
-		initGlobalFileLogger(fl)
-		return nil
-	}
-
-	fl.logFile = file
-	fl.logger = log.New(file, "", 0)
-
-	log.Printf("Logging to file: %s", filepath.Join(logDir, fileName))
-
-	initGlobalFileLogger(fl)
-	return nil
+	initGlobalFileLogger(logger)
+	return err
 }
 
 // Close closes the log file
