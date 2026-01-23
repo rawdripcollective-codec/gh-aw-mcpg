@@ -28,6 +28,20 @@ var (
 	// logSchema is the debug logger for schema validation
 	logSchema = logger.New("config:validation_schema")
 
+	// Schema URL configuration
+	// This URL points to the source of truth for the MCP Gateway configuration schema.
+	//
+	// Build Reproducibility:
+	// For production builds, consider pinning to a specific commit SHA or version tag:
+	//   - Commit SHA: "https://raw.githubusercontent.com/githubnext/gh-aw/<commit-sha>/docs/public/schemas/mcp-gateway-config.schema.json"
+	//   - Version tag: "https://raw.githubusercontent.com/githubnext/gh-aw/v1.0.0/docs/public/schemas/mcp-gateway-config.schema.json"
+	//
+	// Using 'main' branch ensures we always use the latest schema but may introduce
+	// changes that break builds. For stable releases, pin to a specific version.
+	//
+	// Alternative: Embed the schema using go:embed directive for zero network dependency.
+	schemaURL = "https://raw.githubusercontent.com/githubnext/gh-aw/main/docs/public/schemas/mcp-gateway-config.schema.json"
+
 	// Schema caching to avoid recompiling the JSON schema on every validation
 	// This improves performance by compiling the schema once and reusing it
 	schemaOnce   sync.Once
@@ -166,9 +180,7 @@ func getOrCompileSchema() (*jsonschema.Schema, error) {
 	schemaOnce.Do(func() {
 		logSchema.Print("Compiling JSON schema for the first time")
 		
-		// Fetch the schema from the remote URL (source of truth)
-		// TODO: Consider version-pinning or embedding this schema for build reproducibility
-		schemaURL := "https://raw.githubusercontent.com/githubnext/gh-aw/main/docs/public/schemas/mcp-gateway-config.schema.json"
+		// Fetch the schema from the configured URL
 		schemaJSON, err := fetchAndFixSchema(schemaURL)
 		if err != nil {
 			schemaErr = fmt.Errorf("failed to fetch schema: %w", err)

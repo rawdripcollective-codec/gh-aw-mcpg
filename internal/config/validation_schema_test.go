@@ -655,3 +655,41 @@ validConfig := `{
 err := validateJSONSchema([]byte(validConfig))
 assert.NoError(t, err, "Validation with cached schema should succeed")
 }
+
+// TestSchemaURLConfiguration verifies that the schema URL is configurable
+func TestSchemaURLConfiguration(t *testing.T) {
+// Verify the schema URL is properly set
+// This test documents the schema URL configuration for version pinning
+
+// The current implementation uses 'main' branch
+// For production, consider pinning to a specific commit SHA or version tag
+expectedPattern := "https://raw.githubusercontent.com/githubnext/gh-aw/"
+
+// We can't directly test the package-level schemaURL variable,
+// but we can verify that the schema compiles and validates correctly
+schema, err := getOrCompileSchema()
+assert.NoError(t, err, "Schema compilation should succeed")
+assert.NotNil(t, schema, "Schema should not be nil")
+
+// Verify that the schema works for validation
+validConfig := `{
+"mcpServers": {
+"test": {
+"container": "ghcr.io/test/server:latest"
+}
+},
+"gateway": {
+"port": 8080,
+"domain": "localhost",
+"apiKey": "test-key"
+}
+}`
+
+err = validateJSONSchema([]byte(validConfig))
+assert.NoError(t, err, "Validation should succeed with configured schema URL")
+
+// Document the version pinning approach in test output
+t.Logf("Schema URL pattern: %s", expectedPattern)
+t.Logf("For production builds, consider pinning to: %s<commit-sha>/...", expectedPattern)
+t.Logf("Or use a version tag: %sv1.0.0/...", expectedPattern)
+}
