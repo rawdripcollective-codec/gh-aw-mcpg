@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/githubnext/gh-aw-mcpg/internal/config/rules"
+	"github.com/githubnext/gh-aw-mcpg/internal/logger"
 	"github.com/santhosh-tekuri/jsonschema/v5"
 )
 
@@ -22,6 +23,9 @@ var (
 
 	// gatewayVersion stores the version string to include in error messages
 	gatewayVersion = "dev"
+	
+	// logSchema is the debug logger for schema validation
+	logSchema = logger.New("config:validation_schema")
 )
 
 // SetGatewayVersion sets the gateway version for error reporting
@@ -34,19 +38,25 @@ func SetGatewayVersion(version string) {
 // fetchAndFixSchema fetches the JSON schema from the remote URL and fixes
 // regex patterns that use negative lookahead (not supported in JSON Schema Draft 7)
 func fetchAndFixSchema(url string) ([]byte, error) {
+	logSchema.Printf("Fetching schema from URL: %s", url)
+	
 	client := &http.Client{
 		Timeout: 10 * time.Second,
 	}
 
 	resp, err := client.Get(url)
 	if err != nil {
+		logSchema.Printf("Schema fetch failed: %v", err)
 		return nil, fmt.Errorf("failed to fetch schema from %s: %w", url, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		logSchema.Printf("Schema fetch returned non-OK status: %d", resp.StatusCode)
 		return nil, fmt.Errorf("failed to fetch schema: HTTP %d", resp.StatusCode)
 	}
+	
+	logSchema.Print("Schema fetched successfully, applying fixes")
 
 	schemaBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -110,6 +120,8 @@ func fetchAndFixSchema(url string) ([]byte, error) {
 
 // validateJSONSchema validates the raw JSON configuration against the JSON schema
 func validateJSONSchema(data []byte) error {
+	logSchema.Printf("Starting JSON schema validation: data_size=%d bytes", len(data))
+	
 	// Fetch the schema from the remote URL (source of truth)
 	schemaURL := "https://raw.githubusercontent.com/githubnext/gh-aw/main/docs/public/schemas/mcp-gateway-config.schema.json"
 	schemaJSON, err := fetchAndFixSchema(schemaURL)
@@ -163,9 +175,11 @@ func validateJSONSchema(data []byte) error {
 
 	// Validate the configuration
 	if err := schema.Validate(configObj); err != nil {
+		logSchema.Printf("Schema validation failed: %v", err)
 		return formatSchemaError(err)
 	}
 
+	logSchema.Print("Schema validation completed successfully")
 	return nil
 }
 
@@ -280,9 +294,12 @@ func formatErrorContext(ve *jsonschema.ValidationError, prefix string) string {
 // validateStringPatterns validates string fields against regex patterns from the schema
 // This provides additional validation beyond the JSON schema validation
 func validateStringPatterns(stdinCfg *StdinConfig) error {
+	logSchema.Printf("Validating string patterns: server_count=%d", len(stdinCfg.MCPServers))
+	
 	// Validate server configurations
 	for name, server := range stdinCfg.MCPServers {
 		jsonPath := fmt.Sprintf("mcpServers.%s", name)
+		logSchema.Printf("Validating server: name=%s, type=%s", name, server.Type)
 
 		// Validate container pattern for stdio servers
 		if server.Type == "" || server.Type == "stdio" || server.Type == "local" {
