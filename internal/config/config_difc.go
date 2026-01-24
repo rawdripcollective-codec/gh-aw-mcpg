@@ -4,39 +4,36 @@ package config
 
 // GuardConfig represents a DIFC guard configuration (experimental).
 type GuardConfig struct {
-	// Type is the guard type: "remote" for MCP-based guards
+	// Type is the guard type: "wasm" for WebAssembly guards
 	Type string `toml:"type" json:"type"`
 
-	// Command is the executable command (for stdio guards)
-	Command string `toml:"command" json:"command,omitempty"`
+	// Path is the path to the WASM file (mutually exclusive with URL)
+	Path string `toml:"path" json:"path,omitempty"`
 
-	// Args are the command arguments
-	Args []string `toml:"args" json:"args,omitempty"`
-
-	// Env holds environment variables for the guard
-	Env map[string]string `toml:"env" json:"env,omitempty"`
-
-	// URL is the HTTP endpoint URL for remote guards
+	// URL is the URL to download WASM file from (mutually exclusive with Path)
 	URL string `toml:"url" json:"url,omitempty"`
+
+	// SHA256 is the checksum for URL downloads (required when URL is set)
+	SHA256 string `toml:"sha256" json:"sha256,omitempty"`
+
+	// CacheDir is the directory to cache downloaded WASM files (optional)
+	CacheDir string `toml:"cache_dir" json:"cacheDir,omitempty"`
 }
 
 // StdinGuardConfig represents a DIFC guard configuration from stdin JSON (experimental).
 type StdinGuardConfig struct {
-	// Type is the guard type: "remote" for MCP-based guards
+	// Type is the guard type: "wasm" for WebAssembly guards
 	Type string `json:"type"`
 
-	// Command is the executable command (for stdio guards)
-	Command string `json:"command,omitempty"`
+	// Path is the path to the WASM file (mutually exclusive with URL)
+	Path string `json:"path,omitempty"`
 
-	// Args are the command arguments
-	Args []string `json:"args,omitempty"`
-
-	// Env holds environment variables
-	Env map[string]string `json:"env,omitempty"`
-
-	// Container is the container image (for containerized guards)
-	Container string `json:"container,omitempty"`
-
-	// URL is the HTTP endpoint URL for remote guards
+	// URL is the URL to download WASM file from (mutually exclusive with Path)
 	URL string `json:"url,omitempty"`
+
+	// SHA256 is the checksum for URL downloads (required when URL is set)
+	SHA256 string `json:"sha256,omitempty"`
+
+	// CacheDir is the directory to cache downloaded WASM files (optional)
+	CacheDir string `json:"cacheDir,omitempty"`
 }
