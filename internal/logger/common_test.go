@@ -19,54 +19,53 @@ func TestCloseLogFile_NilFile(t *testing.T) {
 }
 
 func TestCloseLogFile_ValidFile(t *testing.T) {
+	assert := assert.New(t)
+	require := require.New(t)
+
 	tmpDir := t.TempDir()
 	logPath := filepath.Join(tmpDir, "test.log")
 
 	// Create and write to a file
 	file, err := os.Create(logPath)
-	require.NoError(t, err, "Failed to create test file")
+	require.NoError(err, "Failed to create test file")
 
 	// Write some content
-	if _, err := file.WriteString("test content\n"); err != nil {
-		t.Fatalf("Failed to write to file: %v", err)
-	}
+	_, err = file.WriteString("test content\n")
+	require.NoError(err, "Failed to write to file")
 
 	// Close using the helper
 	var mu sync.Mutex
-	if err := closeLogFile(file, &mu, "test"); err != nil {
-		t.Errorf("closeLogFile failed: %v", err)
-	}
+	err = closeLogFile(file, &mu, "test")
+	assert.NoError(err, "closeLogFile failed")
 
 	// Verify file was actually closed and flushed
 	content, err := os.ReadFile(logPath)
-	require.NoError(t, err, "Failed to read file after close")
-
-	if !strings.Contains(string(content), "test content") {
-		t.Errorf("File content not preserved: %s", content)
-	}
+	require.NoError(err, "Failed to read file after close")
+	assert.Contains(string(content), "test content", "File content should be preserved")
 }
 
 func TestCloseLogFile_AlreadyClosedFile(t *testing.T) {
+	assert := assert.New(t)
+	require := require.New(t)
+
 	tmpDir := t.TempDir()
 	logPath := filepath.Join(tmpDir, "test.log")
 
 	file, err := os.Create(logPath)
-	require.NoError(t, err, "Failed to create test file")
+	require.NoError(err, "Failed to create test file")
 
 	// Close the file first
-	if err := file.Close(); err != nil {
-		t.Fatalf("Failed to close file initially: %v", err)
-	}
+	err = file.Close()
+	require.NoError(err, "Failed to close file initially")
 
 	// Try to close again using helper - should return an error
 	var mu sync.Mutex
 	err = closeLogFile(file, &mu, "test")
-	if err == nil {
-		t.Error("Expected error when closing already-closed file, got nil")
-	}
+	assert.Error(err, "Expected error when closing already-closed file")
 }
 
 func TestCloseLogFile_Concurrent(t *testing.T) {
+	assert := assert.New(t)
 	tmpDir := t.TempDir()
 
 	// Test that multiple goroutines can't corrupt the close process
@@ -102,7 +101,7 @@ func TestCloseLogFile_Concurrent(t *testing.T) {
 	close(errors)
 
 	for err := range errors {
-		t.Errorf("Concurrent close error: %v", err)
+		assert.NoError(err, "Concurrent close should not error")
 	}
 }
 
@@ -125,188 +124,166 @@ func TestCloseLogFile_PreservesMutexSemantics(t *testing.T) {
 }
 
 func TestCloseLogFile_LoggerNameInErrorMessages(t *testing.T) {
+	assert := assert.New(t)
+	require := require.New(t)
+
 	// Create a file in a way that will cause sync to potentially behave differently
 	tmpDir := t.TempDir()
 	logPath := filepath.Join(tmpDir, "test.log")
 
 	file, err := os.Create(logPath)
-	require.NoError(t, err, "Failed to create test file")
+	require.NoError(err, "Failed to create test file")
 
 	// Close normally - this test mainly validates the function signature
 	// In a real scenario, we'd capture log output to verify the logger name appears
 	var mu sync.Mutex
-	if err := closeLogFile(file, &mu, "MyCustomLogger"); err != nil {
-		t.Errorf("closeLogFile failed: %v", err)
-	}
+	err = closeLogFile(file, &mu, "MyCustomLogger")
+	assert.NoError(err, "closeLogFile failed")
 }
 
 func TestCloseLogFile_EmptyFile(t *testing.T) {
+	assert := assert.New(t)
+	require := require.New(t)
+
 	tmpDir := t.TempDir()
 	logPath := filepath.Join(tmpDir, "empty.log")
 
 	file, err := os.Create(logPath)
-	require.NoError(t, err, "Failed to create test file")
+	require.NoError(err, "Failed to create test file")
 
 	// Don't write anything, just close
 	var mu sync.Mutex
-	if err := closeLogFile(file, &mu, "test"); err != nil {
-		t.Errorf("closeLogFile failed for empty file: %v", err)
-	}
+	err = closeLogFile(file, &mu, "test")
+	assert.NoError(err, "closeLogFile failed for empty file")
 
 	// Verify file exists and is empty
 	info, err := os.Stat(logPath)
-	require.NoError(t, err, "Failed to stat file after close")
-
-	if info.Size() != 0 {
-		t.Errorf("Expected empty file, got size: %d", info.Size())
-	}
+	require.NoError(err, "Failed to stat file after close")
+	assert.Equal(int64(0), info.Size(), "File should be empty")
 }
 
 // Tests for initLogFile helper function
 
 func TestInitLogFile_Success(t *testing.T) {
+	assert := assert.New(t)
 	tmpDir := t.TempDir()
 	logDir := filepath.Join(tmpDir, "logs")
 	fileName := "test.log"
 
 	// Initialize log file with O_APPEND flag
 	file, err := initLogFile(logDir, fileName, os.O_APPEND)
-	if err != nil {
-		t.Fatalf("initLogFile failed: %v", err)
-	}
+	assert.NoError(err, "initLogFile should succeed")
 	defer file.Close()
 
 	// Verify directory was created
-	if _, err := os.Stat(logDir); os.IsNotExist(err) {
-		t.Errorf("Log directory was not created: %s", logDir)
-	}
+	_, err = os.Stat(logDir)
+	assert.NoError(err, "Log directory should exist")
 
 	// Verify file was created
 	logPath := filepath.Join(logDir, fileName)
-	if _, err := os.Stat(logPath); os.IsNotExist(err) {
-		t.Errorf("Log file was not created: %s", logPath)
-	}
+	_, err = os.Stat(logPath)
+	assert.NoError(err, "Log file should exist")
 
 	// Write some content to verify file is writable
-	if _, err := file.WriteString("test content\n"); err != nil {
-		t.Errorf("Failed to write to log file: %v", err)
-	}
+	_, err = file.WriteString("test content\n")
+	assert.NoError(err, "Log file should be writable")
 }
 
 func TestInitLogFile_CreatesDirectory(t *testing.T) {
+	assert := assert.New(t)
 	tmpDir := t.TempDir()
 	logDir := filepath.Join(tmpDir, "nested", "log", "directory")
 	fileName := "test.log"
 
 	// Directory doesn't exist yet
-	if _, err := os.Stat(logDir); !os.IsNotExist(err) {
-		t.Fatal("Directory should not exist yet")
-	}
+	_, err := os.Stat(logDir)
+	assert.True(os.IsNotExist(err), "Directory should not exist yet")
 
 	file, err := initLogFile(logDir, fileName, os.O_APPEND)
-	if err != nil {
-		t.Fatalf("initLogFile failed: %v", err)
-	}
+	assert.NoError(err, "initLogFile should succeed")
 	defer file.Close()
 
 	// Verify nested directory was created
-	if _, err := os.Stat(logDir); os.IsNotExist(err) {
-		t.Errorf("Nested log directory was not created: %s", logDir)
-	}
+	_, err = os.Stat(logDir)
+	assert.NoError(err, "Nested log directory should be created")
 }
 
 func TestInitLogFile_AppendFlag(t *testing.T) {
+	assert := assert.New(t)
+	require := require.New(t)
+
 	tmpDir := t.TempDir()
 	logDir := filepath.Join(tmpDir, "logs")
 	fileName := "test.log"
 
 	// Create file with initial content using O_TRUNC
 	file1, err := initLogFile(logDir, fileName, os.O_TRUNC)
-	if err != nil {
-		t.Fatalf("First initLogFile failed: %v", err)
-	}
-	if _, err := file1.WriteString("initial content\n"); err != nil {
-		t.Fatalf("Failed to write initial content: %v", err)
-	}
+	require.NoError(err, "First initLogFile should succeed")
+	_, err = file1.WriteString("initial content\n")
+	require.NoError(err, "Should write initial content")
 	file1.Close()
 
 	// Open file again with O_APPEND
 	file2, err := initLogFile(logDir, fileName, os.O_APPEND)
-	if err != nil {
-		t.Fatalf("Second initLogFile failed: %v", err)
-	}
-	if _, err := file2.WriteString("appended content\n"); err != nil {
-		t.Fatalf("Failed to write appended content: %v", err)
-	}
+	require.NoError(err, "Second initLogFile should succeed")
+	_, err = file2.WriteString("appended content\n")
+	require.NoError(err, "Should write appended content")
 	file2.Close()
 
 	// Verify file contains both contents
 	logPath := filepath.Join(logDir, fileName)
 	content, err := os.ReadFile(logPath)
-	if err != nil {
-		t.Fatalf("Failed to read log file: %v", err)
-	}
+	require.NoError(err, "Should read log file")
 
 	contentStr := string(content)
-	if !strings.Contains(contentStr, "initial content") {
-		t.Errorf("File should contain initial content")
-	}
-	if !strings.Contains(contentStr, "appended content") {
-		t.Errorf("File should contain appended content")
-	}
+	assert.Contains(contentStr, "initial content", "File should contain initial content")
+	assert.Contains(contentStr, "appended content", "File should contain appended content")
 }
 
 func TestInitLogFile_TruncFlag(t *testing.T) {
+	assert := assert.New(t)
+	require := require.New(t)
+
 	tmpDir := t.TempDir()
 	logDir := filepath.Join(tmpDir, "logs")
 	fileName := "test.log"
 
 	// Create file with initial content
 	file1, err := initLogFile(logDir, fileName, os.O_APPEND)
-	if err != nil {
-		t.Fatalf("First initLogFile failed: %v", err)
-	}
-	if _, err := file1.WriteString("initial content\n"); err != nil {
-		t.Fatalf("Failed to write initial content: %v", err)
-	}
+	require.NoError(err, "First initLogFile should succeed")
+	_, err = file1.WriteString("initial content\n")
+	require.NoError(err, "Should write initial content")
 	file1.Close()
 
 	// Open file again with O_TRUNC (should truncate)
 	file2, err := initLogFile(logDir, fileName, os.O_TRUNC)
-	if err != nil {
-		t.Fatalf("Second initLogFile failed: %v", err)
-	}
-	if _, err := file2.WriteString("new content\n"); err != nil {
-		t.Fatalf("Failed to write new content: %v", err)
-	}
+	require.NoError(err, "Second initLogFile should succeed")
+	_, err = file2.WriteString("new content\n")
+	require.NoError(err, "Should write new content")
 	file2.Close()
 
 	// Verify file only contains new content
 	logPath := filepath.Join(logDir, fileName)
 	content, err := os.ReadFile(logPath)
-	if err != nil {
-		t.Fatalf("Failed to read log file: %v", err)
-	}
+	require.NoError(err, "Should read log file")
 
 	contentStr := string(content)
-	if strings.Contains(contentStr, "initial content") {
-		t.Errorf("File should not contain initial content (should be truncated)")
-	}
-	if !strings.Contains(contentStr, "new content") {
-		t.Errorf("File should contain new content")
-	}
+	assert.NotContains(contentStr, "initial content", "File should not contain initial content (should be truncated)")
+	assert.Contains(contentStr, "new content", "File should contain new content")
 }
 
 func TestInitLogFile_InvalidDirectory(t *testing.T) {
+	assert := assert.New(t)
+	require := require.New(t)
+
 	// Try to create a log file in a directory that can't be created
 	// Use a path that includes a file as a directory component
 	tmpDir := t.TempDir()
 	filePath := filepath.Join(tmpDir, "not-a-dir")
 
 	// Create a regular file (not a directory)
-	if err := os.WriteFile(filePath, []byte("content"), 0644); err != nil {
-		t.Fatalf("Failed to create test file: %v", err)
-	}
+	err := os.WriteFile(filePath, []byte("content"), 0644)
+	require.NoError(err, "Should create test file")
 
 	// Try to create a log directory under this file (should fail)
 	logDir := filepath.Join(filePath, "logs")
@@ -318,12 +295,12 @@ func TestInitLogFile_InvalidDirectory(t *testing.T) {
 		t.Fatal("initLogFile should fail when directory can't be created")
 	}
 
-	if !strings.Contains(err.Error(), "failed to create log directory") {
-		t.Errorf("Expected 'failed to create log directory' error, got: %v", err)
-	}
+	assert.Contains(err.Error(), "failed to create log directory", "Error should mention directory creation failure")
 }
 
 func TestInitLogFile_UnwritableDirectory(t *testing.T) {
+	assert := assert.New(t)
+
 	// Use a non-writable directory path
 	// On most systems, /root or similar paths are not writable by regular users
 	logDir := "/root/nonexistent/directory"
@@ -338,12 +315,11 @@ func TestInitLogFile_UnwritableDirectory(t *testing.T) {
 	}
 
 	// Verify error message includes "failed to create log directory"
-	if !strings.Contains(err.Error(), "failed to create log directory") {
-		t.Errorf("Expected 'failed to create log directory' error, got: %v", err)
-	}
+	assert.Contains(err.Error(), "failed to create log directory", "Error should mention directory creation failure")
 }
 
 func TestInitLogFile_EmptyFileName(t *testing.T) {
+	assert := assert.New(t)
 	tmpDir := t.TempDir()
 	logDir := filepath.Join(tmpDir, "logs")
 	fileName := ""
@@ -354,12 +330,11 @@ func TestInitLogFile_EmptyFileName(t *testing.T) {
 		t.Fatal("initLogFile should fail with empty fileName")
 	}
 
-	if !strings.Contains(err.Error(), "failed to open log file") {
-		t.Errorf("Expected 'failed to open log file' error, got: %v", err)
-	}
+	assert.Contains(err.Error(), "failed to open log file", "Error should mention file opening failure")
 }
 
 func TestInitLogFile_ConcurrentCreation(t *testing.T) {
+	assert := assert.New(t)
 	tmpDir := t.TempDir()
 	logDir := filepath.Join(tmpDir, "logs")
 
@@ -391,24 +366,24 @@ func TestInitLogFile_ConcurrentCreation(t *testing.T) {
 	close(errors)
 
 	for err := range errors {
-		t.Errorf("Concurrent file creation error: %v", err)
+		assert.NoError(err, "Concurrent file creation should not error")
 	}
 
 	// Verify all files were created
 	for i := 0; i < 10; i++ {
 		fileName := fmt.Sprintf("test-%d.log", i)
 		logPath := filepath.Join(logDir, fileName)
-		if _, err := os.Stat(logPath); os.IsNotExist(err) {
-			t.Errorf("File not created: %s", logPath)
-		}
+		_, err := os.Stat(logPath)
+		assert.NoError(err, "File %s should exist", fileName)
 	}
 }
 
 // Tests for initLogger generic function
 
-// TestInitLogger_FileLogger verifies that the generic initLogger function
-// works correctly for FileLogger initialization
 func TestInitLogger_FileLogger(t *testing.T) {
+	assert := assert.New(t)
+	require := require.New(t)
+
 	tmpDir := t.TempDir()
 	logDir := filepath.Join(tmpDir, "logs")
 	fileName := "test.log"
@@ -431,23 +406,25 @@ func TestInitLogger_FileLogger(t *testing.T) {
 		},
 	)
 
-	require.NoError(t, err, "initLogger should not return error")
-	require.NotNil(t, logger, "logger should not be nil")
-	assert.Equal(t, logDir, logger.logDir, "logDir should match")
-	assert.Equal(t, fileName, logger.fileName, "fileName should match")
-	assert.NotNil(t, logger.logFile, "logFile should not be nil")
+	require.NoError(err, "initLogger should not return error")
+	require.NotNil(logger, "logger should not be nil")
+	assert.Equal(logDir, logger.logDir, "logDir should match")
+	assert.Equal(fileName, logger.fileName, "fileName should match")
+	assert.NotNil(logger.logFile, "logFile should not be nil")
 
 	// Verify the log file was created
 	logPath := filepath.Join(logDir, fileName)
 	_, err = os.Stat(logPath)
-	assert.NoError(t, err, "Log file should exist")
+	assert.NoError(err, "Log file should exist")
 
 	// Clean up
 	logger.Close()
 }
 
-// TestInitLogger_FileLoggerFallback verifies error handling for FileLogger
 func TestInitLogger_FileLoggerFallback(t *testing.T) {
+	assert := assert.New(t)
+	require := require.New(t)
+
 	// Use a non-writable directory to trigger error
 	logDir := "/root/nonexistent/directory"
 	fileName := "test.log"
@@ -463,7 +440,7 @@ func TestInitLogger_FileLoggerFallback(t *testing.T) {
 		},
 		func(err error, logDir, fileName string) (*FileLogger, error) {
 			errorHandlerCalled = true
-			assert.Error(t, err, "Error should be passed to handler")
+			assert.Error(err, "Error should be passed to handler")
 			// Return fallback logger
 			fl := &FileLogger{
 				logDir:      logDir,
@@ -474,16 +451,17 @@ func TestInitLogger_FileLoggerFallback(t *testing.T) {
 		},
 	)
 
-	assert.True(t, errorHandlerCalled, "Error handler should be called")
-	require.NoError(t, err, "initLogger should not return error for fallback")
-	require.NotNil(t, logger, "logger should not be nil")
-	assert.True(t, logger.useFallback, "useFallback should be true")
-	assert.Nil(t, logger.logFile, "logFile should be nil for fallback")
+	assert.True(errorHandlerCalled, "Error handler should be called")
+	require.NoError(err, "initLogger should not return error for fallback")
+	require.NotNil(logger, "logger should not be nil")
+	assert.True(logger.useFallback, "useFallback should be true")
+	assert.Nil(logger.logFile, "logFile should be nil for fallback")
 }
 
-// TestInitLogger_JSONLLogger verifies that the generic initLogger function
-// works correctly for JSONLLogger initialization
 func TestInitLogger_JSONLLogger(t *testing.T) {
+	assert := assert.New(t)
+	require := require.New(t)
+
 	tmpDir := t.TempDir()
 	logDir := filepath.Join(tmpDir, "logs")
 	fileName := "test.jsonl"
@@ -505,23 +483,24 @@ func TestInitLogger_JSONLLogger(t *testing.T) {
 		},
 	)
 
-	require.NoError(t, err, "initLogger should not return error")
-	require.NotNil(t, logger, "logger should not be nil")
-	assert.Equal(t, logDir, logger.logDir, "logDir should match")
-	assert.Equal(t, fileName, logger.fileName, "fileName should match")
-	assert.NotNil(t, logger.logFile, "logFile should not be nil")
+	require.NoError(err, "initLogger should not return error")
+	require.NotNil(logger, "logger should not be nil")
+	assert.Equal(logDir, logger.logDir, "logDir should match")
+	assert.Equal(fileName, logger.fileName, "fileName should match")
+	assert.NotNil(logger.logFile, "logFile should not be nil")
 
 	// Verify the log file was created
 	logPath := filepath.Join(logDir, fileName)
 	_, err = os.Stat(logPath)
-	assert.NoError(t, err, "Log file should exist")
+	assert.NoError(err, "Log file should exist")
 
 	// Clean up
 	logger.Close()
 }
 
-// TestInitLogger_JSONLLoggerError verifies error handling for JSONLLogger
 func TestInitLogger_JSONLLoggerError(t *testing.T) {
+	assert := assert.New(t)
+
 	// Use a non-writable directory to trigger error
 	logDir := "/root/nonexistent/directory"
 	fileName := "test.jsonl"
@@ -537,20 +516,21 @@ func TestInitLogger_JSONLLoggerError(t *testing.T) {
 		},
 		func(err error, logDir, fileName string) (*JSONLLogger, error) {
 			errorHandlerCalled = true
-			assert.Error(t, err, "Error should be passed to handler")
+			assert.Error(err, "Error should be passed to handler")
 			// Return error (no fallback for JSONL)
 			return nil, err
 		},
 	)
 
-	assert.True(t, errorHandlerCalled, "Error handler should be called")
-	assert.Error(t, err, "initLogger should return error")
-	assert.Nil(t, logger, "logger should be nil on error")
+	assert.True(errorHandlerCalled, "Error handler should be called")
+	assert.Error(err, "initLogger should return error")
+	assert.Nil(logger, "logger should be nil on error")
 }
 
-// TestInitLogger_MarkdownLogger verifies that the generic initLogger function
-// works correctly for MarkdownLogger initialization
 func TestInitLogger_MarkdownLogger(t *testing.T) {
+	assert := assert.New(t)
+	require := require.New(t)
+
 	tmpDir := t.TempDir()
 	logDir := filepath.Join(tmpDir, "logs")
 	fileName := "test.md"
@@ -573,24 +553,26 @@ func TestInitLogger_MarkdownLogger(t *testing.T) {
 		},
 	)
 
-	require.NoError(t, err, "initLogger should not return error")
-	require.NotNil(t, logger, "logger should not be nil")
-	assert.Equal(t, logDir, logger.logDir, "logDir should match")
-	assert.Equal(t, fileName, logger.fileName, "fileName should match")
-	assert.NotNil(t, logger.logFile, "logFile should not be nil")
-	assert.False(t, logger.initialized, "initialized should be false")
+	require.NoError(err, "initLogger should not return error")
+	require.NotNil(logger, "logger should not be nil")
+	assert.Equal(logDir, logger.logDir, "logDir should match")
+	assert.Equal(fileName, logger.fileName, "fileName should match")
+	assert.NotNil(logger.logFile, "logFile should not be nil")
+	assert.False(logger.initialized, "initialized should be false")
 
 	// Verify the log file was created
 	logPath := filepath.Join(logDir, fileName)
 	_, err = os.Stat(logPath)
-	assert.NoError(t, err, "Log file should exist")
+	assert.NoError(err, "Log file should exist")
 
 	// Clean up
 	logger.Close()
 }
 
-// TestInitLogger_MarkdownLoggerFallback verifies error handling for MarkdownLogger
 func TestInitLogger_MarkdownLoggerFallback(t *testing.T) {
+	assert := assert.New(t)
+	require := require.New(t)
+
 	// Use a non-writable directory to trigger error
 	logDir := "/root/nonexistent/directory"
 	fileName := "test.md"
@@ -606,7 +588,7 @@ func TestInitLogger_MarkdownLoggerFallback(t *testing.T) {
 		},
 		func(err error, logDir, fileName string) (*MarkdownLogger, error) {
 			errorHandlerCalled = true
-			assert.Error(t, err, "Error should be passed to handler")
+			assert.Error(err, "Error should be passed to handler")
 			// Return fallback logger
 			ml := &MarkdownLogger{
 				logDir:      logDir,
@@ -617,15 +599,15 @@ func TestInitLogger_MarkdownLoggerFallback(t *testing.T) {
 		},
 	)
 
-	assert.True(t, errorHandlerCalled, "Error handler should be called")
-	require.NoError(t, err, "initLogger should not return error for fallback")
-	require.NotNil(t, logger, "logger should not be nil")
-	assert.True(t, logger.useFallback, "useFallback should be true")
-	assert.Nil(t, logger.logFile, "logFile should be nil for fallback")
+	assert.True(errorHandlerCalled, "Error handler should be called")
+	require.NoError(err, "initLogger should not return error for fallback")
+	require.NotNil(logger, "logger should not be nil")
+	assert.True(logger.useFallback, "useFallback should be true")
+	assert.Nil(logger.logFile, "logFile should be nil for fallback")
 }
 
-// TestInitLogger_SetupError verifies that setup errors are handled correctly
 func TestInitLogger_SetupError(t *testing.T) {
+	assert := assert.New(t)
 	tmpDir := t.TempDir()
 	logDir := filepath.Join(tmpDir, "logs")
 	fileName := "test.log"
@@ -643,18 +625,20 @@ func TestInitLogger_SetupError(t *testing.T) {
 		},
 	)
 
-	assert.Error(t, err, "initLogger should return error on setup failure")
-	assert.Equal(t, assert.AnError, err, "Error should match setup error")
-	assert.Nil(t, logger, "logger should be nil on setup error")
+	assert.Error(err, "initLogger should return error on setup failure")
+	assert.Equal(assert.AnError, err, "Error should match setup error")
+	assert.Nil(logger, "logger should be nil on setup error")
 
 	// Verify the log file was created but then closed
 	logPath := filepath.Join(logDir, fileName)
 	_, err = os.Stat(logPath)
-	assert.NoError(t, err, "Log file should exist even after setup error")
+	assert.NoError(err, "Log file should exist even after setup error")
 }
 
-// TestInitLogger_FileFlags verifies that different file flags are respected
 func TestInitLogger_FileFlags(t *testing.T) {
+	assert := assert.New(t)
+	require := require.New(t)
+
 	tmpDir := t.TempDir()
 	logDir := filepath.Join(tmpDir, "logs")
 	fileName := "test-flags.log"
@@ -662,9 +646,9 @@ func TestInitLogger_FileFlags(t *testing.T) {
 
 	// Create initial file with some content
 	err := os.MkdirAll(logDir, 0755)
-	require.NoError(t, err, "Failed to create log directory")
+	require.NoError(err, "Failed to create log directory")
 	err = os.WriteFile(logPath, []byte("initial content\n"), 0644)
-	require.NoError(t, err, "Failed to write initial content")
+	require.NoError(err, "Failed to write initial content")
 
 	// Test O_APPEND - should preserve content
 	logger1, err := initLogger(
@@ -672,21 +656,21 @@ func TestInitLogger_FileFlags(t *testing.T) {
 		func(file *os.File, logDir, fileName string) (*FileLogger, error) {
 			// Write additional content
 			_, err := file.WriteString("appended content\n")
-			require.NoError(t, err, "Failed to write content")
+			require.NoError(err, "Failed to write content")
 			return &FileLogger{logFile: file}, nil
 		},
 		func(err error, logDir, fileName string) (*FileLogger, error) {
 			return nil, err
 		},
 	)
-	require.NoError(t, err, "initLogger should not return error")
+	require.NoError(err, "initLogger should not return error")
 	logger1.Close()
 
 	// Read file and verify content was appended
 	content, err := os.ReadFile(logPath)
-	require.NoError(t, err, "Failed to read file")
-	assert.Contains(t, string(content), "initial content", "File should contain initial content")
-	assert.Contains(t, string(content), "appended content", "File should contain appended content")
+	require.NoError(err, "Failed to read file")
+	assert.Contains(string(content), "initial content", "File should contain initial content")
+	assert.Contains(string(content), "appended content", "File should contain appended content")
 
 	// Test O_TRUNC - should replace content
 	logger2, err := initLogger(
@@ -694,20 +678,20 @@ func TestInitLogger_FileFlags(t *testing.T) {
 		func(file *os.File, logDir, fileName string) (*MarkdownLogger, error) {
 			// Write new content
 			_, err := file.WriteString("new content\n")
-			require.NoError(t, err, "Failed to write content")
+			require.NoError(err, "Failed to write content")
 			return &MarkdownLogger{logFile: file}, nil
 		},
 		func(err error, logDir, fileName string) (*MarkdownLogger, error) {
 			return nil, err
 		},
 	)
-	require.NoError(t, err, "initLogger should not return error")
+	require.NoError(err, "initLogger should not return error")
 	logger2.Close()
 
 	// Read file and verify content was truncated
 	content, err = os.ReadFile(logPath)
-	require.NoError(t, err, "Failed to read file")
-	assert.NotContains(t, string(content), "initial content", "File should not contain initial content")
-	assert.NotContains(t, string(content), "appended content", "File should not contain appended content")
-	assert.Contains(t, string(content), "new content", "File should contain new content")
+	require.NoError(err, "Failed to read file")
+	assert.NotContains(string(content), "initial content", "File should not contain initial content")
+	assert.NotContains(string(content), "appended content", "File should not contain appended content")
+	assert.Contains(string(content), "new content", "File should contain new content")
 }
