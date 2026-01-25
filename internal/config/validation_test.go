@@ -691,7 +691,4 @@ func TestLoadFromStdin_ValidationErrors(t *testing.T) {
 	}
 }
 
-// Helper function
-func intPtr(i int) *int {
-	return &i
-}
+// Helper function - defined in validation_string_patterns_test.go

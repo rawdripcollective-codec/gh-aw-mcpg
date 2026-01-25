@@ -8,6 +8,70 @@ import (
 	"sync"
 )
 
+// Close Pattern for Logger Types
+//
+// All logger types in this package should implement their Close() method using this pattern:
+//
+//	func (l *Logger) Close() error {
+//	    l.mu.Lock()
+//	    defer l.mu.Unlock()
+//
+//	    // Optional: Perform cleanup before closing (e.g., write footer)
+//	    // if l.logFile != nil {
+//	    //     if err := writeCleanup(); err != nil {
+//	    //         return closeLogFile(l.logFile, &l.mu, "loggerName")
+//	    //     }
+//	    // }
+//
+//	    return closeLogFile(l.logFile, &l.mu, "loggerName")
+//	}
+//
+// Why this pattern?
+//
+//  1. Mutex protection: Acquire lock at method entry to ensure thread-safe cleanup
+//  2. Deferred unlock: Use defer to release lock even if errors occur
+//  3. Optional cleanup: Logger-specific cleanup (like MarkdownLogger's footer) goes before closeLogFile
+//  4. Shared helper: Always delegate to closeLogFile() for consistent sync and close behavior
+//  5. Error handling: Return errors from closeLogFile to indicate serious issues
+//
+// Examples:
+//
+// Simple Close() with no cleanup (FileLogger, JSONLLogger):
+//
+//	func (fl *FileLogger) Close() error {
+//	    fl.mu.Lock()
+//	    defer fl.mu.Unlock()
+//	    return closeLogFile(fl.logFile, &fl.mu, "file")
+//	}
+//
+// Close() with custom cleanup (MarkdownLogger):
+//
+//	func (ml *MarkdownLogger) Close() error {
+//	    ml.mu.Lock()
+//	    defer ml.mu.Unlock()
+//
+//	    if ml.logFile != nil {
+//	        // Write closing details tag before closing
+//	        footer := "\n</details>\n"
+//	        if _, err := ml.logFile.WriteString(footer); err != nil {
+//	            // Even if footer write fails, try to close the file properly
+//	            return closeLogFile(ml.logFile, &ml.mu, "markdown")
+//	        }
+//
+//	        // Footer written successfully, now close
+//	        return closeLogFile(ml.logFile, &ml.mu, "markdown")
+//	    }
+//	    return nil
+//	}
+//
+// This pattern is intentionally duplicated across logger types rather than abstracted:
+//   - It's a standard Go idiom for wrapper methods
+//   - The duplication is minimal (5-14 lines per type)
+//   - Each logger can customize cleanup as needed
+//   - The shared closeLogFile() helper eliminates complex logic duplication
+//
+// When adding a new logger type, follow this pattern to ensure consistent behavior.
+
 // closeLogFile is a common helper for closing log files with consistent error handling.
 // It syncs buffered data before closing and handles errors appropriately.
 // The mutex should already be held by the caller.
