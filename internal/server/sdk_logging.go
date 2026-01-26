@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/githubnext/gh-aw-mcpg/internal/auth"
 	"github.com/githubnext/gh-aw-mcpg/internal/logger"
 )
 
@@ -50,7 +51,7 @@ func WithSDKLogging(handler http.Handler, mode string) http.Handler {
 
 		// Log incoming request
 		logSDK.Printf(">>> SDK Request [%s] session=%s mcp-session=%s method=%s path=%s",
-			mode, truncateSession(sessionID), truncateSession(mcpSessionID), r.Method, r.URL.Path)
+			mode, auth.TruncateSessionID(sessionID), auth.TruncateSessionID(mcpSessionID), r.Method, r.URL.Path)
 
 		// Capture and log request body for POST requests
 		var requestBody []byte
@@ -66,7 +67,7 @@ func WithSDKLogging(handler http.Handler, mode string) http.Handler {
 				if err := json.Unmarshal(requestBody, &jsonrpcReq); err == nil {
 					logSDK.Printf("    JSON-RPC Request: method=%s id=%v", jsonrpcReq.Method, jsonrpcReq.ID)
 					logger.LogDebug("sdk-frontend", "JSON-RPC request parsed: mode=%s, method=%s, id=%v, session=%s",
-						mode, jsonrpcReq.Method, jsonrpcReq.ID, truncateSession(sessionID))
+						mode, jsonrpcReq.Method, jsonrpcReq.ID, auth.TruncateSessionID(sessionID))
 				} else {
 					logSDK.Printf("    Failed to parse JSON-RPC request: %v", err)
 					logSDK.Printf("    Raw body: %s", string(requestBody))
@@ -100,14 +101,14 @@ func WithSDKLogging(handler http.Handler, mode string) http.Handler {
 						strings.Contains(jsonrpcResp.Error.Message, "invalid during") {
 						logSDK.Printf("    ⚠️  PROTOCOL STATE ERROR DETECTED")
 						logSDK.Printf("    Request method was: %s", jsonrpcReq.Method)
-						logSDK.Printf("    Session ID: %s", truncateSession(sessionID))
-						logSDK.Printf("    MCP-Session-Id header: %s", truncateSession(mcpSessionID))
+						logSDK.Printf("    Session ID: %s", auth.TruncateSessionID(sessionID))
+						logSDK.Printf("    MCP-Session-Id header: %s", auth.TruncateSessionID(mcpSessionID))
 						logSDK.Printf("    This error indicates SDK's StreamableHTTPHandler created fresh protocol state")
 
 						logger.LogWarn("sdk-frontend",
 							"Protocol state error: mode=%s, method=%s, session=%s, mcp_session=%s, error=%q",
-							mode, jsonrpcReq.Method, truncateSession(sessionID),
-							truncateSession(mcpSessionID), jsonrpcResp.Error.Message)
+							mode, jsonrpcReq.Method, auth.TruncateSessionID(sessionID),
+							auth.TruncateSessionID(mcpSessionID), jsonrpcResp.Error.Message)
 					} else {
 						logger.LogError("sdk-frontend",
 							"JSON-RPC error: mode=%s, method=%s, code=%d, message=%q",
@@ -139,15 +140,4 @@ func WithSDKLogging(handler http.Handler, mode string) http.Handler {
 				mode, lw.StatusCode(), duration)
 		}
 	})
-}
-
-// truncateSession returns a truncated session ID for logging (first 8 chars)
-func truncateSession(s string) string {
-	if s == "" {
-		return "(none)"
-	}
-	if len(s) <= 8 {
-		return s
-	}
-	return s[:8] + "..."
 }
