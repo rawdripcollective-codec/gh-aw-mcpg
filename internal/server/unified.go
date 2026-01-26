@@ -74,14 +74,14 @@ type ToolInfo struct {
 
 // UnifiedServer implements a unified MCP server that aggregates multiple backend servers
 type UnifiedServer struct {
-	launcher       *launcher.Launcher
-	sysServer      *sys.SysServer
-	ctx            context.Context
-	server         *sdk.Server
-	sessions       map[string]*Session // mcp-session-id -> Session
-	sessionMu      sync.RWMutex
-	tools          map[string]*ToolInfo // prefixed tool name -> tool info
-	toolsMu        sync.RWMutex
+	launcher         *launcher.Launcher
+	sysServer        *sys.SysServer
+	ctx              context.Context
+	server           *sdk.Server
+	sessions         map[string]*Session // mcp-session-id -> Session
+	sessionMu        sync.RWMutex
+	tools            map[string]*ToolInfo // prefixed tool name -> tool info
+	toolsMu          sync.RWMutex
 	sequentialLaunch bool // When true, launches MCP servers sequentially during startup. Default is false (parallel launch).
 
 	// DIFC components

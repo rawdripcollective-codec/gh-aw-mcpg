@@ -27,8 +27,8 @@ const (
 	// DefaultListenIPv4 is the default interface used by the HTTP server.
 	DefaultListenIPv4 = "127.0.0.1"
 	// DefaultListenPort is the default port used by the HTTP server.
-	DefaultListenPort     = "3000"
-	defaultListenAddr     = DefaultListenIPv4 + ":" + DefaultListenPort
+	DefaultListenPort       = "3000"
+	defaultListenAddr       = DefaultListenIPv4 + ":" + DefaultListenPort
 	defaultRoutedMode       = false
 	defaultUnifiedMode      = false
 	defaultEnvFile          = ""
@@ -38,11 +38,11 @@ const (
 )
 
 var (
-	configFile     string
-	configStdin    bool
-	listenAddr     string
-	routedMode     bool
-	unifiedMode    bool
+	configFile       string
+	configStdin      bool
+	listenAddr       string
+	routedMode       bool
+	unifiedMode      bool
 	envFile          string
 	enableDIFC       bool
 	logDir           string
