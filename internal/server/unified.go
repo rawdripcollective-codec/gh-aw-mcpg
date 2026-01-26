@@ -74,14 +74,15 @@ type ToolInfo struct {
 
 // UnifiedServer implements a unified MCP server that aggregates multiple backend servers
 type UnifiedServer struct {
-	launcher  *launcher.Launcher
-	sysServer *sys.SysServer
-	ctx       context.Context
-	server    *sdk.Server
-	sessions  map[string]*Session // mcp-session-id -> Session
-	sessionMu sync.RWMutex
-	tools     map[string]*ToolInfo // prefixed tool name -> tool info
-	toolsMu   sync.RWMutex
+	launcher       *launcher.Launcher
+	sysServer      *sys.SysServer
+	ctx            context.Context
+	server         *sdk.Server
+	sessions       map[string]*Session // mcp-session-id -> Session
+	sessionMu      sync.RWMutex
+	tools          map[string]*ToolInfo // prefixed tool name -> tool info
+	toolsMu        sync.RWMutex
+	parallelLaunch bool // When true (default), launches MCP servers in parallel during startup
 
 	// DIFC components
 	guardRegistry *guard.Registry
@@ -101,15 +102,16 @@ type UnifiedServer struct {
 
 // NewUnified creates a new unified MCP server
 func NewUnified(ctx context.Context, cfg *config.Config) (*UnifiedServer, error) {
-	logUnified.Printf("Creating new unified server: enableDIFC=%v, servers=%d", cfg.EnableDIFC, len(cfg.Servers))
+	logUnified.Printf("Creating new unified server: enableDIFC=%v, parallelLaunch=%v, servers=%d", cfg.EnableDIFC, cfg.ParallelLaunch, len(cfg.Servers))
 	l := launcher.New(ctx, cfg)
 
 	us := &UnifiedServer{
-		launcher:  l,
-		sysServer: sys.NewSysServer(l.ServerIDs()),
-		ctx:       ctx,
-		sessions:  make(map[string]*Session),
-		tools:     make(map[string]*ToolInfo),
+		launcher:       l,
+		sysServer:      sys.NewSysServer(l.ServerIDs()),
+		ctx:            ctx,
+		sessions:       make(map[string]*Session),
+		tools:          make(map[string]*ToolInfo),
+		parallelLaunch: cfg.ParallelLaunch,
 
 		// Initialize DIFC components
 		guardRegistry: guard.NewRegistry(),
@@ -141,6 +143,13 @@ func NewUnified(ctx context.Context, cfg *config.Config) (*UnifiedServer, error)
 	return us, nil
 }
 
+// launchResult stores the result of a backend server launch
+type launchResult struct {
+	serverID string
+	err      error
+	duration time.Duration
+}
+
 // registerAllTools fetches and registers tools from all backend servers
 func (us *UnifiedServer) registerAllTools() error {
 	log.Println("Registering tools from all backends...")
@@ -157,8 +166,22 @@ func (us *UnifiedServer) registerAllTools() error {
 		log.Println("DIFC disabled: skipping sys tools registration")
 	}
 
-	// Register tools from each backend server
-	for _, serverID := range us.launcher.ServerIDs() {
+	serverIDs := us.launcher.ServerIDs()
+
+	if us.parallelLaunch {
+		// Launch servers in parallel
+		return us.registerAllToolsParallel(serverIDs)
+	} else {
+		// Launch servers sequentially (original behavior)
+		return us.registerAllToolsSequential(serverIDs)
+	}
+}
+
+// registerAllToolsSequential registers tools from backend servers sequentially
+func (us *UnifiedServer) registerAllToolsSequential(serverIDs []string) error {
+	logUnified.Printf("Registering tools sequentially from %d backends", len(serverIDs))
+
+	for _, serverID := range serverIDs {
 		logUnified.Printf("Registering tools from backend: %s", serverID)
 		if err := us.registerToolsFromBackend(serverID); err != nil {
 			log.Printf("Warning: failed to register tools from %s: %v", serverID, err)
@@ -167,6 +190,55 @@ func (us *UnifiedServer) registerAllTools() error {
 	}
 
 	logUnified.Printf("Tool registration complete: total tools=%d", len(us.tools))
+	return nil
+}
+
+// registerAllToolsParallel registers tools from backend servers in parallel
+func (us *UnifiedServer) registerAllToolsParallel(serverIDs []string) error {
+	logUnified.Printf("Registering tools in parallel from %d backends", len(serverIDs))
+
+	var wg sync.WaitGroup
+	results := make(chan launchResult, len(serverIDs))
+
+	// Launch each server in its own goroutine
+	for _, serverID := range serverIDs {
+		wg.Add(1)
+		go func(sid string) {
+			defer wg.Done()
+
+			startTime := time.Now()
+			err := us.registerToolsFromBackend(sid)
+			duration := time.Since(startTime)
+
+			results <- launchResult{
+				serverID: sid,
+				err:      err,
+				duration: duration,
+			}
+		}(serverID)
+	}
+
+	// Wait for all goroutines to complete
+	wg.Wait()
+	close(results)
+
+	// Collect and log results
+	successCount := 0
+	failureCount := 0
+	for result := range results {
+		if result.err != nil {
+			log.Printf("Warning: failed to register tools from %s (took %v): %v", result.serverID, result.duration, result.err)
+			logger.LogWarn("backend", "Failed to register tools from %s (took %v): %v", result.serverID, result.duration, result.err)
+			failureCount++
+		} else {
+			logUnified.Printf("Successfully registered tools from %s (took %v)", result.serverID, result.duration)
+			logger.LogInfo("backend", "Successfully registered tools from %s (took %v)", result.serverID, result.duration)
+			successCount++
+		}
+	}
+
+	log.Printf("Parallel tool registration complete: %d succeeded, %d failed, total tools=%d", successCount, failureCount, len(us.tools))
+	logUnified.Printf("Tool registration complete: %d succeeded, %d failed, total tools=%d", successCount, failureCount, len(us.tools))
 	return nil
 }
 
