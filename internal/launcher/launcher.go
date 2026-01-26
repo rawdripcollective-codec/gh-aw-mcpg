@@ -23,6 +23,12 @@ const (
 	DefaultStartupTimeout = 60
 )
 
+// connectionResult is used to return the result of a connection attempt from a goroutine
+type connectionResult struct {
+	conn *mcp.Connection
+	err  error
+}
+
 // Launcher manages backend MCP server connections
 type Launcher struct {
 	ctx                context.Context
@@ -168,16 +174,12 @@ func GetOrLaunch(l *Launcher, serverID string) (*mcp.Connection, error) {
 	logLauncher.Printf("Starting server with timeout: serverID=%s, timeout=%v", serverID, l.startupTimeout)
 
 	// Create a channel to receive connection result
-	type connResult struct {
-		conn *mcp.Connection
-		err  error
-	}
-	resultChan := make(chan connResult, 1)
+	resultChan := make(chan connectionResult, 1)
 
 	// Launch connection in a goroutine
 	go func() {
 		conn, err := mcp.NewConnection(l.ctx, serverCfg.Command, serverCfg.Args, serverCfg.Env)
-		resultChan <- connResult{conn, err}
+		resultChan <- connectionResult{conn, err}
 	}()
 
 	// Wait for connection with timeout
@@ -316,16 +318,12 @@ func GetOrLaunchForSession(l *Launcher, serverID, sessionID string) (*mcp.Connec
 	logLauncher.Printf("Starting session server with timeout: serverID=%s, sessionID=%s, timeout=%v", serverID, sessionID, l.startupTimeout)
 
 	// Create a channel to receive connection result
-	type connResult struct {
-		conn *mcp.Connection
-		err  error
-	}
-	resultChan := make(chan connResult, 1)
+	resultChan := make(chan connectionResult, 1)
 
 	// Launch connection in a goroutine
 	go func() {
 		conn, err := mcp.NewConnection(l.ctx, serverCfg.Command, serverCfg.Args, serverCfg.Env)
-		resultChan <- connResult{conn, err}
+		resultChan <- connectionResult{conn, err}
 	}()
 
 	// Wait for connection with timeout
