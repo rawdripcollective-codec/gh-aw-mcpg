@@ -18,11 +18,6 @@ import (
 
 var logLauncher = logger.New("launcher:launcher")
 
-const (
-	// DefaultStartupTimeout is the default timeout for backend server startup (seconds)
-	DefaultStartupTimeout = 60
-)
-
 // connectionResult is used to return the result of a connection attempt from a goroutine
 type connectionResult struct {
 	conn *mcp.Connection
@@ -49,8 +44,8 @@ func New(ctx context.Context, cfg *config.Config) *Launcher {
 		log.Println("[LAUNCHER] Detected running inside a container")
 	}
 
-	// Get startup timeout from config, default to 60 seconds
-	startupTimeout := time.Duration(DefaultStartupTimeout) * time.Second
+	// Get startup timeout from config, default to config.DefaultStartupTimeout seconds
+	startupTimeout := time.Duration(config.DefaultStartupTimeout) * time.Second
 	if cfg.Gateway != nil && cfg.Gateway.StartupTimeout > 0 {
 		startupTimeout = time.Duration(cfg.Gateway.StartupTimeout) * time.Second
 		logLauncher.Printf("Using configured startup timeout: %v", startupTimeout)

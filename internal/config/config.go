@@ -13,6 +13,15 @@ import (
 
 var logConfig = logger.New("config:config")
 
+const (
+	// DefaultPort is the default port for the gateway HTTP server
+	DefaultPort = 3000
+	// DefaultStartupTimeout is the default timeout for backend server startup (seconds)
+	DefaultStartupTimeout = 60
+	// DefaultToolTimeout is the default timeout for tool execution (seconds)
+	DefaultToolTimeout = 120
+)
+
 // Config represents the MCPG configuration
 type Config struct {
 	Servers    map[string]*ServerConfig `toml:"servers"`
@@ -97,13 +106,13 @@ func LoadFromFile(path string) (*Config, error) {
 	// Set default gateway config values if gateway section exists but fields are unset
 	if cfg.Gateway != nil {
 		if cfg.Gateway.StartupTimeout == 0 {
-			cfg.Gateway.StartupTimeout = 60
+			cfg.Gateway.StartupTimeout = DefaultStartupTimeout
 		}
 		if cfg.Gateway.ToolTimeout == 0 {
-			cfg.Gateway.ToolTimeout = 120
+			cfg.Gateway.ToolTimeout = DefaultToolTimeout
 		}
 		if cfg.Gateway.Port == 0 {
-			cfg.Gateway.Port = 3000
+			cfg.Gateway.Port = DefaultPort
 		}
 	}
 
@@ -170,11 +179,11 @@ func LoadFromStdin() (*Config, error) {
 	// Store gateway config with defaults
 	if stdinCfg.Gateway != nil {
 		cfg.Gateway = &GatewayConfig{
-			Port:           3000,
+			Port:           DefaultPort,
 			APIKey:         stdinCfg.Gateway.APIKey,
 			Domain:         stdinCfg.Gateway.Domain,
-			StartupTimeout: 60,
-			ToolTimeout:    120,
+			StartupTimeout: DefaultStartupTimeout,
+			ToolTimeout:    DefaultToolTimeout,
 		}
 		if stdinCfg.Gateway.Port != nil {
 			cfg.Gateway.Port = *stdinCfg.Gateway.Port

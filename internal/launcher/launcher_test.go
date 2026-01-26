@@ -593,7 +593,7 @@ func TestLauncher_StartupTimeout(t *testing.T) {
 
 			// If timeout is 0, set it to default to match LoadFromFile behavior
 			if cfg.Gateway.StartupTimeout == 0 {
-				cfg.Gateway.StartupTimeout = 60
+				cfg.Gateway.StartupTimeout = config.DefaultStartupTimeout
 			}
 
 			l := New(ctx, cfg)
