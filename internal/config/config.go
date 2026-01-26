@@ -24,9 +24,10 @@ const (
 
 // Config represents the MCPG configuration
 type Config struct {
-	Servers    map[string]*ServerConfig `toml:"servers"`
-	EnableDIFC bool                     `toml:"enable_difc"` // When true, enables DIFC enforcement and requires sys___init call before tool access. Default is false for standard MCP client compatibility.
-	Gateway    *GatewayConfig           `toml:"gateway"`     // Gateway configuration (port, API key, etc.)
+	Servers        map[string]*ServerConfig `toml:"servers"`
+	EnableDIFC     bool                     `toml:"enable_difc"`     // When true, enables DIFC enforcement and requires sys___init call before tool access. Default is false for standard MCP client compatibility.
+	ParallelLaunch bool                     `toml:"parallel_launch"` // When true (default), launches MCP servers in parallel during startup.
+	Gateway        *GatewayConfig           `toml:"gateway"`         // Gateway configuration (port, API key, etc.)
 }
 
 // GatewayConfig represents gateway-level configuration
