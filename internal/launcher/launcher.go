@@ -173,7 +173,8 @@ func GetOrLaunch(l *Launcher, serverID string) (*mcp.Connection, error) {
 	log.Printf("[LAUNCHER] Starting server with %v timeout", l.startupTimeout)
 	logLauncher.Printf("Starting server with timeout: serverID=%s, timeout=%v", serverID, l.startupTimeout)
 
-	// Create a channel to receive connection result
+	// Create a buffered channel to receive connection result
+	// Buffer size of 1 prevents goroutine leak if timeout occurs before connection completes
 	resultChan := make(chan connectionResult, 1)
 
 	// Launch connection in a goroutine
@@ -317,7 +318,8 @@ func GetOrLaunchForSession(l *Launcher, serverID, sessionID string) (*mcp.Connec
 	log.Printf("[LAUNCHER] Starting server for session with %v timeout", l.startupTimeout)
 	logLauncher.Printf("Starting session server with timeout: serverID=%s, sessionID=%s, timeout=%v", serverID, sessionID, l.startupTimeout)
 
-	// Create a channel to receive connection result
+	// Create a buffered channel to receive connection result
+	// Buffer size of 1 prevents goroutine leak if timeout occurs before connection completes
 	resultChan := make(chan connectionResult, 1)
 
 	// Launch connection in a goroutine
