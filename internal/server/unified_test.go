@@ -494,29 +494,29 @@ func TestRequireSession_EdgeCases(t *testing.T) {
 }
 
 func TestUnifiedServer_ParallelLaunch_Enabled(t *testing.T) {
-cfg := &config.Config{
-Servers: map[string]*config.ServerConfig{},
-ParallelLaunch: true,
-}
+	cfg := &config.Config{
+		Servers:        map[string]*config.ServerConfig{},
+		ParallelLaunch: true,
+	}
 
-ctx := context.Background()
-us, err := NewUnified(ctx, cfg)
-require.NoError(t, err, "NewUnified() failed")
-defer us.Close()
+	ctx := context.Background()
+	us, err := NewUnified(ctx, cfg)
+	require.NoError(t, err, "NewUnified() failed")
+	defer us.Close()
 
-assert.True(t, us.parallelLaunch, "ParallelLaunch should be enabled when configured")
+	assert.True(t, us.parallelLaunch, "ParallelLaunch should be enabled when configured")
 }
 
 func TestUnifiedServer_ParallelLaunch_Disabled(t *testing.T) {
-cfg := &config.Config{
-Servers: map[string]*config.ServerConfig{},
-ParallelLaunch: false,
-}
+	cfg := &config.Config{
+		Servers:        map[string]*config.ServerConfig{},
+		ParallelLaunch: false,
+	}
 
-ctx := context.Background()
-us, err := NewUnified(ctx, cfg)
-require.NoError(t, err, "NewUnified() failed")
-defer us.Close()
+	ctx := context.Background()
+	us, err := NewUnified(ctx, cfg)
+	require.NoError(t, err, "NewUnified() failed")
+	defer us.Close()
 
-assert.False(t, us.parallelLaunch, "ParallelLaunch should be disabled when configured")
+	assert.False(t, us.parallelLaunch, "ParallelLaunch should be disabled when configured")
 }

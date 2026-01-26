@@ -22,10 +22,10 @@ import (
 
 // Default values for command-line flags.
 const (
-	defaultConfigFile     = "" // No default config file - user must explicitly specify --config or --config-stdin
-	defaultConfigStdin    = false
+	defaultConfigFile  = "" // No default config file - user must explicitly specify --config or --config-stdin
+	defaultConfigStdin = false
 	// DefaultListenIPv4 is the default interface used by the HTTP server.
-	DefaultListenIPv4     = "127.0.0.1"
+	DefaultListenIPv4 = "127.0.0.1"
 	// DefaultListenPort is the default port used by the HTTP server.
 	DefaultListenPort     = "3000"
 	defaultListenAddr     = DefaultListenIPv4 + ":" + DefaultListenPort
@@ -247,7 +247,7 @@ func run(cmd *cobra.Command, args []string) error {
 	} else {
 		log.Println("DIFC enforcement disabled (sessions auto-created for standard MCP client compatibility)")
 	}
-	
+
 	if parallelLaunch {
 		log.Println("Parallel server launching enabled")
 	} else {

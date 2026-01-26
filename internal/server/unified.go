@@ -167,7 +167,7 @@ func (us *UnifiedServer) registerAllTools() error {
 	}
 
 	serverIDs := us.launcher.ServerIDs()
-	
+
 	if us.parallelLaunch {
 		// Launch servers in parallel
 		return us.registerAllToolsParallel(serverIDs)
@@ -180,7 +180,7 @@ func (us *UnifiedServer) registerAllTools() error {
 // registerAllToolsSequential registers tools from backend servers sequentially
 func (us *UnifiedServer) registerAllToolsSequential(serverIDs []string) error {
 	logUnified.Printf("Registering tools sequentially from %d backends", len(serverIDs))
-	
+
 	for _, serverID := range serverIDs {
 		logUnified.Printf("Registering tools from backend: %s", serverID)
 		if err := us.registerToolsFromBackend(serverID); err != nil {
@@ -196,20 +196,20 @@ func (us *UnifiedServer) registerAllToolsSequential(serverIDs []string) error {
 // registerAllToolsParallel registers tools from backend servers in parallel
 func (us *UnifiedServer) registerAllToolsParallel(serverIDs []string) error {
 	logUnified.Printf("Registering tools in parallel from %d backends", len(serverIDs))
-	
+
 	var wg sync.WaitGroup
 	results := make(chan launchResult, len(serverIDs))
-	
+
 	// Launch each server in its own goroutine
 	for _, serverID := range serverIDs {
 		wg.Add(1)
 		go func(sid string) {
 			defer wg.Done()
-			
+
 			startTime := time.Now()
 			err := us.registerToolsFromBackend(sid)
 			duration := time.Since(startTime)
-			
+
 			results <- launchResult{
 				serverID: sid,
 				err:      err,
@@ -217,11 +217,11 @@ func (us *UnifiedServer) registerAllToolsParallel(serverIDs []string) error {
 			}
 		}(serverID)
 	}
-	
+
 	// Wait for all goroutines to complete
 	wg.Wait()
 	close(results)
-	
+
 	// Collect and log results
 	successCount := 0
 	failureCount := 0
@@ -236,7 +236,7 @@ func (us *UnifiedServer) registerAllToolsParallel(serverIDs []string) error {
 			successCount++
 		}
 	}
-	
+
 	log.Printf("Parallel tool registration complete: %d succeeded, %d failed, total tools=%d", successCount, failureCount, len(us.tools))
 	logUnified.Printf("Tool registration complete: %d succeeded, %d failed, total tools=%d", successCount, failureCount, len(us.tools))
 	return nil
