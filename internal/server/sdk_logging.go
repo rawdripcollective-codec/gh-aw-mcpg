@@ -46,7 +46,7 @@ func WithSDKLogging(handler http.Handler, mode string) http.Handler {
 
 		// Extract session info for logging context
 		authHeader := r.Header.Get("Authorization")
-		sessionID := extractSessionFromAuth(authHeader)
+		sessionID := auth.ExtractSessionID(authHeader)
 		mcpSessionID := r.Header.Get("Mcp-Session-Id")
 
 		// Log incoming request

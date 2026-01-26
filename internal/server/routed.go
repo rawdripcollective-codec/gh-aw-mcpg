@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/githubnext/gh-aw-mcpg/internal/auth"
 	"github.com/githubnext/gh-aw-mcpg/internal/logger"
 	"github.com/githubnext/gh-aw-mcpg/internal/mcp"
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
@@ -111,7 +112,7 @@ func CreateHTTPServerForRoutedMode(addr string, unifiedServer *UnifiedServer, ap
 		routeHandler := sdk.NewStreamableHTTPHandler(func(r *http.Request) *sdk.Server {
 			// Extract session ID from Authorization header
 			authHeader := r.Header.Get("Authorization")
-			sessionID := extractSessionFromAuth(authHeader)
+			sessionID := auth.ExtractSessionID(authHeader)
 
 			// Reject requests without Authorization header
 			if sessionID == "" {

@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/githubnext/gh-aw-mcpg/internal/auth"
 	"github.com/githubnext/gh-aw-mcpg/internal/logger"
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -77,7 +78,7 @@ func CreateHTTPServerForMCP(addr string, unifiedServer *UnifiedServer, apiKey st
 
 		// Extract session ID from Authorization header
 		authHeader := r.Header.Get("Authorization")
-		sessionID := extractSessionFromAuth(authHeader)
+		sessionID := auth.ExtractSessionID(authHeader)
 
 		// Reject requests without Authorization header
 		if sessionID == "" {
