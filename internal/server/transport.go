@@ -14,8 +14,6 @@ import (
 
 var logTransport = logger.New("server:transport")
 
-
-
 // HTTPTransport wraps the SDK's HTTP transport
 type HTTPTransport struct {
 	Addr string
