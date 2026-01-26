@@ -164,58 +164,69 @@ func GetOrLaunch(l *Launcher, serverID string) (*mcp.Connection, error) {
 		log.Printf("[LAUNCHER] Additional env vars: %v", sanitize.TruncateSecretMap(serverCfg.Env))
 	}
 
-	// Create a context with timeout for server startup
-	ctx, cancel := context.WithTimeout(l.ctx, l.startupTimeout)
-	defer cancel()
-
 	log.Printf("[LAUNCHER] Starting server with %v timeout", l.startupTimeout)
 	logLauncher.Printf("Starting server with timeout: serverID=%s, timeout=%v", serverID, l.startupTimeout)
 
-	// Create connection
-	conn, err := mcp.NewConnection(ctx, serverCfg.Command, serverCfg.Args, serverCfg.Env)
-	if err != nil {
-		// Enhanced error logging for command-based servers
-		logger.LogError("backend", "Failed to launch MCP backend server: %s, error=%v", serverID, err)
-		log.Printf("[LAUNCHER] ❌ FAILED to launch server '%s'", serverID)
-		log.Printf("[LAUNCHER] Error: %v", err)
-		log.Printf("[LAUNCHER] Debug Information:")
-		log.Printf("[LAUNCHER]   - Command: %s", serverCfg.Command)
-		log.Printf("[LAUNCHER]   - Args: %v", serverCfg.Args)
-		log.Printf("[LAUNCHER]   - Env vars: %v", sanitize.TruncateSecretMap(serverCfg.Env))
-		log.Printf("[LAUNCHER]   - Running in container: %v", l.runningInContainer)
-		log.Printf("[LAUNCHER]   - Is direct command: %v", isDirectCommand)
-		log.Printf("[LAUNCHER]   - Startup timeout: %v", l.startupTimeout)
-
-		// Check if it's a timeout error
-		if ctx.Err() == context.DeadlineExceeded {
-			logger.LogError("backend", "MCP backend server startup timeout: %s, timeout=%v", serverID, l.startupTimeout)
-			log.Printf("[LAUNCHER] ⚠️  Server startup timed out after %v", l.startupTimeout)
-			log.Printf("[LAUNCHER] ⚠️  The server may be hanging or taking too long to initialize")
-			log.Printf("[LAUNCHER] ⚠️  Consider increasing 'startupTimeout' in gateway config if server needs more time")
-			return nil, fmt.Errorf("server startup timeout after %v: %w", l.startupTimeout, err)
-		}
-
-		if isDirectCommand && l.runningInContainer {
-			log.Printf("[LAUNCHER] ⚠️  Possible causes:")
-			log.Printf("[LAUNCHER]   - Command '%s' may not be installed in the gateway container", serverCfg.Command)
-			log.Printf("[LAUNCHER]   - Consider using 'container' config instead of 'command'")
-			log.Printf("[LAUNCHER]   - Or add '%s' to the gateway's Dockerfile", serverCfg.Command)
-		} else if isDirectCommand {
-			log.Printf("[LAUNCHER] ⚠️  Possible causes:")
-			log.Printf("[LAUNCHER]   - Command '%s' may not be in PATH", serverCfg.Command)
-			log.Printf("[LAUNCHER]   - Check if '%s' is installed: which %s", serverCfg.Command, serverCfg.Command)
-			log.Printf("[LAUNCHER]   - Verify file permissions and execute bit")
-		}
-
-		return nil, fmt.Errorf("failed to create connection: %w", err)
+	// Create a channel to receive connection result
+	type connResult struct {
+		conn *mcp.Connection
+		err  error
 	}
+	resultChan := make(chan connResult, 1)
 
-	logger.LogInfo("backend", "Successfully launched MCP backend server: %s", serverID)
-	log.Printf("[LAUNCHER] Successfully launched: %s", serverID)
-	logLauncher.Printf("Connection established: serverID=%s", serverID)
+	// Launch connection in a goroutine
+	go func() {
+		conn, err := mcp.NewConnection(l.ctx, serverCfg.Command, serverCfg.Args, serverCfg.Env)
+		resultChan <- connResult{conn, err}
+	}()
 
-	l.connections[serverID] = conn
-	return conn, nil
+	// Wait for connection with timeout
+	select {
+	case result := <-resultChan:
+		conn, err := result.conn, result.err
+		if err != nil {
+			// Enhanced error logging for command-based servers
+			logger.LogError("backend", "Failed to launch MCP backend server: %s, error=%v", serverID, err)
+			log.Printf("[LAUNCHER] ❌ FAILED to launch server '%s'", serverID)
+			log.Printf("[LAUNCHER] Error: %v", err)
+			log.Printf("[LAUNCHER] Debug Information:")
+			log.Printf("[LAUNCHER]   - Command: %s", serverCfg.Command)
+			log.Printf("[LAUNCHER]   - Args: %v", serverCfg.Args)
+			log.Printf("[LAUNCHER]   - Env vars: %v", sanitize.TruncateSecretMap(serverCfg.Env))
+			log.Printf("[LAUNCHER]   - Running in container: %v", l.runningInContainer)
+			log.Printf("[LAUNCHER]   - Is direct command: %v", isDirectCommand)
+			log.Printf("[LAUNCHER]   - Startup timeout: %v", l.startupTimeout)
+
+			if isDirectCommand && l.runningInContainer {
+				log.Printf("[LAUNCHER] ⚠️  Possible causes:")
+				log.Printf("[LAUNCHER]   - Command '%s' may not be installed in the gateway container", serverCfg.Command)
+				log.Printf("[LAUNCHER]   - Consider using 'container' config instead of 'command'")
+				log.Printf("[LAUNCHER]   - Or add '%s' to the gateway's Dockerfile", serverCfg.Command)
+			} else if isDirectCommand {
+				log.Printf("[LAUNCHER] ⚠️  Possible causes:")
+				log.Printf("[LAUNCHER]   - Command '%s' may not be in PATH", serverCfg.Command)
+				log.Printf("[LAUNCHER]   - Check if '%s' is installed: which %s", serverCfg.Command, serverCfg.Command)
+				log.Printf("[LAUNCHER]   - Verify file permissions and execute bit")
+			}
+
+			return nil, fmt.Errorf("failed to create connection: %w", err)
+		}
+
+		logger.LogInfo("backend", "Successfully launched MCP backend server: %s", serverID)
+		log.Printf("[LAUNCHER] Successfully launched: %s", serverID)
+		logLauncher.Printf("Connection established: serverID=%s", serverID)
+
+		l.connections[serverID] = conn
+		return conn, nil
+
+	case <-time.After(l.startupTimeout):
+		// Timeout occurred
+		logger.LogError("backend", "MCP backend server startup timeout: %s, timeout=%v", serverID, l.startupTimeout)
+		log.Printf("[LAUNCHER] ❌ Server startup timed out after %v", l.startupTimeout)
+		log.Printf("[LAUNCHER] ⚠️  The server may be hanging or taking too long to initialize")
+		log.Printf("[LAUNCHER] ⚠️  Consider increasing 'startupTimeout' in gateway config if server needs more time")
+		return nil, fmt.Errorf("server startup timeout after %v", l.startupTimeout)
+	}
 }
 
 // GetOrLaunchForSession returns a session-aware connection or launches a new one
@@ -301,51 +312,62 @@ func GetOrLaunchForSession(l *Launcher, serverID, sessionID string) (*mcp.Connec
 		log.Printf("[LAUNCHER] Additional env vars: %v", sanitize.TruncateSecretMap(serverCfg.Env))
 	}
 
-	// Create a context with timeout for server startup
-	ctx, cancel := context.WithTimeout(l.ctx, l.startupTimeout)
-	defer cancel()
-
 	log.Printf("[LAUNCHER] Starting server for session with %v timeout", l.startupTimeout)
 	logLauncher.Printf("Starting session server with timeout: serverID=%s, sessionID=%s, timeout=%v", serverID, sessionID, l.startupTimeout)
 
-	// Create connection
-	conn, err := mcp.NewConnection(ctx, serverCfg.Command, serverCfg.Args, serverCfg.Env)
-	if err != nil {
-		logger.LogError("backend", "Failed to launch MCP backend server for session: server=%s, session=%s, error=%v", serverID, sessionID, err)
-		log.Printf("[LAUNCHER] ❌ FAILED to launch server '%s' for session '%s'", serverID, sessionID)
-		log.Printf("[LAUNCHER] Error: %v", err)
-		log.Printf("[LAUNCHER] Debug Information:")
-		log.Printf("[LAUNCHER]   - Command: %s", serverCfg.Command)
-		log.Printf("[LAUNCHER]   - Args: %v", serverCfg.Args)
-		log.Printf("[LAUNCHER]   - Env vars: %v", sanitize.TruncateSecretMap(serverCfg.Env))
-		log.Printf("[LAUNCHER]   - Running in container: %v", l.runningInContainer)
-		log.Printf("[LAUNCHER]   - Is direct command: %v", isDirectCommand)
-		log.Printf("[LAUNCHER]   - Startup timeout: %v", l.startupTimeout)
+	// Create a channel to receive connection result
+	type connResult struct {
+		conn *mcp.Connection
+		err  error
+	}
+	resultChan := make(chan connResult, 1)
 
-		// Check if it's a timeout error
-		if ctx.Err() == context.DeadlineExceeded {
-			logger.LogError("backend", "MCP backend server startup timeout for session: server=%s, session=%s, timeout=%v", serverID, sessionID, l.startupTimeout)
-			log.Printf("[LAUNCHER] ⚠️  Server startup timed out after %v", l.startupTimeout)
-			log.Printf("[LAUNCHER] ⚠️  The server may be hanging or taking too long to initialize")
-			log.Printf("[LAUNCHER] ⚠️  Consider increasing 'startupTimeout' in gateway config if server needs more time")
-			// Record error in session pool before returning
+	// Launch connection in a goroutine
+	go func() {
+		conn, err := mcp.NewConnection(l.ctx, serverCfg.Command, serverCfg.Args, serverCfg.Env)
+		resultChan <- connResult{conn, err}
+	}()
+
+	// Wait for connection with timeout
+	select {
+	case result := <-resultChan:
+		conn, err := result.conn, result.err
+		if err != nil {
+			logger.LogError("backend", "Failed to launch MCP backend server for session: server=%s, session=%s, error=%v", serverID, sessionID, err)
+			log.Printf("[LAUNCHER] ❌ FAILED to launch server '%s' for session '%s'", serverID, sessionID)
+			log.Printf("[LAUNCHER] Error: %v", err)
+			log.Printf("[LAUNCHER] Debug Information:")
+			log.Printf("[LAUNCHER]   - Command: %s", serverCfg.Command)
+			log.Printf("[LAUNCHER]   - Args: %v", serverCfg.Args)
+			log.Printf("[LAUNCHER]   - Env vars: %v", sanitize.TruncateSecretMap(serverCfg.Env))
+			log.Printf("[LAUNCHER]   - Running in container: %v", l.runningInContainer)
+			log.Printf("[LAUNCHER]   - Is direct command: %v", isDirectCommand)
+			log.Printf("[LAUNCHER]   - Startup timeout: %v", l.startupTimeout)
+
+			// Record error in session pool
 			l.sessionPool.RecordError(serverID, sessionID)
-			return nil, fmt.Errorf("server startup timeout after %v: %w", l.startupTimeout, err)
+
+			return nil, fmt.Errorf("failed to create connection: %w", err)
 		}
 
-		// Record error in session pool
+		logger.LogInfo("backend", "Successfully launched MCP backend server for session: server=%s, session=%s", serverID, sessionID)
+		log.Printf("[LAUNCHER] Successfully launched: %s (session: %s)", serverID, sessionID)
+		logLauncher.Printf("Session connection established: serverID=%s, sessionID=%s", serverID, sessionID)
+
+		// Add to session pool
+		l.sessionPool.Set(serverID, sessionID, conn)
+		return conn, nil
+
+	case <-time.After(l.startupTimeout):
+		// Timeout occurred
+		logger.LogError("backend", "MCP backend server startup timeout for session: server=%s, session=%s, timeout=%v", serverID, sessionID, l.startupTimeout)
+		log.Printf("[LAUNCHER] ❌ Server startup timed out after %v", l.startupTimeout)
+		log.Printf("[LAUNCHER] ⚠️  The server may be hanging or taking too long to initialize")
+		log.Printf("[LAUNCHER] ⚠️  Consider increasing 'startupTimeout' in gateway config if server needs more time")
+		// Record error in session pool before returning
 		l.sessionPool.RecordError(serverID, sessionID)
-
-		return nil, fmt.Errorf("failed to create connection: %w", err)
+		return nil, fmt.Errorf("server startup timeout after %v", l.startupTimeout)
 	}
-
-	logger.LogInfo("backend", "Successfully launched MCP backend server for session: server=%s, session=%s", serverID, sessionID)
-	log.Printf("[LAUNCHER] Successfully launched: %s (session: %s)", serverID, sessionID)
-	logLauncher.Printf("Session connection established: serverID=%s, sessionID=%s", serverID, sessionID)
-
-	// Add to session pool
-	l.sessionPool.Set(serverID, sessionID, conn)
-	return conn, nil
 }
 
 // ServerIDs returns all configured server IDs
