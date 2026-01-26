@@ -29,12 +29,12 @@ const (
 	// DefaultListenPort is the default port used by the HTTP server.
 	DefaultListenPort     = "3000"
 	defaultListenAddr     = DefaultListenIPv4 + ":" + DefaultListenPort
-	defaultRoutedMode     = false
-	defaultUnifiedMode    = false
-	defaultEnvFile        = ""
-	defaultEnableDIFC     = false
-	defaultLogDir         = "/tmp/gh-aw/mcp-logs"
-	defaultParallelLaunch = true
+	defaultRoutedMode       = false
+	defaultUnifiedMode      = false
+	defaultEnvFile          = ""
+	defaultEnableDIFC       = false
+	defaultLogDir           = "/tmp/gh-aw/mcp-logs"
+	defaultSequentialLaunch = false
 )
 
 var (
@@ -43,14 +43,14 @@ var (
 	listenAddr     string
 	routedMode     bool
 	unifiedMode    bool
-	envFile        string
-	enableDIFC     bool
-	logDir         string
-	validateEnv    bool
-	parallelLaunch bool
-	verbosity      int // Verbosity level: 0 (default), 1 (-v info), 2 (-vv debug), 3 (-vvv trace)
-	debugLog       = logger.New("cmd:root")
-	version        = "dev" // Default version, overridden by SetVersion
+	envFile          string
+	enableDIFC       bool
+	logDir           string
+	validateEnv      bool
+	sequentialLaunch bool
+	verbosity        int // Verbosity level: 0 (default), 1 (-v info), 2 (-vv debug), 3 (-vvv trace)
+	debugLog         = logger.New("cmd:root")
+	version          = "dev" // Default version, overridden by SetVersion
 )
 
 var rootCmd = &cobra.Command{
@@ -77,7 +77,7 @@ func init() {
 	rootCmd.Flags().BoolVar(&enableDIFC, "enable-difc", defaultEnableDIFC, "Enable DIFC enforcement and session requirement (requires sys___init call before tool access)")
 	rootCmd.Flags().StringVar(&logDir, "log-dir", getDefaultLogDir(), "Directory for log files (falls back to stdout if directory cannot be created)")
 	rootCmd.Flags().BoolVar(&validateEnv, "validate-env", false, "Validate execution environment (Docker, env vars) before starting")
-	rootCmd.Flags().BoolVar(&parallelLaunch, "parallel-launch", defaultParallelLaunch, "Launch MCP servers in parallel during startup (enabled by default)")
+	rootCmd.Flags().BoolVar(&sequentialLaunch, "sequential-launch", defaultSequentialLaunch, "Launch MCP servers sequentially during startup (parallel launch is default)")
 	rootCmd.Flags().CountVarP(&verbosity, "verbose", "v", "Increase verbosity level (use -v for info, -vv for debug, -vvv for trace)")
 
 	// Mark mutually exclusive flags
@@ -241,17 +241,17 @@ func run(cmd *cobra.Command, args []string) error {
 
 	// Apply command-line flags to config
 	cfg.EnableDIFC = enableDIFC
-	cfg.ParallelLaunch = parallelLaunch
+	cfg.SequentialLaunch = sequentialLaunch
 	if enableDIFC {
 		log.Println("DIFC enforcement and session requirement enabled")
 	} else {
 		log.Println("DIFC enforcement disabled (sessions auto-created for standard MCP client compatibility)")
 	}
 
-	if parallelLaunch {
-		log.Println("Parallel server launching enabled")
-	} else {
+	if sequentialLaunch {
 		log.Println("Sequential server launching enabled")
+	} else {
+		log.Println("Parallel server launching enabled (default)")
 	}
 
 	// Determine mode (default to unified if neither flag is set)

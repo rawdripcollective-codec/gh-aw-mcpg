@@ -493,10 +493,10 @@ func TestRequireSession_EdgeCases(t *testing.T) {
 	}
 }
 
-func TestUnifiedServer_ParallelLaunch_Enabled(t *testing.T) {
+func TestUnifiedServer_SequentialLaunch_Enabled(t *testing.T) {
 	cfg := &config.Config{
-		Servers:        map[string]*config.ServerConfig{},
-		ParallelLaunch: true,
+		Servers:          map[string]*config.ServerConfig{},
+		SequentialLaunch: true,
 	}
 
 	ctx := context.Background()
@@ -504,13 +504,13 @@ func TestUnifiedServer_ParallelLaunch_Enabled(t *testing.T) {
 	require.NoError(t, err, "NewUnified() failed")
 	defer us.Close()
 
-	assert.True(t, us.parallelLaunch, "ParallelLaunch should be enabled when configured")
+	assert.True(t, us.sequentialLaunch, "SequentialLaunch should be enabled when configured")
 }
 
-func TestUnifiedServer_ParallelLaunch_Disabled(t *testing.T) {
+func TestUnifiedServer_SequentialLaunch_Disabled(t *testing.T) {
 	cfg := &config.Config{
-		Servers:        map[string]*config.ServerConfig{},
-		ParallelLaunch: false,
+		Servers:          map[string]*config.ServerConfig{},
+		SequentialLaunch: false,
 	}
 
 	ctx := context.Background()
@@ -518,5 +518,5 @@ func TestUnifiedServer_ParallelLaunch_Disabled(t *testing.T) {
 	require.NoError(t, err, "NewUnified() failed")
 	defer us.Close()
 
-	assert.False(t, us.parallelLaunch, "ParallelLaunch should be disabled when configured")
+	assert.False(t, us.sequentialLaunch, "SequentialLaunch should be disabled (parallel launch is default) when configured")
 }
