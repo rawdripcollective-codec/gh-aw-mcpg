@@ -549,3 +549,78 @@ func TestGetOrLaunchForSession_InvalidServer(t *testing.T) {
 	assert.Nil(t, conn)
 	assert.Contains(t, err.Error(), "not found in config")
 }
+
+func TestLauncher_StartupTimeout(t *testing.T) {
+	// Test that launcher respects the startup timeout from config
+	tests := []struct {
+		name            string
+		configTimeout   int
+		expectedTimeout string
+	}{
+		{
+			name:            "default timeout (60 seconds)",
+			configTimeout:   0, // 0 means use default
+			expectedTimeout: "1m0s",
+		},
+		{
+			name:            "custom timeout (30 seconds)",
+			configTimeout:   30,
+			expectedTimeout: "30s",
+		},
+		{
+			name:            "custom timeout (120 seconds)",
+			configTimeout:   120,
+			expectedTimeout: "2m0s",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			cfg := &config.Config{
+				Servers: map[string]*config.ServerConfig{
+					"test-server": {
+						Type: "http",
+						URL:  "http://example.com",
+					},
+				},
+				Gateway: &config.GatewayConfig{
+					Port:           3000,
+					StartupTimeout: tt.configTimeout,
+					ToolTimeout:    120,
+				},
+			}
+
+			// If timeout is 0, set it to default to match LoadFromFile behavior
+			if cfg.Gateway.StartupTimeout == 0 {
+				cfg.Gateway.StartupTimeout = config.DefaultStartupTimeout
+			}
+
+			l := New(ctx, cfg)
+			defer l.Close()
+
+			// Verify the timeout was set correctly
+			assert.Equal(t, tt.expectedTimeout, l.startupTimeout.String())
+		})
+	}
+}
+
+func TestLauncher_TimeoutWithNilGateway(t *testing.T) {
+	// Test that launcher uses default timeout when Gateway config is nil
+	ctx := context.Background()
+	cfg := &config.Config{
+		Servers: map[string]*config.ServerConfig{
+			"test-server": {
+				Type: "http",
+				URL:  "http://example.com",
+			},
+		},
+		Gateway: nil, // No gateway config
+	}
+
+	l := New(ctx, cfg)
+	defer l.Close()
+
+	// Should use default timeout (60 seconds)
+	assert.Equal(t, "1m0s", l.startupTimeout.String())
+}

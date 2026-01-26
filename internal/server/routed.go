@@ -53,8 +53,7 @@ func (c *filteredServerCache) getOrCreate(backendID, sessionID string, creator f
 	c.mu.RLock()
 	if server, exists := c.servers[key]; exists {
 		c.mu.RUnlock()
-		logRouted.Printf("Reusing cached filtered server: backend=%s, session=%s", backendID, sessionID)
-		log.Printf("[CACHE] Reusing cached filtered server: backend=%s, session=%s", backendID, sessionID)
+		logRouted.Printf("[CACHE] Reusing cached filtered server: backend=%s, session=%s", backendID, sessionID)
 		return server
 	}
 	c.mu.RUnlock()
@@ -65,14 +64,12 @@ func (c *filteredServerCache) getOrCreate(backendID, sessionID string, creator f
 
 	// Double-check after acquiring write lock
 	if server, exists := c.servers[key]; exists {
-		logRouted.Printf("Filtered server created by another goroutine: backend=%s, session=%s", backendID, sessionID)
-		log.Printf("[CACHE] Filtered server created by another goroutine: backend=%s, session=%s", backendID, sessionID)
+		logRouted.Printf("[CACHE] Filtered server created by another goroutine: backend=%s, session=%s", backendID, sessionID)
 		return server
 	}
 
 	// Create new server
-	logRouted.Printf("Creating new filtered server: backend=%s, session=%s", backendID, sessionID)
-	log.Printf("[CACHE] Creating new filtered server: backend=%s, session=%s", backendID, sessionID)
+	logRouted.Printf("[CACHE] Creating new filtered server: backend=%s, session=%s", backendID, sessionID)
 	server := creator()
 	c.servers[key] = server
 	return server
