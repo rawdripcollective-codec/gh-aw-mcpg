@@ -94,6 +94,19 @@ func LoadFromFile(path string) (*Config, error) {
 		// return nil, fmt.Errorf("unknown configuration keys: %v", meta.Undecoded())
 	}
 
+	// Set default gateway config values if gateway section exists but fields are unset
+	if cfg.Gateway != nil {
+		if cfg.Gateway.StartupTimeout == 0 {
+			cfg.Gateway.StartupTimeout = 60
+		}
+		if cfg.Gateway.ToolTimeout == 0 {
+			cfg.Gateway.ToolTimeout = 120
+		}
+		if cfg.Gateway.Port == 0 {
+			cfg.Gateway.Port = 3000
+		}
+	}
+
 	logConfig.Printf("Successfully loaded %d servers from TOML file", len(cfg.Servers))
 	return &cfg, nil
 }
