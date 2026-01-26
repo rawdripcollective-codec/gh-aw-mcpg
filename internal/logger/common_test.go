@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"testing"
 
@@ -607,7 +606,7 @@ func TestInitLogger_MarkdownLoggerFallback(t *testing.T) {
 }
 
 func TestInitLogger_SetupError(t *testing.T) {
-	assert := assert.New(t)
+	a := assert.New(t)
 	tmpDir := t.TempDir()
 	logDir := filepath.Join(tmpDir, "logs")
 	fileName := "test.log"
@@ -625,14 +624,14 @@ func TestInitLogger_SetupError(t *testing.T) {
 		},
 	)
 
-	assert.Error(err, "initLogger should return error on setup failure")
-	assert.Equal(assert.AnError, err, "Error should match setup error")
-	assert.Nil(logger, "logger should be nil on setup error")
+	a.Error(err, "initLogger should return error on setup failure")
+	a.Equal(assert.AnError, err, "Error should match setup error")
+	a.Nil(logger, "logger should be nil on setup error")
 
 	// Verify the log file was created but then closed
 	logPath := filepath.Join(logDir, fileName)
 	_, err = os.Stat(logPath)
-	assert.NoError(err, "Log file should exist even after setup error")
+	a.NoError(err, "Log file should exist even after setup error")
 }
 
 func TestInitLogger_FileFlags(t *testing.T) {
