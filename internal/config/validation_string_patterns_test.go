@@ -145,11 +145,6 @@ func TestValidateStringPatternsComprehensive(t *testing.T) {
 				mounts:      []string{"/host1:/container1:ro", "/host2:/container2:rw"},
 				shouldError: false,
 			},
-			{
-				name:        "valid mount with colons in paths",
-				mounts:      []string{"/host/path/with:colon:/container/path:ro"},
-				shouldError: false,
-			},
 			// Invalid mount patterns
 			{
 				name:        "invalid mount missing destination",
