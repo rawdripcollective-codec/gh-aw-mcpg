@@ -601,6 +601,7 @@ jobs:
           GH_DEBUG: 1
           GITHUB_MCP_LOCKDOWN: ${{ steps.determine-automatic-lockdown.outputs.lockdown == 'true' && '1' || '0' }}
           GITHUB_MCP_SERVER_TOKEN: ${{ secrets.GH_AW_GITHUB_MCP_SERVER_TOKEN || secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
+          DEBUG: "*"
         run: |
           set -eo pipefail
           mkdir -p /tmp/gh-aw/mcp-config
