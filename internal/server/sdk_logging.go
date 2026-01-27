@@ -96,9 +96,24 @@ func WithSDKLogging(handler http.Handler, mode string) http.Handler {
 					logSDK.Printf("    JSON-RPC Error: code=%d message=%q",
 						jsonrpcResp.Error.Code, jsonrpcResp.Error.Message)
 
+					// Check for specific error types
+					errorCode := jsonrpcResp.Error.Code
+					errorMsg := jsonrpcResp.Error.Message
+
+					// Log tool not found errors specifically for better monitoring
+					// Error code -32602 (Invalid params) is used by the SDK for unknown tools
+					// Error code -32601 (Method not found) could also indicate tool issues
+					// We check the method to ensure this is a tools/call request
+					if (errorCode == -32602 || errorCode == -32601) && jsonrpcReq.Method == "tools/call" {
+						logSDK.Printf("    ⚠️  TOOL NOT FOUND ERROR")
+						logger.LogWarn("client",
+							"Tool not found: mode=%s, method=%s, session=%s, code=%d, message=%q",
+							mode, jsonrpcReq.Method, auth.TruncateSessionID(sessionID), errorCode, errorMsg)
+					}
+
 					// Log detailed error info for protocol state issues
-					if strings.Contains(jsonrpcResp.Error.Message, "session initialization") ||
-						strings.Contains(jsonrpcResp.Error.Message, "invalid during") {
+					if strings.Contains(errorMsg, "session initialization") ||
+						strings.Contains(errorMsg, "invalid during") {
 						logSDK.Printf("    ⚠️  PROTOCOL STATE ERROR DETECTED")
 						logSDK.Printf("    Request method was: %s", jsonrpcReq.Method)
 						logSDK.Printf("    Session ID: %s", auth.TruncateSessionID(sessionID))
@@ -108,11 +123,12 @@ func WithSDKLogging(handler http.Handler, mode string) http.Handler {
 						logger.LogWarn("sdk-frontend",
 							"Protocol state error: mode=%s, method=%s, session=%s, mcp_session=%s, error=%q",
 							mode, jsonrpcReq.Method, auth.TruncateSessionID(sessionID),
-							auth.TruncateSessionID(mcpSessionID), jsonrpcResp.Error.Message)
-					} else {
+							auth.TruncateSessionID(mcpSessionID), errorMsg)
+					} else if (errorCode != -32602 && errorCode != -32601) || jsonrpcReq.Method != "tools/call" {
+						// Only log as general error if not already logged above
 						logger.LogError("sdk-frontend",
 							"JSON-RPC error: mode=%s, method=%s, code=%d, message=%q",
-							mode, jsonrpcReq.Method, jsonrpcResp.Error.Code, jsonrpcResp.Error.Message)
+							mode, jsonrpcReq.Method, errorCode, errorMsg)
 					}
 				} else {
 					// Success response
