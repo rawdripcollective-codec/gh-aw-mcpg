@@ -97,14 +97,18 @@ func WithSDKLogging(handler http.Handler, mode string) http.Handler {
 						jsonrpcResp.Error.Code, jsonrpcResp.Error.Message)
 
 					// Check for specific error types
+					errorCode := jsonrpcResp.Error.Code
 					errorMsg := jsonrpcResp.Error.Message
 
-					// Log "unknown tool" errors specifically for better monitoring
-					if strings.Contains(errorMsg, "unknown tool") {
+					// Log tool not found errors specifically for better monitoring
+					// Error code -32602 (Invalid params) is used by the SDK for unknown tools
+					// Error code -32601 (Method not found) could also indicate tool issues
+					// We check the method to ensure this is a tools/call request
+					if (errorCode == -32602 || errorCode == -32601) && jsonrpcReq.Method == "tools/call" {
 						logSDK.Printf("    ⚠️  TOOL NOT FOUND ERROR")
 						logger.LogWarn("client",
-							"Tool not found: mode=%s, method=%s, session=%s, error=%q",
-							mode, jsonrpcReq.Method, auth.TruncateSessionID(sessionID), errorMsg)
+							"Tool not found: mode=%s, method=%s, session=%s, code=%d, message=%q",
+							mode, jsonrpcReq.Method, auth.TruncateSessionID(sessionID), errorCode, errorMsg)
 					}
 
 					// Log detailed error info for protocol state issues
@@ -120,11 +124,11 @@ func WithSDKLogging(handler http.Handler, mode string) http.Handler {
 							"Protocol state error: mode=%s, method=%s, session=%s, mcp_session=%s, error=%q",
 							mode, jsonrpcReq.Method, auth.TruncateSessionID(sessionID),
 							auth.TruncateSessionID(mcpSessionID), errorMsg)
-					} else if !strings.Contains(errorMsg, "unknown tool") {
+					} else if !((errorCode == -32602 || errorCode == -32601) && jsonrpcReq.Method == "tools/call") {
 						// Only log as general error if not already logged above
 						logger.LogError("sdk-frontend",
 							"JSON-RPC error: mode=%s, method=%s, code=%d, message=%q",
-							mode, jsonrpcReq.Method, jsonrpcResp.Error.Code, errorMsg)
+							mode, jsonrpcReq.Method, errorCode, errorMsg)
 					}
 				} else {
 					// Success response
