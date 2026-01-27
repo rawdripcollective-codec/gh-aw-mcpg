@@ -7,27 +7,12 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/githubnext/gh-aw-mcpg/internal/auth"
 	"github.com/githubnext/gh-aw-mcpg/internal/logger"
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 var logTransport = logger.New("server:transport")
-
-// rejectIfShutdownUnified is a middleware that rejects requests with HTTP 503 when gateway is shutting down
-// Per spec 5.1.3: "Immediately reject any new RPC requests to /mcp/{server-name} endpoints with HTTP 503"
-func rejectIfShutdownUnified(unifiedServer *UnifiedServer, next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if unifiedServer.IsShutdown() {
-			logTransport.Printf("Rejecting request during shutdown: remote=%s, method=%s, path=%s", r.RemoteAddr, r.Method, r.URL.Path)
-			logger.LogWarn("shutdown", "Request rejected during shutdown, remote=%s, path=%s", r.RemoteAddr, r.URL.Path)
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusServiceUnavailable)
-			w.Write([]byte(shutdownErrorJSON))
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
-}
 
 // HTTPTransport wraps the SDK's HTTP transport
 type HTTPTransport struct {
@@ -91,7 +76,7 @@ func CreateHTTPServerForMCP(addr string, unifiedServer *UnifiedServer, apiKey st
 
 		// Extract session ID from Authorization header
 		authHeader := r.Header.Get("Authorization")
-		sessionID := extractSessionFromAuth(authHeader)
+		sessionID := auth.ExtractSessionID(authHeader)
 
 		// Reject requests without Authorization header
 		if sessionID == "" {
@@ -138,7 +123,7 @@ func CreateHTTPServerForMCP(addr string, unifiedServer *UnifiedServer, apiKey st
 
 	// Apply shutdown check middleware (spec 5.1.3)
 	// This must come before auth to ensure shutdown takes precedence
-	shutdownHandler := rejectIfShutdownUnified(unifiedServer, loggedHandler)
+	shutdownHandler := rejectIfShutdown(unifiedServer, loggedHandler, "server:transport")
 
 	// Apply auth middleware if API key is configured (spec 7.1)
 	finalHandler := shutdownHandler

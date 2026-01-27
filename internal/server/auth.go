@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/githubnext/gh-aw-mcpg/internal/auth"
 	"github.com/githubnext/gh-aw-mcpg/internal/logger"
 )
 
@@ -40,16 +39,6 @@ func authMiddleware(apiKey string, next http.HandlerFunc) http.HandlerFunc {
 		// Token is valid, proceed to handler
 		next(w, r)
 	}
-}
-
-// extractSessionFromAuth extracts session ID from Authorization header.
-// This function delegates to auth.ExtractSessionID for consistent session ID extraction.
-// Per spec 7.1: When API key is configured, Authorization contains plain API key.
-// When API key is not configured, supports Bearer token for backward compatibility.
-//
-// Deprecated: Use auth.ExtractSessionID directly instead.
-func extractSessionFromAuth(authHeader string) string {
-	return auth.ExtractSessionID(authHeader)
 }
 
 // logRuntimeError logs runtime errors to stdout per spec section 9.2
