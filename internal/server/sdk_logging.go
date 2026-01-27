@@ -96,9 +96,20 @@ func WithSDKLogging(handler http.Handler, mode string) http.Handler {
 					logSDK.Printf("    JSON-RPC Error: code=%d message=%q",
 						jsonrpcResp.Error.Code, jsonrpcResp.Error.Message)
 
+					// Check for specific error types
+					errorMsg := jsonrpcResp.Error.Message
+
+					// Log "unknown tool" errors specifically for better monitoring
+					if strings.Contains(errorMsg, "unknown tool") {
+						logSDK.Printf("    ⚠️  TOOL NOT FOUND ERROR")
+						logger.LogWarn("client",
+							"Tool not found: mode=%s, method=%s, session=%s, error=%q",
+							mode, jsonrpcReq.Method, auth.TruncateSessionID(sessionID), errorMsg)
+					}
+
 					// Log detailed error info for protocol state issues
-					if strings.Contains(jsonrpcResp.Error.Message, "session initialization") ||
-						strings.Contains(jsonrpcResp.Error.Message, "invalid during") {
+					if strings.Contains(errorMsg, "session initialization") ||
+						strings.Contains(errorMsg, "invalid during") {
 						logSDK.Printf("    ⚠️  PROTOCOL STATE ERROR DETECTED")
 						logSDK.Printf("    Request method was: %s", jsonrpcReq.Method)
 						logSDK.Printf("    Session ID: %s", auth.TruncateSessionID(sessionID))
@@ -108,11 +119,12 @@ func WithSDKLogging(handler http.Handler, mode string) http.Handler {
 						logger.LogWarn("sdk-frontend",
 							"Protocol state error: mode=%s, method=%s, session=%s, mcp_session=%s, error=%q",
 							mode, jsonrpcReq.Method, auth.TruncateSessionID(sessionID),
-							auth.TruncateSessionID(mcpSessionID), jsonrpcResp.Error.Message)
-					} else {
+							auth.TruncateSessionID(mcpSessionID), errorMsg)
+					} else if !strings.Contains(errorMsg, "unknown tool") {
+						// Only log as general error if not already logged above
 						logger.LogError("sdk-frontend",
 							"JSON-RPC error: mode=%s, method=%s, code=%d, message=%q",
-							mode, jsonrpcReq.Method, jsonrpcResp.Error.Code, jsonrpcResp.Error.Message)
+							mode, jsonrpcReq.Method, jsonrpcResp.Error.Code, errorMsg)
 					}
 				} else {
 					// Success response
