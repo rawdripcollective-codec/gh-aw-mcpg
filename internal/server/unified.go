@@ -74,15 +74,15 @@ type ToolInfo struct {
 
 // UnifiedServer implements a unified MCP server that aggregates multiple backend servers
 type UnifiedServer struct {
-	launcher       *launcher.Launcher
-	sysServer      *sys.SysServer
-	ctx            context.Context
-	server         *sdk.Server
-	sessions       map[string]*Session // mcp-session-id -> Session
-	sessionMu      sync.RWMutex
-	tools          map[string]*ToolInfo // prefixed tool name -> tool info
-	toolsMu        sync.RWMutex
-	parallelLaunch bool // When true (default), launches MCP servers in parallel during startup
+	launcher         *launcher.Launcher
+	sysServer        *sys.SysServer
+	ctx              context.Context
+	server           *sdk.Server
+	sessions         map[string]*Session // mcp-session-id -> Session
+	sessionMu        sync.RWMutex
+	tools            map[string]*ToolInfo // prefixed tool name -> tool info
+	toolsMu          sync.RWMutex
+	sequentialLaunch bool // When true, launches MCP servers sequentially during startup. Default is false (parallel launch).
 
 	// DIFC components
 	guardRegistry *guard.Registry
@@ -102,16 +102,16 @@ type UnifiedServer struct {
 
 // NewUnified creates a new unified MCP server
 func NewUnified(ctx context.Context, cfg *config.Config) (*UnifiedServer, error) {
-	logUnified.Printf("Creating new unified server: enableDIFC=%v, parallelLaunch=%v, servers=%d", cfg.EnableDIFC, cfg.ParallelLaunch, len(cfg.Servers))
+	logUnified.Printf("Creating new unified server: enableDIFC=%v, sequentialLaunch=%v, servers=%d", cfg.EnableDIFC, cfg.SequentialLaunch, len(cfg.Servers))
 	l := launcher.New(ctx, cfg)
 
 	us := &UnifiedServer{
-		launcher:       l,
-		sysServer:      sys.NewSysServer(l.ServerIDs()),
-		ctx:            ctx,
-		sessions:       make(map[string]*Session),
-		tools:          make(map[string]*ToolInfo),
-		parallelLaunch: cfg.ParallelLaunch,
+		launcher:         l,
+		sysServer:        sys.NewSysServer(l.ServerIDs()),
+		ctx:              ctx,
+		sessions:         make(map[string]*Session),
+		tools:            make(map[string]*ToolInfo),
+		sequentialLaunch: cfg.SequentialLaunch,
 
 		// Initialize DIFC components
 		guardRegistry: guard.NewRegistry(),
@@ -168,12 +168,12 @@ func (us *UnifiedServer) registerAllTools() error {
 
 	serverIDs := us.launcher.ServerIDs()
 
-	if us.parallelLaunch {
-		// Launch servers in parallel
-		return us.registerAllToolsParallel(serverIDs)
-	} else {
-		// Launch servers sequentially (original behavior)
+	if us.sequentialLaunch {
+		// Launch servers sequentially
 		return us.registerAllToolsSequential(serverIDs)
+	} else {
+		// Launch servers in parallel (default behavior)
+		return us.registerAllToolsParallel(serverIDs)
 	}
 }
 
