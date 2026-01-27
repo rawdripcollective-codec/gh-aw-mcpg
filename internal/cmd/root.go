@@ -254,10 +254,10 @@ func run(cmd *cobra.Command, args []string) error {
 		log.Println("Parallel server launching enabled (default)")
 	}
 
-	// Determine mode (default to unified if neither flag is set)
-	mode := "unified"
-	if routedMode {
-		mode = "routed"
+	// Determine mode (default to routed if neither flag is set)
+	mode := "routed"
+	if unifiedMode {
+		mode = "unified"
 	}
 
 	debugLog.Printf("Server mode: %s, DIFC enabled: %v", mode, cfg.EnableDIFC)
