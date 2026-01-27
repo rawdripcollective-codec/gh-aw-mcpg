@@ -60,7 +60,7 @@ func TestNonExistentToolCallLogging_RoutedMode(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 	httpServer.Handler.ServeHTTP(rr, req)
-	
+
 	t.Logf("Initialize response: %s", rr.Body.String())
 
 	// Now test calling a non-existent tool "foobar"
@@ -98,10 +98,10 @@ func TestNonExistentToolCallLogging_RoutedMode(t *testing.T) {
 	// Verify an error is returned
 	errObj, hasError := jsonrpcResp["error"]
 	require.True(t, hasError, "Expected error for non-existent tool call")
-	
+
 	errorMap, ok := errObj.(map[string]interface{})
 	require.True(t, ok, "Error should be a map")
-	
+
 	errorMsg := errorMap["message"].(string)
 	t.Logf("Error code: %v", errorMap["code"])
 	t.Logf("Error message: %s", errorMsg)
@@ -110,12 +110,12 @@ func TestNonExistentToolCallLogging_RoutedMode(t *testing.T) {
 	// The SDK or gateway should return an appropriate error
 	errorMsgLower := strings.ToLower(errorMsg)
 	assert.True(t,
-		strings.Contains(errorMsgLower, "tool") || 
-		strings.Contains(errorMsgLower, "not found") || 
-		strings.Contains(errorMsgLower, "unknown") ||
-		strings.Contains(errorMsgLower, "foobar") ||
-		strings.Contains(errorMsgLower, "handler") ||
-		strings.Contains(errorMsgLower, "no tool"),
+		strings.Contains(errorMsgLower, "tool") ||
+			strings.Contains(errorMsgLower, "not found") ||
+			strings.Contains(errorMsgLower, "unknown") ||
+			strings.Contains(errorMsgLower, "foobar") ||
+			strings.Contains(errorMsgLower, "handler") ||
+			strings.Contains(errorMsgLower, "no tool"),
 		"Error message should indicate tool not found or unknown tool. Got: %s", errorMsg)
 }
 
@@ -163,7 +163,7 @@ func TestNonExistentToolCallLogging_UnifiedMode(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 	httpServer.Handler.ServeHTTP(rr, req)
-	
+
 	t.Logf("Initialize response: %s", rr.Body.String())
 
 	// In unified mode, tool names should have the backend prefix
@@ -202,10 +202,10 @@ func TestNonExistentToolCallLogging_UnifiedMode(t *testing.T) {
 	// Verify an error is returned
 	errObj, hasError := jsonrpcResp["error"]
 	require.True(t, hasError, "Expected error for non-existent tool call")
-	
+
 	errorMap, ok := errObj.(map[string]interface{})
 	require.True(t, ok, "Error should be a map")
-	
+
 	errorMsg := errorMap["message"].(string)
 	t.Logf("Error code: %v", errorMap["code"])
 	t.Logf("Error message: %s", errorMsg)
@@ -213,11 +213,11 @@ func TestNonExistentToolCallLogging_UnifiedMode(t *testing.T) {
 	// Check that error message indicates tool not found
 	errorMsgLower := strings.ToLower(errorMsg)
 	assert.True(t,
-		strings.Contains(errorMsgLower, "tool") || 
-		strings.Contains(errorMsgLower, "not found") || 
-		strings.Contains(errorMsgLower, "unknown") ||
-		strings.Contains(errorMsgLower, "foobar") ||
-		strings.Contains(errorMsgLower, "handler") ||
-		strings.Contains(errorMsgLower, "no tool"),
+		strings.Contains(errorMsgLower, "tool") ||
+			strings.Contains(errorMsgLower, "not found") ||
+			strings.Contains(errorMsgLower, "unknown") ||
+			strings.Contains(errorMsgLower, "foobar") ||
+			strings.Contains(errorMsgLower, "handler") ||
+			strings.Contains(errorMsgLower, "no tool"),
 		"Error message should indicate tool not found. Got: %s", errorMsg)
 }
