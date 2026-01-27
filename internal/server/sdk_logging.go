@@ -124,7 +124,7 @@ func WithSDKLogging(handler http.Handler, mode string) http.Handler {
 							"Protocol state error: mode=%s, method=%s, session=%s, mcp_session=%s, error=%q",
 							mode, jsonrpcReq.Method, auth.TruncateSessionID(sessionID),
 							auth.TruncateSessionID(mcpSessionID), errorMsg)
-					} else if !((errorCode == -32602 || errorCode == -32601) && jsonrpcReq.Method == "tools/call") {
+					} else if (errorCode != -32602 && errorCode != -32601) || jsonrpcReq.Method != "tools/call" {
 						// Only log as general error if not already logged above
 						logger.LogError("sdk-frontend",
 							"JSON-RPC error: mode=%s, method=%s, code=%d, message=%q",
