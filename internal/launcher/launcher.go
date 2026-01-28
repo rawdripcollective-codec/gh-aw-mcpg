@@ -78,6 +78,8 @@ func GetOrLaunch(l *Launcher, serverID string) (*mcp.Connection, error) {
 	}
 	l.mu.RUnlock()
 
+	logLauncher.Printf("Connection not found in cache, launching new: serverID=%s", serverID)
+
 	// Launch new connection
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -93,8 +95,10 @@ func GetOrLaunch(l *Launcher, serverID string) (*mcp.Connection, error) {
 	serverCfg, ok := l.config.Servers[serverID]
 	if !ok {
 		logger.LogError("backend", "Backend server not found in config: %s", serverID)
+		logLauncher.Printf("Server not found in config: serverID=%s", serverID)
 		return nil, fmt.Errorf("server '%s' not found in config", serverID)
 	}
+	logLauncher.Printf("Retrieved server config: serverID=%s, type=%s", serverID, serverCfg.Type)
 
 	// Handle HTTP backends differently
 	if serverCfg.Type == "http" {
@@ -172,6 +176,7 @@ func GetOrLaunch(l *Launcher, serverID string) (*mcp.Connection, error) {
 	// Buffer size of 1 prevents goroutine leak if timeout occurs before connection completes
 	resultChan := make(chan connectionResult, 1)
 
+	logLauncher.Printf("Starting connection goroutine: serverID=%s", serverID)
 	// Launch connection in a goroutine
 	go func() {
 		conn, err := mcp.NewConnection(l.ctx, serverCfg.Command, serverCfg.Args, serverCfg.Env)
@@ -223,6 +228,7 @@ func GetOrLaunch(l *Launcher, serverID string) (*mcp.Connection, error) {
 		log.Printf("[LAUNCHER] ❌ Server startup timed out after %v", l.startupTimeout)
 		log.Printf("[LAUNCHER] ⚠️  The server may be hanging or taking too long to initialize")
 		log.Printf("[LAUNCHER] ⚠️  Consider increasing 'startupTimeout' in gateway config if server needs more time")
+		logLauncher.Printf("Startup timeout occurred: serverID=%s, timeout=%v", serverID, l.startupTimeout)
 		return nil, fmt.Errorf("server startup timeout after %v", l.startupTimeout)
 	}
 }
@@ -249,6 +255,7 @@ func GetOrLaunchForSession(l *Launcher, serverID, sessionID string) (*mcp.Connec
 		return GetOrLaunch(l, serverID)
 	}
 
+	logLauncher.Printf("Checking session pool: serverID=%s, sessionID=%s", serverID, sessionID)
 	// For stdio backends, check the session pool first
 	if conn, exists := l.sessionPool.Get(serverID, sessionID); exists {
 		logger.LogDebug("backend", "Reusing session connection: server=%s, session=%s", serverID, sessionID)
@@ -257,7 +264,7 @@ func GetOrLaunchForSession(l *Launcher, serverID, sessionID string) (*mcp.Connec
 	}
 
 	// Need to launch new connection for this session
-	logLauncher.Printf("Creating new session connection: serverID=%s, sessionID=%s", serverID, sessionID)
+	logLauncher.Printf("Session connection not found, creating new: serverID=%s, sessionID=%s", serverID, sessionID)
 
 	// Lock for launching
 	l.mu.Lock()
@@ -374,6 +381,7 @@ func (l *Launcher) ServerIDs() []string {
 	for id := range l.config.Servers {
 		ids = append(ids, id)
 	}
+	logLauncher.Printf("Retrieved server IDs: count=%d, ids=%v", len(ids), ids)
 	return ids
 }
 
@@ -382,6 +390,7 @@ func (l *Launcher) Close() {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
+	logLauncher.Printf("Closing launcher: connections=%d, hasSessionPool=%v", len(l.connections), l.sessionPool != nil)
 	logLauncher.Printf("Closing %d connections", len(l.connections))
 	for _, conn := range l.connections {
 		conn.Close()
@@ -393,4 +402,5 @@ func (l *Launcher) Close() {
 		logLauncher.Printf("Stopping session connection pool")
 		l.sessionPool.Stop()
 	}
+	logLauncher.Print("Launcher closed successfully")
 }
