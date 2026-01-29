@@ -37,3 +37,22 @@ type StdinGuardConfig struct {
 	// CacheDir is the directory to cache downloaded WASM files (optional)
 	CacheDir string `json:"cacheDir,omitempty"`
 }
+
+// SessionConfig represents initial DIFC labels for agent sessions.
+// See github-difc.md section 11.5 for specification.
+type SessionConfig struct {
+	// Secrecy holds initial secrecy clearance tags
+	Secrecy []string `toml:"secrecy" json:"secrecy,omitempty"`
+
+	// Integrity holds initial integrity clearance tags
+	Integrity []string `toml:"integrity" json:"integrity,omitempty"`
+}
+
+// StdinSessionConfig represents session configuration from stdin JSON.
+type StdinSessionConfig struct {
+	// Secrecy holds initial secrecy clearance tags
+	Secrecy []string `json:"secrecy,omitempty"`
+
+	// Integrity holds initial integrity clearance tags
+	Integrity []string `json:"integrity,omitempty"`
+}

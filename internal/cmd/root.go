@@ -176,6 +176,33 @@ func run(cmd *cobra.Command, args []string) error {
 		log.Println("Environment validation passed")
 	}
 
+	// Validate extension flag prerequisites
+	// Extension features require --enable-config-extensions to be set
+	hasExtensionFeatures := enableDIFC || difcFilter || sessionSecrecy != "" || sessionIntegrity != ""
+	if hasExtensionFeatures && !enableConfigExt {
+		var features []string
+		if enableDIFC {
+			features = append(features, "--enable-difc")
+		}
+		if difcFilter {
+			features = append(features, "--difc-filter")
+		}
+		if sessionSecrecy != "" {
+			features = append(features, "--session-secrecy")
+		}
+		if sessionIntegrity != "" {
+			features = append(features, "--session-integrity")
+		}
+		return fmt.Errorf("the following flags require --enable-config-extensions (or MCP_GATEWAY_CONFIG_EXTENSIONS=1): %s", strings.Join(features, ", "))
+	}
+
+	// Set config extensions flag before loading config
+	// This determines whether DIFC extensions (guards, session labels) are validated
+	config.SetConfigExtensionsEnabled(enableConfigExt)
+	if enableConfigExt {
+		log.Println("Config extensions enabled (guards, session labels)")
+	}
+
 	// Load configuration
 	var cfg *config.Config
 	var err error
@@ -210,7 +237,33 @@ func run(cmd *cobra.Command, args []string) error {
 
 	// Apply command-line flags to config
 	cfg.EnableDIFC = enableDIFC
+	cfg.DIFCFilter = difcFilter
 	cfg.SequentialLaunch = sequentialLaunch
+
+	// Apply session labels from CLI flags (these override config file settings)
+	secrecyLabels := parseSessionLabels(sessionSecrecy)
+	integrityLabels := parseSessionLabels(sessionIntegrity)
+	if len(secrecyLabels) > 0 || len(integrityLabels) > 0 {
+		// Ensure Gateway config exists
+		if cfg.Gateway == nil {
+			cfg.Gateway = &config.GatewayConfig{}
+		}
+		// Ensure Session config exists
+		if cfg.Gateway.Session == nil {
+			cfg.Gateway.Session = &config.SessionConfig{}
+		}
+		// Apply CLI flags (override config file)
+		if len(secrecyLabels) > 0 {
+			cfg.Gateway.Session.Secrecy = secrecyLabels
+		}
+		if len(integrityLabels) > 0 {
+			cfg.Gateway.Session.Integrity = integrityLabels
+		}
+		log.Printf("Session labels configured: secrecy=%v, integrity=%v",
+			cfg.Gateway.Session.Secrecy, cfg.Gateway.Session.Integrity)
+		logger.LogInfoMd("startup", "Session labels: secrecy=%v, integrity=%v",
+			cfg.Gateway.Session.Secrecy, cfg.Gateway.Session.Integrity)
+	}
 
 	if enableDIFC {
 		log.Println("DIFC enforcement and session requirement enabled")
@@ -459,4 +512,21 @@ func SetVersion(v string) {
 	rootCmd.Version = v
 	config.SetGatewayVersion(v)
 	mcp.SetClientGatewayVersion(v)
+}
+
+// parseSessionLabels parses a comma-separated list of labels into a slice
+func parseSessionLabels(input string) []string {
+	if input == "" {
+		return nil
+	}
+	labels := strings.Split(input, ",")
+	// Trim whitespace from each label
+	result := make([]string, 0, len(labels))
+	for _, label := range labels {
+		trimmed := strings.TrimSpace(label)
+		if trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+	return result
 }

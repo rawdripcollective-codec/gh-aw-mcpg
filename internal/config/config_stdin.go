@@ -28,12 +28,13 @@ type StdinConfig struct {
 // StdinGatewayConfig represents gateway configuration in stdin JSON format.
 // Uses pointers for optional fields to distinguish between unset and zero values.
 type StdinGatewayConfig struct {
-	Port           *int   `json:"port,omitempty"`
-	APIKey         string `json:"apiKey,omitempty"`
-	Domain         string `json:"domain,omitempty"`
-	StartupTimeout *int   `json:"startupTimeout,omitempty"`
-	ToolTimeout    *int   `json:"toolTimeout,omitempty"`
-	PayloadDir     string `json:"payloadDir,omitempty"`
+	Port           *int                `json:"port,omitempty"`
+	APIKey         string              `json:"apiKey,omitempty"`
+	Domain         string              `json:"domain,omitempty"`
+	StartupTimeout *int                `json:"startupTimeout,omitempty"`
+	ToolTimeout    *int                `json:"toolTimeout,omitempty"`
+	PayloadDir     string              `json:"payloadDir,omitempty"`
+	Session        *StdinSessionConfig `json:"session,omitempty"`
 }
 
 // StdinServerConfig represents a single server configuration in stdin JSON format.

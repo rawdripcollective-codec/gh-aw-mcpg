@@ -60,6 +60,9 @@ type GatewayConfig struct {
 
 	// PayloadDir is the directory for storing large payloads
 	PayloadDir string `toml:"payload_dir" json:"payload_dir,omitempty"`
+
+	// Session holds initial DIFC labels for agent sessions
+	Session *SessionConfig `toml:"session" json:"session,omitempty"`
 }
 
 // ServerConfig represents an individual MCP server configuration.
