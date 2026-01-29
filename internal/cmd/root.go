@@ -214,8 +214,14 @@ func run(cmd *cobra.Command, args []string) error {
 
 	if enableDIFC {
 		log.Println("DIFC enforcement and session requirement enabled")
+		if difcFilter {
+			log.Println("DIFC response filtering enabled")
+		}
 	} else {
 		log.Println("DIFC enforcement disabled (sessions auto-created for standard MCP client compatibility)")
+		if difcFilter {
+			log.Println("Warning: --difc-filter has no effect without --enable-difc")
+		}
 	}
 
 	if sequentialLaunch {

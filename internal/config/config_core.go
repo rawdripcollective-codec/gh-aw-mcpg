@@ -33,6 +33,9 @@ type Config struct {
 	// EnableDIFC enables Decentralized Information Flow Control
 	EnableDIFC bool `toml:"enable_difc" json:"enable_difc,omitempty"`
 
+	// DIFCFilter enables DIFC response filtering (removes content that violates agent labels)
+	DIFCFilter bool `toml:"difc_filter" json:"difc_filter,omitempty"`
+
 	// SequentialLaunch launches servers sequentially instead of in parallel
 	SequentialLaunch bool `toml:"sequential_launch" json:"sequential_launch,omitempty"`
 }

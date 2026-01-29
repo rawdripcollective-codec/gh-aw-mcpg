@@ -12,16 +12,19 @@ import (
 // DIFC flag defaults
 const (
 	defaultEnableDIFC = false
+	defaultDIFCFilter = false
 )
 
 // DIFC flag variables
 var (
 	enableDIFC bool
+	difcFilter bool
 )
 
 func init() {
 	RegisterFlag(func(cmd *cobra.Command) {
 		cmd.Flags().BoolVar(&enableDIFC, "enable-difc", getDefaultEnableDIFC(), "Enable DIFC enforcement and session requirement (requires sys___init call before tool access)")
+		cmd.Flags().BoolVar(&difcFilter, "difc-filter", getDefaultDIFCFilter(), "Enable DIFC response filtering (removes content that violates agent labels)")
 	})
 }
 
@@ -35,4 +38,16 @@ func getDefaultEnableDIFC() bool {
 		}
 	}
 	return defaultEnableDIFC
+}
+
+// getDefaultDIFCFilter returns the default DIFC filter setting, checking MCP_GATEWAY_DIFC_FILTER
+// environment variable first, then falling back to the hardcoded default (false)
+func getDefaultDIFCFilter() bool {
+	if envFilter := os.Getenv("MCP_GATEWAY_DIFC_FILTER"); envFilter != "" {
+		switch strings.ToLower(envFilter) {
+		case "1", "true", "yes", "on":
+			return true
+		}
+	}
+	return defaultDIFCFilter
 }
