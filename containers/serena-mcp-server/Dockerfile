@@ -69,6 +69,25 @@ RUN mkdir -p /workspace /tmp/serena-cache /root/.serena
 ENV SERENA_WORKSPACE=/workspace
 ENV SERENA_CACHE_DIR=/tmp/serena-cache
 
+# Create a dummy project to pre-warm Serena's LSP cache
+# This initializes the language servers and caches so they're ready at runtime
+# Focus on Python, Go, and TypeScript which are the primary languages for codex context
+RUN mkdir -p /tmp/dummy-project && \
+    echo 'def hello(): pass' > /tmp/dummy-project/main.py && \
+    echo 'package main\nfunc main() {}' > /tmp/dummy-project/main.go && \
+    echo 'export function hello() {}' > /tmp/dummy-project/index.ts
+
+# Pre-index the dummy project to warm up the LSP caches
+# Use --language to specify languages non-interactively and --index to index after creation
+# This ensures pyright, gopls, and typescript-language-server are initialized
+RUN serena project create /tmp/dummy-project --name dummy \
+    --language python --language go --language typescript \
+    --index --log-level INFO --timeout 120 || \
+    echo "Pre-indexing completed (some warnings may be expected)"
+
+# Clean up the dummy project but keep the caches
+RUN rm -rf /tmp/dummy-project
+
 # Expose the workspace directory as a volume mount point
 VOLUME ["/workspace"]
 
