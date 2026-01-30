@@ -24,6 +24,9 @@ type Config struct {
 	// Servers maps server names to their configurations
 	Servers map[string]*ServerConfig `toml:"servers" json:"servers"`
 
+	// Guards holds guard configurations (optional, experimental)
+	Guards map[string]*GuardConfig `toml:"guards" json:"guards,omitempty"`
+
 	// Gateway holds global gateway settings
 	Gateway *GatewayConfig `toml:"gateway" json:"gateway,omitempty"`
 
@@ -81,6 +84,9 @@ type ServerConfig struct {
 
 	// Tools is an optional list of tools to filter/expose
 	Tools []string `toml:"tools" json:"tools,omitempty"`
+
+	// Guard is the guard ID to use for this server (references a guard in the guards section)
+	Guard string `toml:"guard" json:"guard,omitempty"`
 }
 
 // LoadFromFile loads configuration from a TOML file.

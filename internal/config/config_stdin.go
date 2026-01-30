@@ -15,6 +15,9 @@ type StdinConfig struct {
 	// MCPServers maps server names to their configurations
 	MCPServers map[string]*StdinServerConfig `json:"mcpServers"`
 
+	// Guards holds guard configurations (optional, experimental)
+	Guards map[string]*StdinGuardConfig `json:"guards,omitempty"`
+
 	// Gateway holds global gateway settings
 	Gateway *StdinGatewayConfig `json:"gateway,omitempty"`
 
@@ -64,6 +67,9 @@ type StdinServerConfig struct {
 
 	// Tools is an optional list of tools to filter/expose
 	Tools []string `json:"tools,omitempty"`
+
+	// Guard is the guard ID to use for this server (references a guard in the guards section)
+	Guard string `json:"guard,omitempty"`
 }
 
 // LoadFromStdin loads configuration from stdin JSON.
