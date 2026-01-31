@@ -54,3 +54,6 @@ test/serena-mcp-tests/results-gateway/
 test/serena-mcp-tests/**/__pycache__/
 test/serena-mcp-tests/**/*.pyc
 scripts/rebase-github-difc.sh
+
+# Serena cache directories
+.serena/
