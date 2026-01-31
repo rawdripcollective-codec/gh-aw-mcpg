@@ -86,6 +86,9 @@ func TestHealthEndpoint(t *testing.T) {
 
 // TestHealthEndpoint_NoAuthRequired tests that health endpoint works without authentication
 func TestHealthEndpoint_NoAuthRequired(t *testing.T) {
+	assert := assert.New(t)
+	require := require.New(t)
+
 	// Create config
 	cfg := &config.Config{
 		Servers: map[string]*config.ServerConfig{},
@@ -94,7 +97,7 @@ func TestHealthEndpoint_NoAuthRequired(t *testing.T) {
 	// Create unified server
 	ctx := context.Background()
 	us, err := NewUnified(ctx, cfg)
-	require.NoError(t, err, "Failed to create unified server")
+	require.NoError(err, "Failed to create unified server")
 	t.Cleanup(func() { us.Close() })
 
 	// Create HTTP server WITH API key (health should still work without auth)
@@ -108,25 +111,16 @@ func TestHealthEndpoint_NoAuthRequired(t *testing.T) {
 	httpServer.Handler.ServeHTTP(w, req)
 
 	// Health endpoint should work without auth
-	if w.Code != http.StatusOK {
-		t.Errorf("Expected status 200 (health should not require auth), got %d", w.Code)
-	}
+	assert.Equal(http.StatusOK, w.Code, "Health endpoint should not require authentication")
 
 	// Verify basic response structure
 	var response map[string]interface{}
-	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
-		t.Fatalf("Failed to decode JSON response: %v", err)
-	}
+	err = json.NewDecoder(w.Body).Decode(&response)
+	require.NoError(err, "Failed to decode JSON response")
 
-	if _, ok := response["status"]; !ok {
-		t.Error("Expected 'status' field in response")
-	}
-	if _, ok := response["specVersion"]; !ok {
-		t.Error("Expected 'specVersion' field in response")
-	}
-	if _, ok := response["gatewayVersion"]; !ok {
-		t.Error("Expected 'gatewayVersion' field in response")
-	}
+	assert.Contains(response, "status", "Response should contain 'status' field")
+	assert.Contains(response, "specVersion", "Response should contain 'specVersion' field")
+	assert.Contains(response, "gatewayVersion", "Response should contain 'gatewayVersion' field")
 }
 
 // TestHealthEndpoint_ResponseFields tests specific response field validation
@@ -141,13 +135,12 @@ func TestHealthEndpoint_ResponseFields(t *testing.T) {
 			fieldName: "status",
 			validate: func(t *testing.T, value interface{}) {
 				t.Helper()
+				require := require.New(t)
+				assert := assert.New(t)
+				
 				status, ok := value.(string)
-				if !ok {
-					t.Fatalf("Expected 'status' to be string, got %T", value)
-				}
-				if status != "healthy" && status != "unhealthy" {
-					t.Errorf("Expected status 'healthy' or 'unhealthy', got '%s'", status)
-				}
+				require.True(ok, "Expected 'status' to be string, got %T", value)
+				assert.Contains([]string{"healthy", "unhealthy"}, status, "Status must be 'healthy' or 'unhealthy'")
 			},
 		},
 		{
@@ -155,11 +148,12 @@ func TestHealthEndpoint_ResponseFields(t *testing.T) {
 			fieldName: "specVersion",
 			validate: func(t *testing.T, value interface{}) {
 				t.Helper()
+				require := require.New(t)
+				assert := assert.New(t)
+				
 				specVersion, ok := value.(string)
-				if !ok {
-					t.Fatalf("Expected 'specVersion' to be string, got %T", value)
-				}
-				assert.Equal(t, MCPGatewaySpecVersion, specVersion, "specVersion '%s', got '%s'")
+				require.True(ok, "Expected 'specVersion' to be string, got %T", value)
+				assert.Equal(MCPGatewaySpecVersion, specVersion, "specVersion must match gateway spec")
 			},
 		},
 		{
@@ -167,13 +161,12 @@ func TestHealthEndpoint_ResponseFields(t *testing.T) {
 			fieldName: "gatewayVersion",
 			validate: func(t *testing.T, value interface{}) {
 				t.Helper()
+				require := require.New(t)
+				assert := assert.New(t)
+				
 				gatewayVersion, ok := value.(string)
-				if !ok {
-					t.Fatalf("Expected 'gatewayVersion' to be string, got %T", value)
-				}
-				if gatewayVersion == "" {
-					t.Error("Expected gatewayVersion to be non-empty")
-				}
+				require.True(ok, "Expected 'gatewayVersion' to be string, got %T", value)
+				assert.NotEmpty(gatewayVersion, "gatewayVersion must not be empty")
 			},
 		},
 		{
@@ -181,14 +174,13 @@ func TestHealthEndpoint_ResponseFields(t *testing.T) {
 			fieldName: "servers",
 			validate: func(t *testing.T, value interface{}) {
 				t.Helper()
+				require := require.New(t)
+				assert := assert.New(t)
+				
 				servers, ok := value.(map[string]interface{})
-				if !ok {
-					t.Fatalf("Expected 'servers' to be map[string]interface{}, got %T", value)
-				}
+				require.True(ok, "Expected 'servers' to be map[string]interface{}, got %T", value)
 				// With empty config, servers map should be empty
-				if len(servers) != 0 {
-					t.Errorf("Expected empty servers map with no configured servers, got %d servers", len(servers))
-				}
+				assert.Empty(servers, "Expected empty servers map with no configured servers")
 			},
 		},
 	}
@@ -229,61 +221,228 @@ func TestHealthEndpoint_ResponseFields(t *testing.T) {
 // verifyHealthResponse is a helper that validates the health endpoint response
 func verifyHealthResponse(t *testing.T, w *httptest.ResponseRecorder, expectServers int) {
 	t.Helper()
+	assert := assert.New(t)
+	require := require.New(t)
 
 	// Check status code
-	if w.Code != http.StatusOK {
-		t.Errorf("Expected status 200, got %d", w.Code)
-	}
+	assert.Equal(http.StatusOK, w.Code, "Expected HTTP 200 OK")
 
 	// Check content type
 	contentType := w.Header().Get("Content-Type")
-	assert.Equal(t, "application/json", contentType, "Content-Type 'application/json', got '%s'")
+	assert.Equal("application/json", contentType, "Expected JSON content type")
 
 	// Check response body
 	var response map[string]interface{}
-	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
-		t.Fatalf("Failed to decode JSON response: %v", err)
-	}
+	err := json.NewDecoder(w.Body).Decode(&response)
+	require.NoError(err, "Failed to decode JSON response")
 
 	// Check required fields exist
 	requiredFields := []string{"status", "specVersion", "gatewayVersion", "servers"}
 	for _, field := range requiredFields {
-		if _, ok := response[field]; !ok {
-			t.Errorf("Expected field '%s' to exist in response", field)
-		}
+		assert.Contains(response, field, "Response should contain '%s' field", field)
 	}
 
 	// Check status field
-	if status, ok := response["status"].(string); ok {
-		if status != "healthy" && status != "unhealthy" {
-			t.Errorf("Expected status 'healthy' or 'unhealthy', got '%s'", status)
-		}
-	} else {
-		t.Error("Expected 'status' field to be a string")
-	}
+	status, ok := response["status"].(string)
+	require.True(ok, "Expected 'status' field to be a string")
+	assert.Contains([]string{"healthy", "unhealthy"}, status, "Status must be 'healthy' or 'unhealthy'")
 
 	// Check specVersion field
-	if specVersion, ok := response["specVersion"].(string); ok {
-		assert.Equal(t, MCPGatewaySpecVersion, specVersion, "specVersion '%s', got '%s'")
-	} else {
-		t.Error("Expected 'specVersion' field to be a string")
-	}
+	specVersion, ok := response["specVersion"].(string)
+	require.True(ok, "Expected 'specVersion' field to be a string")
+	assert.Equal(MCPGatewaySpecVersion, specVersion, "specVersion must match gateway spec")
 
 	// Check gatewayVersion field
-	if gatewayVersion, ok := response["gatewayVersion"].(string); ok {
-		if gatewayVersion == "" {
-			t.Error("Expected gatewayVersion to be non-empty")
-		}
-	} else {
-		t.Error("Expected 'gatewayVersion' field to be a string")
-	}
+	gatewayVersion, ok := response["gatewayVersion"].(string)
+	require.True(ok, "Expected 'gatewayVersion' field to be a string")
+	assert.NotEmpty(gatewayVersion, "gatewayVersion must not be empty")
 
 	// Check servers field
-	if servers, ok := response["servers"].(map[string]interface{}); ok {
-		if len(servers) != expectServers {
-			t.Errorf("Expected %d servers in response, got %d", expectServers, len(servers))
-		}
-	} else {
-		t.Error("Expected 'servers' field to be a map")
+	servers, ok := response["servers"].(map[string]interface{})
+	require.True(ok, "Expected 'servers' field to be a map")
+	assert.Len(servers, expectServers, "Expected %d servers in response", expectServers)
+}
+
+// TestHealthEndpoint_ContentType tests that health endpoint returns correct content type
+func TestHealthEndpoint_ContentType(t *testing.T) {
+	assert := assert.New(t)
+	require := require.New(t)
+
+	cfg := &config.Config{
+		Servers: map[string]*config.ServerConfig{},
 	}
+
+	ctx := context.Background()
+	us, err := NewUnified(ctx, cfg)
+	require.NoError(err)
+	t.Cleanup(func() { us.Close() })
+
+	httpServer := CreateHTTPServerForRoutedMode(":0", us, "")
+
+	req := httptest.NewRequest("GET", "/health", nil)
+	w := httptest.NewRecorder()
+	httpServer.Handler.ServeHTTP(w, req)
+
+	contentType := w.Header().Get("Content-Type")
+	assert.Equal("application/json", contentType, "Content-Type must be application/json")
+}
+
+// TestHealthEndpoint_HTTPMethods tests health endpoint with different HTTP methods
+func TestHealthEndpoint_HTTPMethods(t *testing.T) {
+	require := require.New(t)
+
+	cfg := &config.Config{
+		Servers: map[string]*config.ServerConfig{},
+	}
+
+	ctx := context.Background()
+	us, err := NewUnified(ctx, cfg)
+	require.NoError(err)
+	t.Cleanup(func() { us.Close() })
+
+	httpServer := CreateHTTPServerForRoutedMode(":0", us, "")
+
+	tests := []struct {
+		name   string
+		method string
+		expect int
+	}{
+		{
+			name:   "GET/Succeeds",
+			method: "GET",
+			expect: http.StatusOK,
+		},
+		{
+			name:   "POST/Allowed",
+			method: "POST",
+			expect: http.StatusOK,
+		},
+		{
+			name:   "HEAD/Allowed",
+			method: "HEAD",
+			expect: http.StatusOK,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert := assert.New(t)
+
+			req := httptest.NewRequest(tt.method, "/health", nil)
+			w := httptest.NewRecorder()
+			httpServer.Handler.ServeHTTP(w, req)
+
+			assert.Equal(tt.expect, w.Code, "Expected status %d for method %s", tt.expect, tt.method)
+		})
+	}
+}
+
+// TestHealthEndpoint_MultipleServers tests health response with multiple configured servers
+func TestHealthEndpoint_MultipleServers(t *testing.T) {
+	assert := assert.New(t)
+	require := require.New(t)
+
+	// Create config with multiple servers
+	cfg := &config.Config{
+		Servers: map[string]*config.ServerConfig{
+			"server1": {
+				Container: "test/server1:latest",
+			},
+			"server2": {
+				Container: "test/server2:latest",
+			},
+		},
+	}
+
+	ctx := context.Background()
+	us, err := NewUnified(ctx, cfg)
+	require.NoError(err)
+	t.Cleanup(func() { us.Close() })
+
+	httpServer := CreateHTTPServerForRoutedMode(":0", us, "")
+
+	req := httptest.NewRequest("GET", "/health", nil)
+	w := httptest.NewRecorder()
+	httpServer.Handler.ServeHTTP(w, req)
+
+	var response map[string]interface{}
+	err = json.NewDecoder(w.Body).Decode(&response)
+	require.NoError(err)
+
+	servers, ok := response["servers"].(map[string]interface{})
+	require.True(ok, "Expected 'servers' field to be a map")
+	assert.Len(servers, 2, "Expected 2 servers in response")
+}
+
+// TestHealthEndpoint_BothModes tests that both routed and unified modes produce valid health responses
+func TestHealthEndpoint_BothModes(t *testing.T) {
+	tests := []struct {
+		name         string
+		createServer serverCreator
+	}{
+		{
+			name:         "RoutedMode",
+			createServer: CreateHTTPServerForRoutedMode,
+		},
+		{
+			name:         "UnifiedMode",
+			createServer: CreateHTTPServerForMCP,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert := assert.New(t)
+			require := require.New(t)
+
+			cfg := &config.Config{
+				Servers: map[string]*config.ServerConfig{},
+			}
+
+			ctx := context.Background()
+			us, err := NewUnified(ctx, cfg)
+			require.NoError(err)
+			t.Cleanup(func() { us.Close() })
+
+			httpServer := tt.createServer(":0", us, "")
+
+			req := httptest.NewRequest("GET", "/health", nil)
+			w := httptest.NewRecorder()
+			httpServer.Handler.ServeHTTP(w, req)
+
+			assert.Equal(http.StatusOK, w.Code, "%s should return 200 OK", tt.name)
+
+			var response map[string]interface{}
+			err = json.NewDecoder(w.Body).Decode(&response)
+			require.NoError(err, "%s response should be valid JSON", tt.name)
+
+			// Both modes should have the same required fields
+			requiredFields := []string{"status", "specVersion", "gatewayVersion", "servers"}
+			for _, field := range requiredFields {
+				assert.Contains(response, field, "%s response should contain '%s' field", tt.name, field)
+			}
+		})
+	}
+}
+
+// TestBuildHealthResponse_HealthyStatus tests BuildHealthResponse with all healthy servers
+func TestBuildHealthResponse_HealthyStatus(t *testing.T) {
+	assert := assert.New(t)
+	require := require.New(t)
+
+	cfg := &config.Config{
+		Servers: map[string]*config.ServerConfig{},
+	}
+
+	ctx := context.Background()
+	us, err := NewUnified(ctx, cfg)
+	require.NoError(err)
+	t.Cleanup(func() { us.Close() })
+
+	response := BuildHealthResponse(us)
+
+	assert.Equal("healthy", response.Status, "Status should be 'healthy' when no servers configured")
+	assert.Equal(MCPGatewaySpecVersion, response.SpecVersion, "specVersion should match gateway spec")
+	assert.NotEmpty(response.GatewayVersion, "gatewayVersion should not be empty")
+	assert.NotNil(response.Servers, "Servers map should not be nil")
 }
