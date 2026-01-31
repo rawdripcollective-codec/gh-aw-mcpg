@@ -13,7 +13,7 @@ import (
 	"github.com/githubnext/gh-aw-mcpg/internal/logger"
 )
 
-var log = logger.New("config:validation_env")
+var logEnv = logger.New("config:validation_env")
 
 // RequiredEnvVars lists the environment variables that must be set for the gateway to operate
 var RequiredEnvVars = []string{
@@ -73,17 +73,17 @@ func (r *EnvValidationResult) Error() string {
 // ValidateExecutionEnvironment performs comprehensive validation of the execution environment
 // It checks Docker accessibility, required environment variables, and containerization status
 func ValidateExecutionEnvironment() *EnvValidationResult {
-	log.Print("Starting execution environment validation")
+	logEnv.Print("Starting execution environment validation")
 	result := &EnvValidationResult{}
 
 	// Check if running in a containerized environment
 	result.IsContainerized, result.ContainerID = detectContainerized()
-	log.Printf("Containerization check: isContainerized=%v, containerID=%s", result.IsContainerized, result.ContainerID)
+	logEnv.Printf("Containerization check: isContainerized=%v, containerID=%s", result.IsContainerized, result.ContainerID)
 
 	// Check Docker daemon accessibility
 	result.DockerAccessible = checkDockerAccessible()
 	if !result.DockerAccessible {
-		log.Print("Docker daemon is not accessible")
+		logEnv.Print("Docker daemon is not accessible")
 		result.ValidationErrors = append(result.ValidationErrors,
 			"Docker daemon is not accessible. Ensure the Docker socket is mounted or Docker is running.")
 	}
@@ -91,25 +91,25 @@ func ValidateExecutionEnvironment() *EnvValidationResult {
 	// Check required environment variables
 	result.MissingEnvVars = checkRequiredEnvVars()
 	if len(result.MissingEnvVars) > 0 {
-		log.Printf("Missing required environment variables: %v", result.MissingEnvVars)
+		logEnv.Printf("Missing required environment variables: %v", result.MissingEnvVars)
 		result.ValidationErrors = append(result.ValidationErrors,
 			fmt.Sprintf("Required environment variables not set: %s", strings.Join(result.MissingEnvVars, ", ")))
 	}
 
-	log.Printf("Validation complete: valid=%v, errors=%d, warnings=%d", result.IsValid(), len(result.ValidationErrors), len(result.ValidationWarnings))
+	logEnv.Printf("Validation complete: valid=%v, errors=%d, warnings=%d", result.IsValid(), len(result.ValidationErrors), len(result.ValidationWarnings))
 	return result
 }
 
 // ValidateContainerizedEnvironment performs additional validation for containerized mode
 // This is called by run_containerized.sh through the binary or by the Go code directly
 func ValidateContainerizedEnvironment(containerID string) *EnvValidationResult {
-	log.Printf("Starting containerized environment validation: containerID=%s", containerID)
+	logEnv.Printf("Starting containerized environment validation: containerID=%s", containerID)
 	result := ValidateExecutionEnvironment()
 	result.IsContainerized = true
 	result.ContainerID = containerID
 
 	if containerID == "" {
-		log.Print("Container ID could not be determined")
+		logEnv.Print("Container ID could not be determined")
 		result.ValidationErrors = append(result.ValidationErrors,
 			"Container ID could not be determined. Are you running in a Docker container?")
 		return result
@@ -118,7 +118,7 @@ func ValidateContainerizedEnvironment(containerID string) *EnvValidationResult {
 	// Validate port mapping
 	port := os.Getenv("MCP_GATEWAY_PORT")
 	if port != "" {
-		log.Printf("Checking port mapping: port=%s", port)
+		logEnv.Printf("Checking port mapping: port=%s", port)
 		portMapped, err := checkPortMapping(containerID, port)
 		if err != nil {
 			result.ValidationWarnings = append(result.ValidationWarnings,
@@ -128,12 +128,12 @@ func ValidateContainerizedEnvironment(containerID string) *EnvValidationResult {
 				fmt.Sprintf("MCP_GATEWAY_PORT (%s) is not mapped to a host port. Use: -p <host_port>:%s", port, port))
 		}
 		result.PortMapped = portMapped
-		log.Printf("Port mapping result: mapped=%v", portMapped)
+		logEnv.Printf("Port mapping result: mapped=%v", portMapped)
 	}
 
 	// Check if stdin is interactive (requires -i flag)
 	result.StdinInteractive = checkStdinInteractive(containerID)
-	log.Printf("Stdin interactive check: interactive=%v", result.StdinInteractive)
+	logEnv.Printf("Stdin interactive check: interactive=%v", result.StdinInteractive)
 	if !result.StdinInteractive {
 		result.ValidationErrors = append(result.ValidationErrors,
 			"Container was not started with -i flag. Stdin is required for configuration input.")
@@ -145,13 +145,13 @@ func ValidateContainerizedEnvironment(containerID string) *EnvValidationResult {
 		logDir = "/tmp/gh-aw/mcp-logs"
 	}
 	result.LogDirMounted = checkLogDirMounted(containerID, logDir)
-	log.Printf("Log directory mount check: mounted=%v, logDir=%s", result.LogDirMounted, logDir)
+	logEnv.Printf("Log directory mount check: mounted=%v, logDir=%s", result.LogDirMounted, logDir)
 	if !result.LogDirMounted {
 		result.ValidationWarnings = append(result.ValidationWarnings,
 			fmt.Sprintf("Log directory %s is not mounted. Logs will not persist outside the container. Use: -v /path/on/host:%s", logDir, logDir))
 	}
 
-	log.Printf("Containerized validation complete: valid=%v, errors=%d, warnings=%d", result.IsValid(), len(result.ValidationErrors), len(result.ValidationWarnings))
+	logEnv.Printf("Containerized validation complete: valid=%v, errors=%d, warnings=%d", result.IsValid(), len(result.ValidationErrors), len(result.ValidationWarnings))
 	return result
 }
 
@@ -205,10 +205,10 @@ func checkDockerAccessible() bool {
 		// Parse unix:// prefix if present
 		socketPath = strings.TrimPrefix(socketPath, "unix://")
 	}
-	log.Printf("Checking Docker socket accessibility: socketPath=%s", socketPath)
+	logEnv.Printf("Checking Docker socket accessibility: socketPath=%s", socketPath)
 
 	if _, err := os.Stat(socketPath); os.IsNotExist(err) {
-		log.Printf("Docker socket not found: socketPath=%s", socketPath)
+		logEnv.Printf("Docker socket not found: socketPath=%s", socketPath)
 		return false
 	}
 
@@ -217,7 +217,7 @@ func checkDockerAccessible() bool {
 	cmd.Stdout = nil
 	cmd.Stderr = nil
 	accessible := cmd.Run() == nil
-	log.Printf("Docker daemon check: accessible=%v", accessible)
+	logEnv.Printf("Docker daemon check: accessible=%v", accessible)
 	return accessible
 }
 
