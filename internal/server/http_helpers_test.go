@@ -72,12 +72,12 @@ func TestExtractAndValidateSession(t *testing.T) {
 
 func TestLogHTTPRequestBody(t *testing.T) {
 	tests := []struct {
-		name       string
-		method     string
-		body       string
-		sessionID  string
-		backendID  string
-		shouldLog  bool
+		name      string
+		method    string
+		body      string
+		sessionID string
+		backendID string
+		shouldLog bool
 	}{
 		{
 			name:      "POST request with body and backend",
@@ -147,10 +147,10 @@ func TestLogHTTPRequestBody(t *testing.T) {
 
 func TestInjectSessionContext(t *testing.T) {
 	tests := []struct {
-		name              string
-		sessionID         string
-		backendID         string
-		expectBackendID   bool
+		name            string
+		sessionID       string
+		backendID       string
+		expectBackendID bool
 	}{
 		{
 			name:            "Inject session and backend ID (routed mode)",
@@ -175,7 +175,7 @@ func TestInjectSessionContext(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			req := httptest.NewRequest("POST", "/mcp", nil)
-			
+
 			// Inject context
 			modifiedReq := injectSessionContext(req, tt.sessionID, tt.backendID)
 

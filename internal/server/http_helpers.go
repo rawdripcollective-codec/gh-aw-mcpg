@@ -57,10 +57,10 @@ func logHTTPRequestBody(r *http.Request, sessionID, backendID string) {
 // Returns the modified request with updated context.
 func injectSessionContext(r *http.Request, sessionID, backendID string) *http.Request {
 	ctx := context.WithValue(r.Context(), SessionIDContextKey, sessionID)
-	
+
 	if backendID != "" {
 		ctx = context.WithValue(ctx, mcp.ContextKey("backend-id"), backendID)
 	}
-	
+
 	return r.WithContext(ctx)
 }
