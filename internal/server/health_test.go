@@ -137,7 +137,7 @@ func TestHealthEndpoint_ResponseFields(t *testing.T) {
 				t.Helper()
 				require := require.New(t)
 				assert := assert.New(t)
-				
+
 				status, ok := value.(string)
 				require.True(ok, "Expected 'status' to be string, got %T", value)
 				assert.Contains([]string{"healthy", "unhealthy"}, status, "Status must be 'healthy' or 'unhealthy'")
@@ -150,7 +150,7 @@ func TestHealthEndpoint_ResponseFields(t *testing.T) {
 				t.Helper()
 				require := require.New(t)
 				assert := assert.New(t)
-				
+
 				specVersion, ok := value.(string)
 				require.True(ok, "Expected 'specVersion' to be string, got %T", value)
 				assert.Equal(MCPGatewaySpecVersion, specVersion, "specVersion must match gateway spec")
@@ -163,7 +163,7 @@ func TestHealthEndpoint_ResponseFields(t *testing.T) {
 				t.Helper()
 				require := require.New(t)
 				assert := assert.New(t)
-				
+
 				gatewayVersion, ok := value.(string)
 				require.True(ok, "Expected 'gatewayVersion' to be string, got %T", value)
 				assert.NotEmpty(gatewayVersion, "gatewayVersion must not be empty")
@@ -176,7 +176,7 @@ func TestHealthEndpoint_ResponseFields(t *testing.T) {
 				t.Helper()
 				require := require.New(t)
 				assert := assert.New(t)
-				
+
 				servers, ok := value.(map[string]interface{})
 				require.True(ok, "Expected 'servers' to be map[string]interface{}, got %T", value)
 				// With empty config, servers map should be empty
@@ -346,10 +346,12 @@ func TestHealthEndpoint_MultipleServers(t *testing.T) {
 	cfg := &config.Config{
 		Servers: map[string]*config.ServerConfig{
 			"server1": {
-				Container: "test/server1:latest",
+				Command: "echo",
+				Args:    []string{"server1"},
 			},
 			"server2": {
-				Container: "test/server2:latest",
+				Command: "echo",
+				Args:    []string{"server2"},
 			},
 		},
 	}
