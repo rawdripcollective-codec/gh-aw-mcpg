@@ -1,13 +1,10 @@
 package server
 
 import (
-	"bytes"
 	"context"
-	"io"
 	"log"
 	"net/http"
 
-	"github.com/githubnext/gh-aw-mcpg/internal/auth"
 	"github.com/githubnext/gh-aw-mcpg/internal/logger"
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -74,15 +71,9 @@ func CreateHTTPServerForMCP(addr string, unifiedServer *UnifiedServer, apiKey st
 		// We use the Authorization header value as the session ID
 		// This groups all requests from the same agent (same auth value) into one session
 
-		// Extract session ID from Authorization header
-		authHeader := r.Header.Get("Authorization")
-		sessionID := auth.ExtractSessionID(authHeader)
-
-		// Reject requests without Authorization header
+		// Extract and validate session ID from Authorization header
+		sessionID := extractAndValidateSession(r)
 		if sessionID == "" {
-			logTransport.Printf("Rejecting connection: no Authorization header, remote=%s, path=%s", r.RemoteAddr, r.URL.Path)
-			logger.LogErrorMd("client", "MCP connection rejected: no Authorization header, remote=%s, path=%s", r.RemoteAddr, r.URL.Path)
-			log.Printf("[%s] %s %s - REJECTED: No Authorization header", r.RemoteAddr, r.Method, r.URL.Path)
 			// Return nil to reject the connection
 			// The SDK will handle sending an appropriate error response
 			return nil
@@ -96,20 +87,11 @@ func CreateHTTPServerForMCP(addr string, unifiedServer *UnifiedServer, apiKey st
 		log.Printf("DEBUG: About to check request body, Method=%s, Body!=nil: %v", r.Method, r.Body != nil)
 
 		// Log request body for debugging (typically the 'initialize' request)
-		if r.Method == "POST" && r.Body != nil {
-			bodyBytes, err := io.ReadAll(r.Body)
-			if err == nil && len(bodyBytes) > 0 {
-				logger.LogDebug("client", "MCP initialize request body, session=%s, body=%s", sessionID, string(bodyBytes))
-				log.Printf("Request body: %s", string(bodyBytes))
-				// Restore body
-				r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
-			}
-		}
+		logHTTPRequestBody(r, sessionID, "")
 
 		// Store session ID in request context
 		// This context will be passed to all tool handlers for this connection
-		ctx := context.WithValue(r.Context(), SessionIDContextKey, sessionID)
-		*r = *r.WithContext(ctx)
+		*r = *injectSessionContext(r, sessionID, "")
 		log.Printf("✓ Injected session ID into context")
 		log.Printf("==========================\n")
 

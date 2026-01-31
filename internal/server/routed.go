@@ -1,17 +1,13 @@
 package server
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"sync"
 
-	"github.com/githubnext/gh-aw-mcpg/internal/auth"
 	"github.com/githubnext/gh-aw-mcpg/internal/logger"
-	"github.com/githubnext/gh-aw-mcpg/internal/mcp"
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -110,14 +106,9 @@ func CreateHTTPServerForRoutedMode(addr string, unifiedServer *UnifiedServer, ap
 
 		// Create StreamableHTTP handler for this route
 		routeHandler := sdk.NewStreamableHTTPHandler(func(r *http.Request) *sdk.Server {
-			// Extract session ID from Authorization header
-			authHeader := r.Header.Get("Authorization")
-			sessionID := auth.ExtractSessionID(authHeader)
-
-			// Reject requests without Authorization header
+			// Extract and validate session ID from Authorization header
+			sessionID := extractAndValidateSession(r)
 			if sessionID == "" {
-				logger.LogError("client", "Rejected MCP client connection: no Authorization header, remote=%s, path=%s", r.RemoteAddr, r.URL.Path)
-				log.Printf("[%s] %s %s - REJECTED: No Authorization header", r.RemoteAddr, r.Method, r.URL.Path)
 				return nil
 			}
 
@@ -129,19 +120,10 @@ func CreateHTTPServerForRoutedMode(addr string, unifiedServer *UnifiedServer, ap
 			log.Printf("Authorization (Session ID): %s", sessionID)
 
 			// Log request body for debugging
-			if r.Method == "POST" && r.Body != nil {
-				bodyBytes, err := io.ReadAll(r.Body)
-				if err == nil && len(bodyBytes) > 0 {
-					logger.LogDebug("client", "MCP client request body, backend=%s, body=%s", backendID, string(bodyBytes))
-					log.Printf("Request body: %s", string(bodyBytes))
-					r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
-				}
-			}
+			logHTTPRequestBody(r, sessionID, backendID)
 
 			// Store session ID and backend ID in request context
-			ctx := context.WithValue(r.Context(), SessionIDContextKey, sessionID)
-			ctx = context.WithValue(ctx, mcp.ContextKey("backend-id"), backendID)
-			*r = *r.WithContext(ctx)
+			*r = *injectSessionContext(r, sessionID, backendID)
 			log.Printf("✓ Injected session ID and backend ID into context")
 			log.Printf("===================================\n")
 
