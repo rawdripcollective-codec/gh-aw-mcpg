@@ -153,7 +153,7 @@ func TestFormatViolationError(t *testing.T) {
 		resource := NewLabeledResource("test-resource")
 
 		err := FormatViolationError(result, agentSecrecy, agentIntegrity, resource)
-		assert.Nil(t, err, "Expected nil error for allowed access")
+		assert.NoError(t, err, "Expected nil error for allowed access")
 	})
 
 	t.Run("formats secrecy violation error", func(t *testing.T) {
