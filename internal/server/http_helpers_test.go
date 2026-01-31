@@ -201,10 +201,13 @@ func TestInjectSessionContext(t *testing.T) {
 	}
 }
 
+// testContextKey is a custom type for context keys to avoid collisions
+type testContextKey string
+
 func TestInjectSessionContext_PreservesExistingContext(t *testing.T) {
 	// Create a request with existing context values
 	req := httptest.NewRequest("POST", "/mcp", nil)
-	ctx := context.WithValue(req.Context(), "existing-key", "existing-value")
+	ctx := context.WithValue(req.Context(), testContextKey("existing-key"), "existing-value")
 	req = req.WithContext(ctx)
 
 	// Inject session context
@@ -217,6 +220,6 @@ func TestInjectSessionContext_PreservesExistingContext(t *testing.T) {
 	backendID := modifiedReq.Context().Value(mcp.ContextKey("backend-id"))
 	assert.Equal(t, "backend-1", backendID, "Backend ID should be present")
 
-	existingValue := modifiedReq.Context().Value("existing-key")
+	existingValue := modifiedReq.Context().Value(testContextKey("existing-key"))
 	assert.Equal(t, "existing-value", existingValue, "Existing context value should be preserved")
 }

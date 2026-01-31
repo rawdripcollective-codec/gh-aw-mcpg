@@ -123,7 +123,7 @@ func CreateHTTPServerForRoutedMode(addr string, unifiedServer *UnifiedServer, ap
 			logHTTPRequestBody(r, sessionID, backendID)
 
 			// Store session ID and backend ID in request context
-			r = injectSessionContext(r, sessionID, backendID)
+			*r = *injectSessionContext(r, sessionID, backendID)
 			log.Printf("✓ Injected session ID and backend ID into context")
 			log.Printf("===================================\n")
 
