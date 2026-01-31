@@ -91,7 +91,7 @@ func CreateHTTPServerForMCP(addr string, unifiedServer *UnifiedServer, apiKey st
 
 		// Store session ID in request context
 		// This context will be passed to all tool handlers for this connection
-		*r = *injectSessionContext(r, sessionID, "")
+		r = injectSessionContext(r, sessionID, "")
 		log.Printf("✓ Injected session ID into context")
 		log.Printf("==========================\n")
 
