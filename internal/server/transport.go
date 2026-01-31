@@ -74,7 +74,6 @@ func CreateHTTPServerForMCP(addr string, unifiedServer *UnifiedServer, apiKey st
 		// Extract and validate session ID from Authorization header
 		sessionID := extractAndValidateSession(r)
 		if sessionID == "" {
-			logTransport.Printf("Rejecting connection: no Authorization header, remote=%s, path=%s", r.RemoteAddr, r.URL.Path)
 			// Return nil to reject the connection
 			// The SDK will handle sending an appropriate error response
 			return nil
