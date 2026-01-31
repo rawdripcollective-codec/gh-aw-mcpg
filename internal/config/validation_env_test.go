@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -822,7 +823,7 @@ func TestValidateContainerizedEnvironment(t *testing.T) {
 		// Verify the warning mentions the custom path
 		hasCustomPathWarning := false
 		for _, warning := range result.ValidationWarnings {
-			if assert.Contains(t, warning, "/custom/log/path") {
+			if strings.Contains(warning, "/custom/log/path") {
 				hasCustomPathWarning = true
 				break
 			}
