@@ -12,6 +12,19 @@ import (
 	"github.com/githubnext/gh-aw-mcpg/internal/difc"
 )
 
+// mockGuard is a simple guard implementation for testing that can be distinguished by ID
+type mockGuard struct {
+	id string
+}
+
+func (m *mockGuard) Name() string { return "mock-" + m.id }
+func (m *mockGuard) LabelResource(ctx context.Context, toolName string, args interface{}, backend BackendCaller, caps *difc.Capabilities) (*difc.LabeledResource, difc.OperationType, error) {
+	return &difc.LabeledResource{}, difc.OperationRead, nil
+}
+func (m *mockGuard) LabelResponse(ctx context.Context, toolName string, result interface{}, backend BackendCaller, caps *difc.Capabilities) (difc.LabeledData, error) {
+	return nil, nil
+}
+
 func TestNoopGuard(t *testing.T) {
 	guard := NewNoopGuard()
 
@@ -183,18 +196,19 @@ func TestGuardRegistry(t *testing.T) {
 
 	t.Run("Register overwrites existing guard", func(t *testing.T) {
 		registry := NewRegistry()
-		guard1 := NewNoopGuard()
-		guard2 := NewNoopGuard()
+		guard1 := &mockGuard{id: "first"}
+		guard2 := &mockGuard{id: "second"}
 
 		registry.Register("test-server", guard1)
 		retrieved1 := registry.Get("test-server")
-		assert.Equal(t, guard1, retrieved1)
+		assert.Same(t, guard1, retrieved1)
 
 		// Overwrite with guard2
 		registry.Register("test-server", guard2)
 		retrieved2 := registry.Get("test-server")
-		assert.Equal(t, guard2, retrieved2)
-		assert.NotEqual(t, guard1, retrieved2)
+		assert.Same(t, guard2, retrieved2)
+		assert.NotSame(t, guard1, retrieved2)
+		assert.Equal(t, "mock-second", retrieved2.Name())
 	})
 
 	t.Run("Empty registry returns empty list", func(t *testing.T) {
