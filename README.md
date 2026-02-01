@@ -250,8 +250,8 @@ When running locally (`run.sh`), these variables are optional (warnings shown if
 | `MCP_GATEWAY_PORT` | Gateway listening port | `8000` |
 | `MCP_GATEWAY_DOMAIN` | Gateway domain | `localhost` |
 | `MCP_GATEWAY_API_KEY` | API authentication key | (disabled) |
-| `MCP_GATEWAY_HOST` | Gateway bind address | `0.0.0.0` |
-| `MCP_GATEWAY_MODE` | Gateway mode | `--routed` |
+| `HOST` | Gateway bind address | `0.0.0.0` |
+| `MODE` | Gateway mode flag | `--routed` |
 | `MCP_GATEWAY_LOG_DIR` | Log file directory (sets default for `--log-dir` flag) | `/tmp/gh-aw/mcp-logs` |
 
 ### Docker Configuration
