@@ -133,7 +133,7 @@ func GetOrLaunch(l *Launcher, serverID string) (*mcp.Connection, error) {
 	l.logLaunchStart(serverID, "", serverCfg, isDirectCommand)
 
 	// Check for environment variable passthrough (only check args after -e flags)
-	logEnvPassthrough(serverCfg.Args)
+	l.logEnvPassthrough(serverCfg.Args)
 
 	if len(serverCfg.Env) > 0 {
 		log.Printf("[LAUNCHER] Additional env vars: %v", sanitize.TruncateSecretMap(serverCfg.Env))
@@ -229,7 +229,7 @@ func GetOrLaunchForSession(l *Launcher, serverID, sessionID string) (*mcp.Connec
 	l.logLaunchStart(serverID, sessionID, serverCfg, isDirectCommand)
 
 	// Check for environment variable passthrough
-	logEnvPassthrough(serverCfg.Args)
+	l.logEnvPassthrough(serverCfg.Args)
 
 	if len(serverCfg.Env) > 0 {
 		log.Printf("[LAUNCHER] Additional env vars: %v", sanitize.TruncateSecretMap(serverCfg.Env))

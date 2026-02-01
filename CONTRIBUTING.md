@@ -270,7 +270,7 @@ if logComponent.Enabled() {
 - **Prefer descriptive names**: `var log<Component> = logger.New("pkg:component")`
 - Examples: `var logLauncher = logger.New("launcher:launcher")`
 - Avoid generic `log` when it might conflict with standard library
-- First letter of component name should be capitalized (e.g., `logAuth`, not `logauth`)
+- Capitalize the component part after 'log' (e.g., `logAuth` with capital 'A', `logLauncher` with capital 'L')
 
 
 Control debug output:

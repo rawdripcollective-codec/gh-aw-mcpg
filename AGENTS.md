@@ -294,7 +294,7 @@ logger.LogDebug("category", "Debug details: %+v", details)
 - **Use descriptive names** that match the component: `var log<Component> = logger.New("pkg:component")`
 - Examples: `var logLauncher = logger.New("launcher:launcher")`, `var logConfig = logger.New("config:config")`
 - **Avoid generic `log` name** when it might conflict with standard library or when the file already imports `log` package
-- First letter of component name should be capitalized (e.g., `logAuth`, not `logauth`)
+- Capitalize the component part after 'log' (e.g., `logAuth` with capital 'A', `logLauncher` with capital 'L')
 - This convention makes it clear which logger is being used and reduces naming collisions
 - For components with very short files or temporary code, generic `log` is acceptable but descriptive is preferred
 

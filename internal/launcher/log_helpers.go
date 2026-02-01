@@ -44,7 +44,7 @@ func (l *Launcher) logLaunchStart(serverID, sessionID string, serverCfg *config.
 }
 
 // logEnvPassthrough checks and logs environment variable passthrough status
-func logEnvPassthrough(args []string) {
+func (l *Launcher) logEnvPassthrough(args []string) {
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
 		// If this arg is "-e", check the next argument
