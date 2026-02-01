@@ -18,7 +18,7 @@ var logHelpers = logger.New("server:helpers")
 // and logs connection details. Returns empty string if validation fails.
 func extractAndValidateSession(r *http.Request) string {
 	logHelpers.Printf("Extracting session from request: remote=%s, path=%s", r.RemoteAddr, r.URL.Path)
-	
+
 	authHeader := r.Header.Get("Authorization")
 	sessionID := auth.ExtractSessionID(authHeader)
 
@@ -38,7 +38,7 @@ func extractAndValidateSession(r *http.Request) string {
 // The backendID parameter is optional and can be empty for unified mode.
 func logHTTPRequestBody(r *http.Request, sessionID, backendID string) {
 	logHelpers.Printf("Checking request body: method=%s, hasBody=%v, sessionID=%s", r.Method, r.Body != nil, sessionID)
-	
+
 	if r.Method != "POST" || r.Body == nil {
 		logHelpers.Printf("Skipping body logging: not a POST request or no body present")
 		return
@@ -70,7 +70,7 @@ func logHTTPRequestBody(r *http.Request, sessionID, backendID string) {
 // Returns the modified request with updated context.
 func injectSessionContext(r *http.Request, sessionID, backendID string) *http.Request {
 	logHelpers.Printf("Injecting session context: sessionID=%s, backendID=%s", sessionID, backendID)
-	
+
 	ctx := context.WithValue(r.Context(), SessionIDContextKey, sessionID)
 
 	if backendID != "" {

@@ -491,7 +491,7 @@ func TestRegisterToolsFromBackend_ToolNaming(t *testing.T) {
 
 	tool := us.tools["my-server___my_tool"]
 	require.NotNil(tool, "Tool should be registered with prefixed name")
-	
+
 	// Verify naming convention
 	assert.Equal("my-server___my_tool", tool.Name, "Tool name should be prefixed with server ID")
 	assert.Equal("[my-server] Does something useful", tool.Description, "Description should include backend info")
@@ -584,11 +584,11 @@ func TestRegisterToolsFromBackend_SchemaNormalization(t *testing.T) {
 
 	tool := us.tools["schema-backend___schema_tool"]
 	require.NotNil(tool)
-	
+
 	// Verify schema was normalized (should have "type": "object" added)
 	schema := tool.InputSchema
 	require.NotNil(schema)
-	
+
 	schemaType, ok := schema["type"]
 	assert.True(ok, "Schema should have 'type' field after normalization")
 	assert.Equal("object", schemaType, "Schema type should be 'object'")
