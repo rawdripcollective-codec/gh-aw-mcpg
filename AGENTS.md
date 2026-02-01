@@ -17,6 +17,7 @@ Quick reference for AI agents working with MCP Gateway (Go-based MCP proxy serve
 **Agent-Finished**: `make agent-finished` (run format, build, lint, and all tests - ALWAYS run before completion)  
 **Run**: `./awmg --config config.toml`
 **Run with Custom Log Directory**: `./awmg --config config.toml --log-dir /path/to/logs`
+**Run with Custom Payload Directory**: `./awmg --config config.toml --payload-dir /path/to/payloads`
 
 ## Project Structure
 
@@ -47,6 +48,11 @@ Quick reference for AI agents working with MCP Gateway (Go-based MCP proxy serve
 
 **TOML** (`config.toml`):
 ```toml
+[gateway]
+port = 3000
+api_key = "your-api-key"
+payload_dir = "/tmp/jq-payloads"  # Optional: directory for large payload storage
+
 [servers.github]
 command = "docker"
 args = ["run", "--rm", "-e", "GITHUB_PERSONAL_ACCESS_TOKEN", "-i", "ghcr.io/github/github-mcp-server:latest"]
@@ -357,12 +363,20 @@ DEBUG_COLORS=0 DEBUG=* ./awmg --config config.toml
 - `DEBUG` - Enable debug logging (e.g., `DEBUG=*`, `DEBUG=server:*,launcher:*`)
 - `DEBUG_COLORS` - Control colored output (0 to disable, auto-disabled when piping)
 - `MCP_GATEWAY_LOG_DIR` - Log file directory (sets default for `--log-dir` flag, default: `/tmp/gh-aw/mcp-logs`)
+- `MCP_GATEWAY_PAYLOAD_DIR` - Large payload storage directory (sets default for `--payload-dir` flag, default: `/tmp/jq-payloads`)
 
 **File Logging:**
 - Operational logs are always written to `mcp-gateway.log` in the configured log directory
 - Default log directory: `/tmp/gh-aw/mcp-logs` (configurable via `--log-dir` flag or `MCP_GATEWAY_LOG_DIR` env var)
 - Falls back to stdout if log directory cannot be created
 - Logs include: startup, client interactions, backend operations, auth events, errors
+
+**Large Payload Handling:**
+- Large tool response payloads are stored in the configured payload directory
+- Default payload directory: `/tmp/jq-payloads` (configurable via `--payload-dir` flag, `MCP_GATEWAY_PAYLOAD_DIR` env var, or `payload_dir` in config)
+- Payloads are organized by session ID: `{payload_dir}/{sessionID}/{queryID}/payload.json`
+- This allows agents to mount their session-specific subdirectory to access full payloads
+- The jq middleware returns: preview (first 500 chars), schema, payloadPath, queryID, originalSize, truncated flag
 
 ## Error Debugging
 
