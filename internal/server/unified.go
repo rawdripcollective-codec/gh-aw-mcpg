@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -415,6 +417,13 @@ func (us *UnifiedServer) registerSysTools() error {
 		us.sessionMu.Lock()
 		us.sessions[sessionID] = NewSession(sessionID, token)
 		us.sessionMu.Unlock()
+		
+		// Ensure session directory exists in payload mount point
+		if err := us.ensureSessionDirectory(sessionID); err != nil {
+			logger.LogWarn("client", "Failed to create session directory for session=%s: %v", sessionID, err)
+			// Don't fail session initialization if directory creation fails
+			// Payloads will attempt to create the directory when needed
+		}
 
 		logger.LogInfo("client", "MCP session initialized successfully, session=%s, available_servers=%v", sessionID, us.launcher.ServerIDs())
 		log.Printf("Initialized session: %s", sessionID)
@@ -798,6 +807,30 @@ func (us *UnifiedServer) getSessionID(ctx context.Context) string {
 	return "default"
 }
 
+// ensureSessionDirectory creates the session subdirectory in the payload directory if it doesn't exist
+func (us *UnifiedServer) ensureSessionDirectory(sessionID string) error {
+	sessionDir := filepath.Join(us.payloadDir, sessionID)
+	
+	// Check if directory already exists
+	if _, err := os.Stat(sessionDir); err == nil {
+		// Directory already exists
+		logUnified.Printf("Session directory already exists: %s", sessionDir)
+		return nil
+	} else if !os.IsNotExist(err) {
+		// Some other error occurred while checking
+		return fmt.Errorf("failed to check session directory: %w", err)
+	}
+	
+	// Directory doesn't exist, create it with restrictive permissions (owner-only access)
+	if err := os.MkdirAll(sessionDir, 0700); err != nil {
+		return fmt.Errorf("failed to create session directory: %w", err)
+	}
+	
+	logUnified.Printf("Created session directory: %s", sessionDir)
+	log.Printf("Created payload directory for session: %s", sessionID)
+	return nil
+}
+
 // requireSession checks that a session has been initialized for this request
 // When DIFC is disabled (default), automatically creates a session if one doesn't exist
 func (us *UnifiedServer) requireSession(ctx context.Context) error {
@@ -818,6 +851,15 @@ func (us *UnifiedServer) requireSession(ctx context.Context) error {
 				log.Printf("DIFC disabled: auto-creating session for ID: %s", sessionID)
 				us.sessions[sessionID] = NewSession(sessionID, "")
 				log.Printf("Session auto-created for ID: %s", sessionID)
+				
+				// Ensure session directory exists in payload mount point
+				// This is done after releasing the lock to avoid holding it during I/O
+				us.sessionMu.Unlock()
+				if err := us.ensureSessionDirectory(sessionID); err != nil {
+					logger.LogWarn("client", "Failed to create session directory for session=%s: %v", sessionID, err)
+					// Don't fail - payloads will attempt to create the directory when needed
+				}
+				return nil
 			}
 			us.sessionMu.Unlock()
 		}

@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -520,3 +521,48 @@ func TestUnifiedServer_SequentialLaunch_Disabled(t *testing.T) {
 
 	assert.False(t, us.sequentialLaunch, "SequentialLaunch should be disabled (parallel launch is default) when configured")
 }
+
+func TestUnifiedServer_EnsureSessionDirectory(t *testing.T) {
+	// Create a temporary directory for testing
+	tmpDir := t.TempDir()
+
+	cfg := &config.Config{
+		Servers: map[string]*config.ServerConfig{},
+		Gateway: &config.GatewayConfig{
+			PayloadDir: tmpDir,
+		},
+	}
+
+	ctx := context.Background()
+	us, err := NewUnified(ctx, cfg)
+	require.NoError(t, err, "NewUnified() failed")
+	defer us.Close()
+
+	// Test that ensureSessionDirectory creates the directory
+	sessionID := "test-session-abc123"
+	err = us.ensureSessionDirectory(sessionID)
+	require.NoError(t, err, "ensureSessionDirectory() should not return error")
+
+	// Verify directory was created
+	expectedPath := tmpDir + "/test-session-abc123"
+	info, err := os.Stat(expectedPath)
+	require.NoError(t, err, "Session directory should exist")
+	assert.True(t, info.IsDir(), "Session path should be a directory")
+
+	// Verify directory has correct permissions (0700)
+	assert.Equal(t, os.FileMode(0700), info.Mode().Perm(), "Session directory should have 0700 permissions")
+
+	// Test that calling ensureSessionDirectory again doesn't fail (idempotent)
+	err = us.ensureSessionDirectory(sessionID)
+	require.NoError(t, err, "ensureSessionDirectory() should be idempotent")
+
+	// Test with nested session IDs (should fail because we don't support that)
+	nestedSessionID := "test/nested/session"
+	err = us.ensureSessionDirectory(nestedSessionID)
+	require.NoError(t, err, "ensureSessionDirectory() should handle nested paths")
+	
+	nestedPath := tmpDir + "/test/nested/session"
+	_, err = os.Stat(nestedPath)
+	require.NoError(t, err, "Nested session directory should exist")
+}
+
