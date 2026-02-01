@@ -22,7 +22,12 @@ func TestNormalizeInputSchema_NilSchema(t *testing.T) {
 func TestNormalizeInputSchema_EmptySchema(t *testing.T) {
 	schema := map[string]interface{}{}
 	result := NormalizeInputSchema(schema, "test-tool")
-	assert.Equal(t, schema, result, "Empty schema should be unchanged")
+	// Empty schema should be normalized to a valid object schema since SDK requires type: object
+	expected := map[string]interface{}{
+		"type":       "object",
+		"properties": map[string]interface{}{},
+	}
+	assert.Equal(t, expected, result, "Empty schema should be normalized to object schema")
 }
 
 func TestNormalizeInputSchema_NonObjectType(t *testing.T) {

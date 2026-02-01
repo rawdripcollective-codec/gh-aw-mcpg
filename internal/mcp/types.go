@@ -71,8 +71,27 @@ func NormalizeInputSchema(schema map[string]interface{}, toolName string) map[st
 
 	// Check if this is an object type schema
 	typeVal, hasType := schema["type"]
+
+	// If schema has no type but has properties, it's implicitly an object type
+	// The MCP SDK requires "type": "object" to be present, so add it
 	if !hasType {
-		return schema
+		_, hasProperties := schema["properties"]
+		if hasProperties {
+			logger.LogWarn("backend", "Tool schema normalized: %s - added 'type': 'object' to schema with properties", toolName)
+			// Create a copy of the schema to avoid modifying the original
+			normalized := make(map[string]interface{})
+			for k, v := range schema {
+				normalized[k] = v
+			}
+			normalized["type"] = "object"
+			return normalized
+		}
+		// Schema without type and without properties - assume it's an empty object schema
+		logger.LogWarn("backend", "Tool schema normalized: %s - schema missing type, assuming empty object schema", toolName)
+		return map[string]interface{}{
+			"type":       "object",
+			"properties": map[string]interface{}{},
+		}
 	}
 
 	typeStr, isString := typeVal.(string)

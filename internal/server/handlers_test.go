@@ -244,9 +244,10 @@ func TestHandleClose_MultipleRequests(t *testing.T) {
 	goneCount := 0
 
 	for _, rec := range responses {
-		if rec.Code == http.StatusOK {
+		switch rec.Code {
+		case http.StatusOK:
 			okCount++
-		} else if rec.Code == http.StatusGone {
+		case http.StatusGone:
 			goneCount++
 		}
 	}
