@@ -125,7 +125,7 @@ Start the server with:
 ./run.sh
 ```
 
-This will start MCPG in routed mode on `http://127.0.0.1:3000`.
+This will start MCPG in routed mode on `http://0.0.0.0:8000` (using the defaults from `run.sh`).
 
 Or run manually:
 ```bash
@@ -399,7 +399,7 @@ Available environment variables for `run.sh`:
 - `CONFIG` - Path to config file (overrides stdin config)
 - `ENV_FILE` - Path to .env file (default: `.env`)
 - `PORT` - Server port (default: `8000`)
-- `HOST` - Server host (default: `127.0.0.1`)
+- `HOST` - Server host (default: `0.0.0.0`)
 - `MODE` - Server mode flag (default: `--routed`, can be `--unified`)
 
 **Note:** Set `DOCKER_API_VERSION=1.43` for arm64 (Mac) or `1.44` for amd64 (Linux).
