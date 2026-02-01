@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/githubnext/gh-aw-mcpg/internal/config"
 	"github.com/githubnext/gh-aw-mcpg/internal/launcher"
 	"github.com/githubnext/gh-aw-mcpg/internal/sys"
 	"github.com/stretchr/testify/assert"
@@ -17,7 +18,7 @@ import (
 // TestHandleOAuthDiscovery tests the OAuth discovery endpoint
 func TestHandleOAuthDiscovery(t *testing.T) {
 	assert := assert.New(t)
-	
+
 	handler := handleOAuthDiscovery()
 
 	tests := []struct {
@@ -62,12 +63,10 @@ func TestHandleOAuthDiscovery(t *testing.T) {
 // TestHandleClose_MethodValidation tests that only POST requests are accepted
 func TestHandleClose_MethodValidation(t *testing.T) {
 	assert := assert.New(t)
-	require := require.New(t)
-	
+
 	ctx := context.Background()
-	mockLauncher, err := launcher.New(ctx, map[string]*launcher.BackendConfig{})
-	require.NoError(err)
-	
+	mockLauncher := launcher.New(ctx, &config.Config{})
+
 	unifiedServer := &UnifiedServer{
 		launcher:  mockLauncher,
 		sysServer: sys.NewSysServer([]string{}),
@@ -126,11 +125,10 @@ func TestHandleClose_MethodValidation(t *testing.T) {
 func TestHandleClose_SuccessfulShutdown(t *testing.T) {
 	assert := assert.New(t)
 	require := require.New(t)
-	
+
 	ctx := context.Background()
-	mockLauncher, err := launcher.New(ctx, map[string]*launcher.BackendConfig{})
-	require.NoError(err)
-	
+	mockLauncher := launcher.New(ctx, &config.Config{})
+
 	unifiedServer := &UnifiedServer{
 		launcher:  mockLauncher,
 		sysServer: sys.NewSysServer([]string{}),
@@ -151,7 +149,7 @@ func TestHandleClose_SuccessfulShutdown(t *testing.T) {
 
 	// Parse response body
 	var response map[string]interface{}
-	err = json.NewDecoder(rec.Body).Decode(&response)
+	err := json.NewDecoder(rec.Body).Decode(&response)
 	require.NoError(err)
 
 	// Verify response structure
@@ -167,11 +165,10 @@ func TestHandleClose_SuccessfulShutdown(t *testing.T) {
 func TestHandleClose_Idempotency(t *testing.T) {
 	assert := assert.New(t)
 	require := require.New(t)
-	
+
 	ctx := context.Background()
-	mockLauncher, err := launcher.New(ctx, map[string]*launcher.BackendConfig{})
-	require.NoError(err)
-	
+	mockLauncher := launcher.New(ctx, &config.Config{})
+
 	unifiedServer := &UnifiedServer{
 		launcher:  mockLauncher,
 		sysServer: sys.NewSysServer([]string{}),
@@ -200,7 +197,7 @@ func TestHandleClose_Idempotency(t *testing.T) {
 
 	// Parse response body
 	var response map[string]interface{}
-	err = json.NewDecoder(rec2.Body).Decode(&response)
+	err := json.NewDecoder(rec2.Body).Decode(&response)
 	require.NoError(err)
 
 	assert.Equal("Gateway has already been closed", response["error"])
@@ -209,12 +206,10 @@ func TestHandleClose_Idempotency(t *testing.T) {
 // TestHandleClose_MultipleRequests tests behavior with multiple simultaneous close requests
 func TestHandleClose_MultipleRequests(t *testing.T) {
 	assert := assert.New(t)
-	require := require.New(t)
-	
+
 	ctx := context.Background()
-	mockLauncher, err := launcher.New(ctx, map[string]*launcher.BackendConfig{})
-	require.NoError(err)
-	
+	mockLauncher := launcher.New(ctx, &config.Config{})
+
 	unifiedServer := &UnifiedServer{
 		launcher:  mockLauncher,
 		sysServer: sys.NewSysServer([]string{}),
@@ -268,11 +263,10 @@ func TestHandleClose_MultipleRequests(t *testing.T) {
 func TestHandleClose_ResponseFormat(t *testing.T) {
 	assert := assert.New(t)
 	require := require.New(t)
-	
+
 	ctx := context.Background()
-	mockLauncher, err := launcher.New(ctx, map[string]*launcher.BackendConfig{})
-	require.NoError(err)
-	
+	mockLauncher := launcher.New(ctx, &config.Config{})
+
 	unifiedServer := &UnifiedServer{
 		launcher:  mockLauncher,
 		sysServer: sys.NewSysServer([]string{}),
@@ -289,7 +283,7 @@ func TestHandleClose_ResponseFormat(t *testing.T) {
 
 	// Parse response
 	var response map[string]interface{}
-	err = json.NewDecoder(rec.Body).Decode(&response)
+	err := json.NewDecoder(rec.Body).Decode(&response)
 	require.NoError(err)
 
 	// Verify all required fields are present
@@ -306,12 +300,10 @@ func TestHandleClose_ResponseFormat(t *testing.T) {
 // TestHandleClose_RemoteAddress tests that remote address is logged
 func TestHandleClose_RemoteAddress(t *testing.T) {
 	assert := assert.New(t)
-	require := require.New(t)
-	
+
 	ctx := context.Background()
-	mockLauncher, err := launcher.New(ctx, map[string]*launcher.BackendConfig{})
-	require.NoError(err)
-	
+	mockLauncher := launcher.New(ctx, &config.Config{})
+
 	unifiedServer := &UnifiedServer{
 		launcher:  mockLauncher,
 		sysServer: sys.NewSysServer([]string{}),
@@ -334,12 +326,10 @@ func TestHandleClose_RemoteAddress(t *testing.T) {
 // TestHandleClose_EmptyBody tests that close endpoint works without request body
 func TestHandleClose_EmptyBody(t *testing.T) {
 	assert := assert.New(t)
-	require := require.New(t)
-	
+
 	ctx := context.Background()
-	mockLauncher, err := launcher.New(ctx, map[string]*launcher.BackendConfig{})
-	require.NoError(err)
-	
+	mockLauncher := launcher.New(ctx, &config.Config{})
+
 	unifiedServer := &UnifiedServer{
 		launcher:  mockLauncher,
 		sysServer: sys.NewSysServer([]string{}),
@@ -361,12 +351,10 @@ func TestHandleClose_EmptyBody(t *testing.T) {
 // TestHandleClose_WithRequestBody tests that close endpoint ignores request body
 func TestHandleClose_WithRequestBody(t *testing.T) {
 	assert := assert.New(t)
-	require := require.New(t)
-	
+
 	ctx := context.Background()
-	mockLauncher, err := launcher.New(ctx, map[string]*launcher.BackendConfig{})
-	require.NoError(err)
-	
+	mockLauncher := launcher.New(ctx, &config.Config{})
+
 	unifiedServer := &UnifiedServer{
 		launcher:  mockLauncher,
 		sysServer: sys.NewSysServer([]string{}),
@@ -390,12 +378,12 @@ func TestHandleClose_WithRequestBody(t *testing.T) {
 // TestShutdownErrorJSON tests the shutdown error constant format
 func TestShutdownErrorJSON(t *testing.T) {
 	assert := assert.New(t)
-	
+
 	// Verify it's valid JSON
 	var parsed map[string]interface{}
 	err := json.Unmarshal([]byte(shutdownErrorJSON), &parsed)
 	assert.NoError(err)
-	
+
 	// Verify structure
 	assert.Equal("Gateway is shutting down", parsed["error"])
 }
@@ -403,16 +391,14 @@ func TestShutdownErrorJSON(t *testing.T) {
 // TestHandleClose_ShouldExitFlag tests that ShouldExit controls process termination
 func TestHandleClose_ShouldExitFlag(t *testing.T) {
 	assert := assert.New(t)
-	require := require.New(t)
-	
+
 	ctx := context.Background()
-	mockLauncher, err := launcher.New(ctx, map[string]*launcher.BackendConfig{})
-	require.NoError(err)
+	mockLauncher := launcher.New(ctx, &config.Config{})
 
 	tests := []struct {
-		name         string
-		testMode     bool
-		shouldExit   bool
+		name       string
+		testMode   bool
+		shouldExit bool
 	}{
 		{
 			name:       "Test mode prevents exit",
