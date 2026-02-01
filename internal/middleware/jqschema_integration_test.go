@@ -210,7 +210,7 @@ func TestMiddlewareDirectoryCreation(t *testing.T) {
 	// Create temporary directory for test
 	baseDir := filepath.Join(os.TempDir(), "test-jq-payloads")
 	defer os.RemoveAll(baseDir)
-	
+
 	sessionID := "test-session"
 
 	mockHandler := func(ctx context.Context, req *sdk.CallToolRequest, args interface{}) (*sdk.CallToolResult, interface{}, error) {

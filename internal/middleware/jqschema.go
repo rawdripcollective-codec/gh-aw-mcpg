@@ -113,13 +113,13 @@ func applyJqSchema(ctx context.Context, jsonData interface{}) (string, error) {
 func savePayload(baseDir, sessionID, queryID string, payload []byte) (string, error) {
 	// Create directory structure: {baseDir}/{sessionID}/{queryID}
 	dir := filepath.Join(baseDir, sessionID, queryID)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0700); err != nil {
 		return "", fmt.Errorf("failed to create payload directory: %w", err)
 	}
 
-	// Save payload to file
+	// Save payload to file with restrictive permissions (owner read/write only)
 	filePath := filepath.Join(dir, "payload.json")
-	if err := os.WriteFile(filePath, payload, 0644); err != nil {
+	if err := os.WriteFile(filePath, payload, 0600); err != nil {
 		return "", fmt.Errorf("failed to write payload file: %w", err)
 	}
 
@@ -141,13 +141,13 @@ func WrapToolHandler(
 	return func(ctx context.Context, req *sdk.CallToolRequest, args interface{}) (*sdk.CallToolResult, interface{}, error) {
 		// Generate random query ID
 		queryID := generateRandomID()
-		
+
 		// Get session ID from context
 		sessionID := getSessionID(ctx)
 		if sessionID == "" {
 			sessionID = "default"
 		}
-		
+
 		logMiddleware.Printf("Processing tool call: tool=%s, queryID=%s, sessionID=%s", toolName, queryID, sessionID)
 
 		// Call the original handler

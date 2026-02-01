@@ -22,10 +22,10 @@ import (
 
 // Default values for command-line flags.
 const (
-	defaultConfigFile       = "" // No default config file - user must explicitly specify --config or --config-stdin
-	defaultConfigStdin      = false
+	defaultConfigFile  = "" // No default config file - user must explicitly specify --config or --config-stdin
+	defaultConfigStdin = false
 	// DefaultListenIPv4 is the default interface used by the HTTP server.
-	DefaultListenIPv4       = "127.0.0.1"
+	DefaultListenIPv4 = "127.0.0.1"
 	// DefaultListenPort is the default port used by the HTTP server.
 	DefaultListenPort       = "3000"
 	defaultListenAddr       = DefaultListenIPv4 + ":" + DefaultListenPort
@@ -259,19 +259,7 @@ func run(cmd *cobra.Command, args []string) error {
 	// Apply command-line flags to config
 	cfg.EnableDIFC = enableDIFC
 	cfg.SequentialLaunch = sequentialLaunch
-	
-	// Override PayloadDir with command-line flag if provided
-	if payloadDir != "" {
-		if cfg.Gateway == nil {
-			cfg.Gateway = &config.GatewayConfig{
-				Port:           config.DefaultPort,
-				StartupTimeout: config.DefaultStartupTimeout,
-				ToolTimeout:    config.DefaultToolTimeout,
-			}
-		}
-		cfg.Gateway.PayloadDir = payloadDir
-	}
-	
+
 	if enableDIFC {
 		log.Println("DIFC enforcement and session requirement enabled")
 	} else {
