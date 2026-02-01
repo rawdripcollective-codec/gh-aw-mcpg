@@ -254,16 +254,24 @@ Use the logger package for debug logging:
 import "github.com/githubnext/gh-aw-mcpg/internal/logger"
 
 // Create a logger with namespace following pkg:filename convention
-var log = logger.New("pkg:filename")
+// Use descriptive variable names (e.g., logLauncher, logConfig) for clarity
+var logComponent = logger.New("pkg:filename")
 
 // Log debug messages (only shown when DEBUG environment variable matches)
-log.Printf("Processing %d items", count)
+logComponent.Printf("Processing %d items", count)
 
 // Check if logging is enabled before expensive operations
-if log.Enabled() {
-    log.Printf("Expensive debug info: %+v", expensiveOperation())
+if logComponent.Enabled() {
+    logComponent.Printf("Expensive debug info: %+v", expensiveOperation())
 }
 ```
+
+**Logger Variable Naming Convention:**
+- **Prefer descriptive names**: `var log<Component> = logger.New("pkg:component")`
+- Examples: `var logLauncher = logger.New("launcher:launcher")`
+- Avoid generic `log` when it might conflict with standard library
+- First letter of component name should be capitalized (e.g., `logAuth`, not `logauth`)
+
 
 Control debug output:
 ```bash
