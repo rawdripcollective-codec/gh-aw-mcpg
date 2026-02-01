@@ -73,7 +73,13 @@ MCPG will start in routed mode on `http://0.0.0.0:8000` (using `MCP_GATEWAY_PORT
 
 ## Configuration
 
+MCP Gateway supports two configuration formats:
+1. **TOML format** - Use with `--config` flag for file-based configuration
+2. **JSON stdin format** - Use with `--config-stdin` flag for dynamic configuration
+
 ### TOML Format (`config.toml`)
+
+TOML configuration uses `command` and `args` fields directly for maximum flexibility:
 
 ```toml
 [servers]
@@ -86,6 +92,8 @@ args = ["run", "--rm", "-e", "GITHUB_PERSONAL_ACCESS_TOKEN", "-i", "ghcr.io/gith
 command = "node"
 args = ["/path/to/filesystem-server.js"]
 ```
+
+**Note**: In TOML format, you specify the `command` and `args` directly. This allows you to use any command (docker, node, python, etc.).
 
 ### JSON Stdin Format
 
@@ -126,9 +134,10 @@ For the complete JSON configuration specification with all validation rules, see
   - `"http"` - HTTP transport (not yet implemented)
   - `"local"` - Alias for `"stdio"` (backward compatibility)
 
-- **`container`** (required for stdio): Docker container image (e.g., `"ghcr.io/github/github-mcp-server:latest"`)
+- **`container`** (required for stdio in JSON format): Docker container image (e.g., `"ghcr.io/github/github-mcp-server:latest"`)
   - Automatically wraps as `docker run --rm -i <container>`
-  - **Note**: The `command` field is NOT supported per the specification
+  - **Note**: The `command` field is NOT supported in JSON stdin format (stdio servers must use `container` instead)
+  - **TOML format uses `command` and `args` fields directly**
 
 - **`entrypoint`** (optional): Custom entrypoint for the container
   - Overrides the default container entrypoint
@@ -153,15 +162,19 @@ For the complete JSON configuration specification with all validation rules, see
 
 **Validation Rules:**
 
-- **Stdio servers** must specify `container` (required)
-- **HTTP servers** must specify `url` (required)
-- Empty/"local" type automatically normalized to "stdio"
-- Variable expansion with `${VAR_NAME}` fails fast on undefined variables
-- All validation errors include JSONPath and helpful suggestions
-- **The `command` field is not supported** - stdio servers must use `container`
-- **Mount specifications** must follow `"source:dest:mode"` format
-  - `mode` must be either `"ro"` or `"rw"`
-  - Both source and destination paths are required (cannot be empty)
+- **JSON stdin format**:
+  - **Stdio servers** must specify `container` (required)
+  - **HTTP servers** must specify `url` (required)
+  - **The `command` field is not supported** - stdio servers must use `container`
+- **TOML format**:
+  - Uses `command` and `args` fields directly (e.g., `command = "docker"`)
+- **Common rules** (both formats):
+  - Empty/"local" type automatically normalized to "stdio"
+  - Variable expansion with `${VAR_NAME}` fails fast on undefined variables
+  - All validation errors include JSONPath and helpful suggestions
+  - **Mount specifications** must follow `"source:dest:mode"` format
+    - `mode` must be either `"ro"` or `"rw"`
+    - Both source and destination paths are required (cannot be empty)
 
 See **[Configuration Specification](https://github.com/githubnext/gh-aw/blob/main/docs/src/content/docs/reference/mcp-gateway.md)** for complete validation rules.
 
@@ -190,17 +203,28 @@ It provides routing, aggregation, and management of multiple MCP backend servers
 
 Usage:
   awmg [flags]
+  awmg [command]
+
+Available Commands:
+  completion  Generate completion script
+  help        Help about any command
 
 Flags:
-  -c, --config string   Path to config file (default "config.toml")
-      --config-stdin    Read MCP server configuration from stdin (JSON format). When enabled, overrides --config
-      --env string      Path to .env file to load environment variables
-  -h, --help            help for awmg
-  -l, --listen string   HTTP server listen address (default "127.0.0.1:3000")
-      --log-dir string  Directory for log files (falls back to stdout if directory cannot be created) (default "/tmp/gh-aw/mcp-logs")
-      --routed          Run in routed mode (each backend at /mcp/<server>)
-      --unified         Run in unified mode (all backends at /mcp)
-      --validate-env    Validate execution environment (Docker, env vars) before starting
+  -c, --config string       Path to config file
+      --config-stdin        Read MCP server configuration from stdin (JSON format). When enabled, overrides --config
+      --enable-difc         Enable DIFC enforcement and session requirement (requires sys___init call before tool access)
+      --env string          Path to .env file to load environment variables
+  -h, --help                help for awmg
+  -l, --listen string       HTTP server listen address (default "127.0.0.1:3000")
+      --log-dir string      Directory for log files (falls back to stdout if directory cannot be created) (default "/tmp/gh-aw/mcp-logs")
+      --routed              Run in routed mode (each backend at /mcp/<server>)
+      --sequential-launch   Launch MCP servers sequentially during startup (parallel launch is default)
+      --unified             Run in unified mode (all backends at /mcp)
+      --validate-env        Validate execution environment (Docker, env vars) before starting
+  -v, --verbose count       Increase verbosity level (use -v for info, -vv for debug, -vvv for trace)
+      --version             version for awmg
+
+Use "awmg [command] --help" for more information about a command.
 ```
 
 ## Environment Variables
