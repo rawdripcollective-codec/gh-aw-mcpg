@@ -11,9 +11,10 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-
-	"github.com/stretchr/testify/require"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 
@@ -103,18 +104,21 @@ func TestTransparentProxy_RoutedMode(t *testing.T) {
 
 	// Test 1: Health check
 	t.Run("HealthCheck", func(t *testing.T) {
+		assert := assert.New(t)
+
 		resp, err := http.Get(serverURL + "/health")
 		require.NoError(t, err, "Health check failed")
 		defer resp.Body.Close()
 
-		if resp.StatusCode != http.StatusOK {
-			t.Errorf("Expected status 200, got %d", resp.StatusCode)
-		}
+		assert.Equal(http.StatusOK, resp.StatusCode, "Health check should return 200 OK")
 		t.Log("✓ Health check passed")
 	})
 
 	// Test 2: Initialize request (transparent proxy test)
 	t.Run("Initialize", func(t *testing.T) {
+		assert := assert.New(t)
+		require := require.New(t)
+
 		initReq := map[string]interface{}{
 			"jsonrpc": "2.0",
 			"id":      1,
@@ -132,71 +136,59 @@ func TestTransparentProxy_RoutedMode(t *testing.T) {
 		resp := sendMCPRequest(t, serverURL+"/mcp/testserver", "test-token", initReq)
 
 		// Verify response structure - the gateway should pass through a valid MCP response
-		if resp["jsonrpc"] != "2.0" {
-			t.Errorf("Expected jsonrpc 2.0, got %v", resp["jsonrpc"])
-		}
+		assert.Equal("2.0", resp["jsonrpc"], "Response should have jsonrpc 2.0")
 
 		// Check for error
-		if errObj, hasError := resp["error"]; hasError {
-			t.Fatalf("Unexpected error in response: %v", errObj)
-		}
+		assert.NotContains(resp, "error", "Response should not contain an error")
 
 		// Check that result contains server info
 		result, ok := resp["result"].(map[string]interface{})
-		if !ok {
-			t.Fatalf("Expected result object, got %v", resp["result"])
-		}
+		require.True(ok, "Expected result to be a map[string]interface{}, got %T", resp["result"])
 
 		serverInfo, ok := result["serverInfo"].(map[string]interface{})
-		if !ok {
-			t.Fatalf("Expected serverInfo in result, got %v", result)
-		}
+		require.True(ok, "Expected serverInfo to be a map[string]interface{}, got %T", result["serverInfo"])
 
 		// The gateway creates a filtered server for each backend
 		// Check that the server name contains the backend ID
-		serverName := serverInfo["name"].(string)
-		if !strings.Contains(serverName, "testserver") {
-			t.Errorf("Expected server name to contain 'testserver', got %v", serverName)
-		}
+		serverName, ok := serverInfo["name"].(string)
+		require.True(ok, "Expected server name to be a string")
+		assert.Contains(serverName, "testserver", "Server name should contain backend ID")
 
 		t.Logf("✓ Initialize response passed through correctly: %v", serverName)
 	})
 
 	// Test 3: Verify that tool information is accessible
 	t.Run("ToolsRegistered", func(t *testing.T) {
+		assert := assert.New(t)
+		require := require.New(t)
+
 		tools := us.GetToolsForBackend("testserver")
-		if len(tools) == 0 {
-			t.Error("Expected at least one tool to be registered for testserver")
-		}
+		require.NotEmpty(tools, "Expected at least one tool to be registered for testserver")
 
 		// Verify the tool has correct metadata
 		// Note: GetToolsForBackend strips the backend prefix, so we check for unprefixed name
-		if len(tools) > 0 {
-			tool := tools[0]
-			// The tool name should be without the backend prefix after GetToolsForBackend processes it
-			if tool.Name != "test_tool" {
-				t.Errorf("Expected tool name 'test_tool' (prefix stripped), got '%s'", tool.Name)
-			}
-			if tool.BackendID != "testserver" {
-				t.Errorf("Expected BackendID 'testserver', got '%s'", tool.BackendID)
-			}
-			t.Logf("✓ Tool registered correctly: %s (backend: %s)", tool.Name, tool.BackendID)
-		}
+		tool := tools[0]
+		// The tool name should be without the backend prefix after GetToolsForBackend processes it
+		assert.Equal("test_tool", tool.Name, "Tool name should be unprefixed")
+		assert.Equal("testserver", tool.BackendID, "Backend ID should match")
+		t.Logf("✓ Tool registered correctly: %s (backend: %s)", tool.Name, tool.BackendID)
 	})
 
 	// Test 4: Verify DIFC is disabled (NoopGuard behavior)
 	t.Run("DIFCDisabled", func(t *testing.T) {
+		assert := assert.New(t)
+
 		// Verify that the guard registry has the noop guard for testserver
 		guard := us.guardRegistry.Get("testserver")
-		if guard.Name() != "noop" {
-			t.Errorf("Expected NoopGuard, got guard with name: %s", guard.Name())
-		}
+		assert.Equal("noop", guard.Name(), "Should use NoopGuard when DIFC is disabled")
 
 		t.Log("✓ DIFC is disabled - using NoopGuard")
 	})
 
 	// Test 5: Verify routed mode isolation
 	t.Run("RoutedModeIsolation", func(t *testing.T) {
+		assert := assert.New(t)
+
 		// Check that sys tools are separate
 		sysTools := us.GetToolsForBackend("sys")
 		testTools := us.GetToolsForBackend("testserver")
@@ -204,9 +196,7 @@ func TestTransparentProxy_RoutedMode(t *testing.T) {
 		// Verify no overlap
 		for _, sysTool := range sysTools {
 			for _, testTool := range testTools {
-				if sysTool.Name == testTool.Name {
-					t.Errorf("Found tool name collision: %s", sysTool.Name)
-				}
+				assert.NotEqual(sysTool.Name, testTool.Name, "Tool names should not collide between backends")
 			}
 		}
 
@@ -348,16 +338,16 @@ func TestTransparentProxy_MultipleBackends(t *testing.T) {
 
 	// Test that backend isolation works (each backend sees only its tools)
 	t.Run("BackendIsolation", func(t *testing.T) {
+		assert := assert.New(t)
+
 		backend1Tools := us.GetToolsForBackend("backend1")
 		backend2Tools := us.GetToolsForBackend("backend2")
 
-		if len(backend1Tools) != 1 || backend1Tools[0].Name != "tool1" {
-			t.Error("Backend1 should only see tool1")
-		}
+		assert.Len(backend1Tools, 1, "Backend1 should have exactly 1 tool")
+		assert.Equal("tool1", backend1Tools[0].Name, "Backend1 should only see tool1")
 
-		if len(backend2Tools) != 1 || backend2Tools[0].Name != "tool2" {
-			t.Error("Backend2 should only see tool2")
-		}
+		assert.Len(backend2Tools, 1, "Backend2 should have exactly 1 tool")
+		assert.Equal("tool2", backend2Tools[0].Name, "Backend2 should only see tool2")
 
 		t.Logf("✓ Backend isolation verified: backend1 has %d tools, backend2 has %d tools",
 			len(backend1Tools), len(backend2Tools))
@@ -365,6 +355,8 @@ func TestTransparentProxy_MultipleBackends(t *testing.T) {
 
 	// Test that routes are registered for each backend
 	t.Run("RoutesRegistered", func(t *testing.T) {
+		assert := assert.New(t)
+
 		httpServer := CreateHTTPServerForRoutedMode("127.0.0.1:0", us, "")
 		ts := httptest.NewServer(httpServer.Handler)
 		defer ts.Close()
@@ -385,14 +377,10 @@ func TestTransparentProxy_MultipleBackends(t *testing.T) {
 		}
 
 		resp1 := sendMCPRequest(t, ts.URL+"/mcp/backend1", "test-token-1", initReq)
-		if resp1["jsonrpc"] != "2.0" {
-			t.Errorf("Backend1 initialize failed")
-		}
+		assert.Equal("2.0", resp1["jsonrpc"], "Backend1 should respond with jsonrpc 2.0")
 
 		resp2 := sendMCPRequest(t, ts.URL+"/mcp/backend2", "test-token-2", initReq)
-		if resp2["jsonrpc"] != "2.0" {
-			t.Errorf("Backend2 initialize failed")
-		}
+		assert.Equal("2.0", resp2["jsonrpc"], "Backend2 should respond with jsonrpc 2.0")
 
 		t.Log("✓ Both backends respond to initialize correctly")
 	})
@@ -512,6 +500,9 @@ func TestCloseEndpoint_Integration(t *testing.T) {
 
 	// Test with routed mode
 	t.Run("RoutedMode", func(t *testing.T) {
+		assert := assert.New(t)
+		require := require.New(t)
+
 		httpServer := CreateHTTPServerForRoutedMode("127.0.0.1:0", us, "")
 		ts := httptest.NewServer(httpServer.Handler)
 		defer ts.Close()
@@ -519,52 +510,35 @@ func TestCloseEndpoint_Integration(t *testing.T) {
 		// First call should succeed
 		req, _ := http.NewRequest(http.MethodPost, ts.URL+"/close", nil)
 		resp, err := http.DefaultClient.Do(req)
-		require.NoError(t, err, "Failed to call /close")
+		require.NoError(err, "Failed to call /close")
 		defer resp.Body.Close()
 
-		if resp.StatusCode != http.StatusOK {
-			t.Errorf("Expected status 200, got %d", resp.StatusCode)
-		}
+		assert.Equal(http.StatusOK, resp.StatusCode, "First close call should return 200 OK")
 
 		var result map[string]interface{}
-		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-			t.Fatalf("Failed to decode response: %v", err)
-		}
+		require.NoError(json.NewDecoder(resp.Body).Decode(&result), "Failed to decode response")
 
 		// Verify response structure
-		if status, ok := result["status"].(string); !ok || status != "closed" {
-			t.Errorf("Expected status 'closed', got %v", result["status"])
-		}
-
-		if msg, ok := result["message"].(string); !ok || msg != "Gateway shutdown initiated" {
-			t.Errorf("Expected message 'Gateway shutdown initiated', got %v", result["message"])
-		}
+		assert.Equal("closed", result["status"], "Status should be 'closed'")
+		assert.Equal("Gateway shutdown initiated", result["message"], "Message should match expected text")
 
 		// Should report 2 servers terminated
-		if count, ok := result["serversTerminated"].(float64); !ok || count != 2 {
-			t.Errorf("Expected serversTerminated 2, got %v", result["serversTerminated"])
-		}
+		assert.Equal(float64(2), result["serversTerminated"], "Should terminate 2 servers")
 
 		t.Log("✓ Close endpoint returns correct success response")
 
 		// Second call should return 410 Gone
 		req2, _ := http.NewRequest(http.MethodPost, ts.URL+"/close", nil)
 		resp2, err := http.DefaultClient.Do(req2)
-		require.NoError(t, err, "Failed to call /close second time")
+		require.NoError(err, "Failed to call /close second time")
 		defer resp2.Body.Close()
 
-		if resp2.StatusCode != http.StatusGone {
-			t.Errorf("Expected status 410 (Gone) on second call, got %d", resp2.StatusCode)
-		}
+		assert.Equal(http.StatusGone, resp2.StatusCode, "Second close call should return 410 Gone")
 
 		var result2 map[string]interface{}
-		if err := json.NewDecoder(resp2.Body).Decode(&result2); err != nil {
-			t.Fatalf("Failed to decode second response: %v", err)
-		}
+		require.NoError(json.NewDecoder(resp2.Body).Decode(&result2), "Failed to decode second response")
 
-		if errMsg, ok := result2["error"].(string); !ok || errMsg != "Gateway has already been closed" {
-			t.Errorf("Expected error message about gateway already closed, got %v", result2["error"])
-		}
+		assert.Equal("Gateway has already been closed", result2["error"], "Error message should indicate gateway already closed")
 
 		t.Log("✓ Close endpoint is idempotent (returns 410 on subsequent calls)")
 	})
@@ -579,6 +553,9 @@ func TestCloseEndpoint_Integration(t *testing.T) {
 	us2.SetTestMode(true)
 
 	t.Run("UnifiedMode", func(t *testing.T) {
+		assert := assert.New(t)
+		require := require.New(t)
+
 		httpServer := CreateHTTPServerForMCP("127.0.0.1:0", us2, "")
 		ts := httptest.NewServer(httpServer.Handler)
 		defer ts.Close()
@@ -586,21 +563,15 @@ func TestCloseEndpoint_Integration(t *testing.T) {
 		// Call close endpoint
 		req, _ := http.NewRequest(http.MethodPost, ts.URL+"/close", nil)
 		resp, err := http.DefaultClient.Do(req)
-		require.NoError(t, err, "Failed to call /close")
+		require.NoError(err, "Failed to call /close")
 		defer resp.Body.Close()
 
-		if resp.StatusCode != http.StatusOK {
-			t.Errorf("Expected status 200, got %d", resp.StatusCode)
-		}
+		assert.Equal(http.StatusOK, resp.StatusCode, "Close call should return 200 OK")
 
 		var result map[string]interface{}
-		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-			t.Fatalf("Failed to decode response: %v", err)
-		}
+		require.NoError(json.NewDecoder(resp.Body).Decode(&result), "Failed to decode response")
 
-		if status, ok := result["status"].(string); !ok || status != "closed" {
-			t.Errorf("Expected status 'closed', got %v", result["status"])
-		}
+		assert.Equal("closed", result["status"], "Status should be 'closed'")
 
 		t.Log("✓ Close endpoint works in unified mode")
 	})
@@ -615,6 +586,9 @@ func TestCloseEndpoint_Integration(t *testing.T) {
 	us3.SetTestMode(true)
 
 	t.Run("AuthenticationRequired", func(t *testing.T) {
+		assert := assert.New(t)
+		require := require.New(t)
+
 		apiKey := "test-api-key-12345"
 		httpServer := CreateHTTPServerForRoutedMode("127.0.0.1:0", us3, apiKey)
 		ts := httptest.NewServer(httpServer.Handler)
@@ -623,12 +597,10 @@ func TestCloseEndpoint_Integration(t *testing.T) {
 		// Request without auth should fail
 		req, _ := http.NewRequest(http.MethodPost, ts.URL+"/close", nil)
 		resp, err := http.DefaultClient.Do(req)
-		require.NoError(t, err, "Failed to call /close")
+		require.NoError(err, "Failed to call /close")
 		defer resp.Body.Close()
 
-		if resp.StatusCode != http.StatusUnauthorized {
-			t.Errorf("Expected status 401 (Unauthorized), got %d", resp.StatusCode)
-		}
+		assert.Equal(http.StatusUnauthorized, resp.StatusCode, "Request without auth should return 401")
 
 		t.Log("✓ Close endpoint requires authentication when API key is configured")
 
@@ -636,12 +608,10 @@ func TestCloseEndpoint_Integration(t *testing.T) {
 		req2, _ := http.NewRequest(http.MethodPost, ts.URL+"/close", nil)
 		req2.Header.Set("Authorization", apiKey)
 		resp2, err := http.DefaultClient.Do(req2)
-		require.NoError(t, err, "Failed to call /close with auth")
+		require.NoError(err, "Failed to call /close with auth")
 		defer resp2.Body.Close()
 
-		if resp2.StatusCode != http.StatusOK {
-			t.Errorf("Expected status 200 with correct auth, got %d", resp2.StatusCode)
-		}
+		assert.Equal(http.StatusOK, resp2.StatusCode, "Request with valid auth should return 200 OK")
 
 		t.Log("✓ Close endpoint accepts requests with valid authentication")
 	})
