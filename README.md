@@ -120,7 +120,7 @@ For the complete JSON configuration specification with all validation rules, see
   "gateway": {
     "port": 8080,
     "apiKey": "your-api-key",
-    "domain": "example.com",
+    "domain": "localhost",
     "startupTimeout": 30,
     "toolTimeout": 60
   }
@@ -184,6 +184,7 @@ See **[Configuration Specification](https://github.com/githubnext/gh-aw/blob/mai
   - Valid range: 1-65535
 - **`apiKey`** (optional): API key for authentication
 - **`domain`** (optional): Domain name for the gateway
+  - Allowed values: `"localhost"`, `"host.docker.internal"`
 - **`startupTimeout`** (optional): Seconds to wait for backend startup (default: 30)
   - Must be positive integer
 - **`toolTimeout`** (optional): Seconds to wait for tool execution (default: 60)
