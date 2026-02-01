@@ -13,6 +13,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// testGetSessionID is a helper function for tests that returns a session ID from context
+func testGetSessionID(ctx context.Context) string {
+	if sessionID, ok := ctx.Value("test-session-id").(string); ok {
+		return sessionID
+	}
+	return "test-session"
+}
+
 func TestGenerateRandomID(t *testing.T) {
 	// Generate multiple IDs and ensure they're unique
 	ids := make(map[string]bool)
@@ -81,13 +89,15 @@ func TestApplyJqSchema(t *testing.T) {
 }
 
 func TestSavePayload(t *testing.T) {
-	// Clean up after test
-	defer os.RemoveAll(filepath.Join("/tmp", "gh-awmg"))
+	// Create temporary directory for test
+	baseDir := filepath.Join(os.TempDir(), "test-jq-payloads")
+	defer os.RemoveAll(baseDir)
 
-	queryID := "test-query-123"
+	sessionID := "test-session-123"
+	queryID := "test-query-456"
 	payload := []byte(`{"test": "data"}`)
 
-	filePath, err := savePayload(queryID, payload)
+	filePath, err := savePayload(baseDir, sessionID, queryID, payload)
 	require.NoError(t, err, "savePayload should not return error")
 
 	// Verify file exists
@@ -99,11 +109,15 @@ func TestSavePayload(t *testing.T) {
 	assert.Equal(t, payload, content, "File content should match payload")
 
 	// Verify directory structure
-	expectedDir := filepath.Join("/tmp", "gh-awmg", "tools-calls", queryID)
+	expectedDir := filepath.Join(baseDir, sessionID, queryID)
 	assert.DirExists(t, expectedDir, "Directory should exist")
 }
 
 func TestWrapToolHandler(t *testing.T) {
+	// Create temporary directory for test
+	baseDir := filepath.Join(os.TempDir(), "test-jq-payloads")
+	defer os.RemoveAll(baseDir)
+
 	// Create a mock handler
 	mockHandler := func(ctx context.Context, req *sdk.CallToolRequest, args interface{}) (*sdk.CallToolResult, interface{}, error) {
 		return &sdk.CallToolResult{IsError: false}, map[string]interface{}{
@@ -116,7 +130,7 @@ func TestWrapToolHandler(t *testing.T) {
 	}
 
 	// Wrap the handler
-	wrapped := WrapToolHandler(mockHandler, "test_tool")
+	wrapped := WrapToolHandler(mockHandler, "test_tool", baseDir, testGetSessionID)
 
 	// Call the wrapped handler
 	result, data, err := wrapped(context.Background(), &sdk.CallToolRequest{}, map[string]interface{}{})
@@ -151,12 +165,16 @@ func TestWrapToolHandler(t *testing.T) {
 }
 
 func TestWrapToolHandler_ErrorHandling(t *testing.T) {
+	// Create temporary directory for test
+	baseDir := filepath.Join(os.TempDir(), "test-jq-payloads")
+	defer os.RemoveAll(baseDir)
+
 	t.Run("handler returns error", func(t *testing.T) {
 		mockHandler := func(ctx context.Context, req *sdk.CallToolRequest, args interface{}) (*sdk.CallToolResult, interface{}, error) {
 			return &sdk.CallToolResult{IsError: true}, nil, assert.AnError
 		}
 
-		wrapped := WrapToolHandler(mockHandler, "test_tool")
+		wrapped := WrapToolHandler(mockHandler, "test_tool", baseDir, testGetSessionID)
 		result, data, err := wrapped(context.Background(), &sdk.CallToolRequest{}, map[string]interface{}{})
 
 		assert.Error(t, err, "Should return error from handler")
@@ -169,7 +187,7 @@ func TestWrapToolHandler_ErrorHandling(t *testing.T) {
 			return &sdk.CallToolResult{IsError: false}, nil, nil
 		}
 
-		wrapped := WrapToolHandler(mockHandler, "test_tool")
+		wrapped := WrapToolHandler(mockHandler, "test_tool", baseDir, testGetSessionID)
 		result, data, err := wrapped(context.Background(), &sdk.CallToolRequest{}, map[string]interface{}{})
 
 		assert.NoError(t, err, "Should not return error")
@@ -179,6 +197,10 @@ func TestWrapToolHandler_ErrorHandling(t *testing.T) {
 }
 
 func TestWrapToolHandler_LongPayload(t *testing.T) {
+	// Create temporary directory for test
+	baseDir := filepath.Join(os.TempDir(), "test-jq-payloads")
+	defer os.RemoveAll(baseDir)
+
 	// Create a handler that returns a large payload
 	largeData := map[string]interface{}{
 		"message": strings.Repeat("x", 1000),
@@ -188,7 +210,7 @@ func TestWrapToolHandler_LongPayload(t *testing.T) {
 		return &sdk.CallToolResult{IsError: false}, largeData, nil
 	}
 
-	wrapped := WrapToolHandler(mockHandler, "test_tool")
+	wrapped := WrapToolHandler(mockHandler, "test_tool", baseDir, testGetSessionID)
 	result, data, err := wrapped(context.Background(), &sdk.CallToolRequest{}, map[string]interface{}{})
 
 	require.NoError(t, err, "Should not return error")
@@ -202,9 +224,6 @@ func TestWrapToolHandler_LongPayload(t *testing.T) {
 	preview := dataMap["preview"].(string)
 	assert.LessOrEqual(t, len(preview), 503, "Preview should be truncated to ~500 chars + '...'")
 	assert.True(t, strings.HasSuffix(preview, "..."), "Preview should end with '...'")
-
-	// Clean up
-	defer os.RemoveAll(filepath.Join("/tmp", "gh-awmg"))
 }
 
 func TestShouldApplyMiddleware(t *testing.T) {

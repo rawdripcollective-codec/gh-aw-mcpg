@@ -14,8 +14,9 @@ import (
 
 // TestMiddlewareIntegration tests the complete middleware flow
 func TestMiddlewareIntegration(t *testing.T) {
-	// Clean up test directory
-	defer os.RemoveAll(filepath.Join("/tmp", "gh-awmg"))
+	// Create temporary directory for test
+	baseDir := filepath.Join(os.TempDir(), "test-jq-payloads")
+	defer os.RemoveAll(baseDir)
 
 	// Create a mock handler that returns GitHub-like search data
 	mockHandler := func(ctx context.Context, req *sdk.CallToolRequest, args interface{}) (*sdk.CallToolResult, interface{}, error) {
@@ -51,7 +52,7 @@ func TestMiddlewareIntegration(t *testing.T) {
 	}
 
 	// Wrap with middleware
-	wrappedHandler := WrapToolHandler(mockHandler, "github___search_repositories")
+	wrappedHandler := WrapToolHandler(mockHandler, "github___search_repositories", baseDir, testGetSessionID)
 
 	// Call the wrapped handler
 	result, data, err := wrappedHandler(context.Background(), &sdk.CallToolRequest{}, map[string]interface{}{
@@ -152,8 +153,9 @@ func TestMiddlewareIntegration(t *testing.T) {
 
 // TestMiddlewareWithLargePayload tests truncation behavior
 func TestMiddlewareWithLargePayload(t *testing.T) {
-	// Clean up test directory
-	defer os.RemoveAll(filepath.Join("/tmp", "gh-awmg"))
+	// Create temporary directory for test
+	baseDir := filepath.Join(os.TempDir(), "test-jq-payloads")
+	defer os.RemoveAll(baseDir)
 
 	// Create a large payload
 	largeItems := make([]interface{}, 100)
@@ -172,7 +174,7 @@ func TestMiddlewareWithLargePayload(t *testing.T) {
 		}, nil
 	}
 
-	wrappedHandler := WrapToolHandler(mockHandler, "test_tool")
+	wrappedHandler := WrapToolHandler(mockHandler, "test_tool", baseDir, testGetSessionID)
 	result, data, err := wrappedHandler(context.Background(), &sdk.CallToolRequest{}, map[string]interface{}{})
 
 	require.NoError(t, err)
@@ -205,14 +207,17 @@ func TestMiddlewareWithLargePayload(t *testing.T) {
 
 // TestMiddlewareDirectoryCreation tests that directories are created correctly
 func TestMiddlewareDirectoryCreation(t *testing.T) {
-	// Clean up test directory
-	defer os.RemoveAll(filepath.Join("/tmp", "gh-awmg"))
+	// Create temporary directory for test
+	baseDir := filepath.Join(os.TempDir(), "test-jq-payloads")
+	defer os.RemoveAll(baseDir)
+	
+	sessionID := "test-session"
 
 	mockHandler := func(ctx context.Context, req *sdk.CallToolRequest, args interface{}) (*sdk.CallToolResult, interface{}, error) {
 		return &sdk.CallToolResult{IsError: false}, map[string]interface{}{"test": "data"}, nil
 	}
 
-	wrappedHandler := WrapToolHandler(mockHandler, "test_tool")
+	wrappedHandler := WrapToolHandler(mockHandler, "test_tool", baseDir, testGetSessionID)
 	result, data, err := wrappedHandler(context.Background(), &sdk.CallToolRequest{}, map[string]interface{}{})
 
 	require.NoError(t, err)
@@ -221,8 +226,8 @@ func TestMiddlewareDirectoryCreation(t *testing.T) {
 	dataMap := data.(map[string]interface{})
 	queryID := dataMap["queryID"].(string)
 
-	// Verify directory structure
-	expectedDir := filepath.Join("/tmp", "gh-awmg", "tools-calls", queryID)
+	// Verify directory structure with session ID
+	expectedDir := filepath.Join(baseDir, sessionID, queryID)
 	assert.DirExists(t, expectedDir, "Query directory should exist")
 
 	payloadPath := dataMap["payloadPath"].(string)
