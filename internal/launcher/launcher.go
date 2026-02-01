@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
-	"strings"
 	"sync"
 	"time"
 
@@ -128,42 +126,14 @@ func GetOrLaunch(l *Launcher, serverID string) (*mcp.Connection, error) {
 	// Warn if using direct command in a container
 	isDirectCommand := serverCfg.Command != "docker"
 	if l.runningInContainer && isDirectCommand {
-		logger.LogWarn("backend", "Server '%s' uses direct command execution inside a container (command: %s)", serverID, serverCfg.Command)
-		log.Printf("[LAUNCHER] ⚠️  WARNING: Server '%s' uses direct command execution inside a container", serverID)
-		log.Printf("[LAUNCHER] ⚠️  Security Notice: Command '%s' will execute with the same privileges as the gateway", serverCfg.Command)
-		log.Printf("[LAUNCHER] ⚠️  Consider using 'container' field instead for better isolation")
+		l.logSecurityWarning(serverID, serverCfg)
 	}
 
 	// Log the command being executed
-	logger.LogInfo("backend", "Launching MCP backend server: %s, command=%s, args=%v", serverID, serverCfg.Command, sanitize.SanitizeArgs(serverCfg.Args))
-	log.Printf("[LAUNCHER] Starting MCP server: %s", serverID)
-	log.Printf("[LAUNCHER] Command: %s", serverCfg.Command)
-	log.Printf("[LAUNCHER] Args: %v", sanitize.SanitizeArgs(serverCfg.Args))
-	logLauncher.Printf("Launching new server: serverID=%s, command=%s, inContainer=%v, isDirectCommand=%v",
-		serverID, serverCfg.Command, l.runningInContainer, isDirectCommand)
+	l.logLaunchStart(serverID, "", serverCfg, isDirectCommand)
 
 	// Check for environment variable passthrough (only check args after -e flags)
-	for i := 0; i < len(serverCfg.Args); i++ {
-		arg := serverCfg.Args[i]
-		// If this arg is "-e", check the next argument
-		if arg == "-e" && i+1 < len(serverCfg.Args) {
-			nextArg := serverCfg.Args[i+1]
-			// Check if it's a passthrough (no = sign) vs explicit value (has = sign)
-			if !strings.Contains(nextArg, "=") {
-				// This is a passthrough variable, check if it exists in our environment
-				if val := os.Getenv(nextArg); val != "" {
-					displayVal := val
-					if len(val) > 10 {
-						displayVal = val[:10] + "..."
-					}
-					log.Printf("[LAUNCHER] ✓ Env passthrough: %s=%s (from MCPG process)", nextArg, displayVal)
-				} else {
-					log.Printf("[LAUNCHER] ✗ WARNING: Env passthrough for %s requested but NOT FOUND in MCPG process", nextArg)
-				}
-			}
-			i++ // Skip the next arg since we just processed it
-		}
-	}
+	l.logEnvPassthrough(serverCfg.Args)
 
 	if len(serverCfg.Env) > 0 {
 		log.Printf("[LAUNCHER] Additional env vars: %v", sanitize.TruncateSecretMap(serverCfg.Env))
@@ -189,46 +159,18 @@ func GetOrLaunch(l *Launcher, serverID string) (*mcp.Connection, error) {
 		conn, err := result.conn, result.err
 		if err != nil {
 			// Enhanced error logging for command-based servers
-			logger.LogError("backend", "Failed to launch MCP backend server: %s, error=%v", serverID, err)
-			log.Printf("[LAUNCHER] ❌ FAILED to launch server '%s'", serverID)
-			log.Printf("[LAUNCHER] Error: %v", err)
-			log.Printf("[LAUNCHER] Debug Information:")
-			log.Printf("[LAUNCHER]   - Command: %s", serverCfg.Command)
-			log.Printf("[LAUNCHER]   - Args: %v", serverCfg.Args)
-			log.Printf("[LAUNCHER]   - Env vars: %v", sanitize.TruncateSecretMap(serverCfg.Env))
-			log.Printf("[LAUNCHER]   - Running in container: %v", l.runningInContainer)
-			log.Printf("[LAUNCHER]   - Is direct command: %v", isDirectCommand)
-			log.Printf("[LAUNCHER]   - Startup timeout: %v", l.startupTimeout)
-
-			if isDirectCommand && l.runningInContainer {
-				log.Printf("[LAUNCHER] ⚠️  Possible causes:")
-				log.Printf("[LAUNCHER]   - Command '%s' may not be installed in the gateway container", serverCfg.Command)
-				log.Printf("[LAUNCHER]   - Consider using 'container' config instead of 'command'")
-				log.Printf("[LAUNCHER]   - Or add '%s' to the gateway's Dockerfile", serverCfg.Command)
-			} else if isDirectCommand {
-				log.Printf("[LAUNCHER] ⚠️  Possible causes:")
-				log.Printf("[LAUNCHER]   - Command '%s' may not be in PATH", serverCfg.Command)
-				log.Printf("[LAUNCHER]   - Check if '%s' is installed: which %s", serverCfg.Command, serverCfg.Command)
-				log.Printf("[LAUNCHER]   - Verify file permissions and execute bit")
-			}
-
+			l.logLaunchError(serverID, "", err, serverCfg, isDirectCommand)
 			return nil, fmt.Errorf("failed to create connection: %w", err)
 		}
 
-		logger.LogInfo("backend", "Successfully launched MCP backend server: %s", serverID)
-		log.Printf("[LAUNCHER] Successfully launched: %s", serverID)
-		logLauncher.Printf("Connection established: serverID=%s", serverID)
+		l.logLaunchSuccess(serverID, "")
 
 		l.connections[serverID] = conn
 		return conn, nil
 
 	case <-time.After(l.startupTimeout):
 		// Timeout occurred
-		logger.LogError("backend", "MCP backend server startup timeout: %s, timeout=%v", serverID, l.startupTimeout)
-		log.Printf("[LAUNCHER] ❌ Server startup timed out after %v", l.startupTimeout)
-		log.Printf("[LAUNCHER] ⚠️  The server may be hanging or taking too long to initialize")
-		log.Printf("[LAUNCHER] ⚠️  Consider increasing 'startupTimeout' in gateway config if server needs more time")
-		logLauncher.Printf("Startup timeout occurred: serverID=%s, timeout=%v", serverID, l.startupTimeout)
+		l.logTimeoutError(serverID, "")
 		return nil, fmt.Errorf("server startup timeout after %v", l.startupTimeout)
 	}
 }
@@ -280,38 +222,14 @@ func GetOrLaunchForSession(l *Launcher, serverID, sessionID string) (*mcp.Connec
 	// Warn if using direct command in a container
 	isDirectCommand := serverCfg.Command != "docker"
 	if l.runningInContainer && isDirectCommand {
-		logger.LogWarn("backend", "Server '%s' uses direct command execution inside a container (command: %s)", serverID, serverCfg.Command)
-		log.Printf("[LAUNCHER] ⚠️  WARNING: Server '%s' uses direct command execution inside a container", serverID)
-		log.Printf("[LAUNCHER] ⚠️  Security Notice: Command '%s' will execute with the same privileges as the gateway", serverCfg.Command)
-		log.Printf("[LAUNCHER] ⚠️  Consider using 'container' field instead for better isolation")
+		l.logSecurityWarning(serverID, serverCfg)
 	}
 
 	// Log the command being executed
-	logger.LogInfo("backend", "Launching MCP backend server for session: server=%s, session=%s, command=%s, args=%v", serverID, sessionID, serverCfg.Command, sanitize.SanitizeArgs(serverCfg.Args))
-	log.Printf("[LAUNCHER] Starting MCP server for session: %s (session: %s)", serverID, sessionID)
-	log.Printf("[LAUNCHER] Command: %s", serverCfg.Command)
-	log.Printf("[LAUNCHER] Args: %v", sanitize.SanitizeArgs(serverCfg.Args))
-	logLauncher.Printf("Launching new session server: serverID=%s, sessionID=%s, command=%s", serverID, sessionID, serverCfg.Command)
+	l.logLaunchStart(serverID, sessionID, serverCfg, isDirectCommand)
 
 	// Check for environment variable passthrough
-	for i := 0; i < len(serverCfg.Args); i++ {
-		arg := serverCfg.Args[i]
-		if arg == "-e" && i+1 < len(serverCfg.Args) {
-			nextArg := serverCfg.Args[i+1]
-			if !strings.Contains(nextArg, "=") {
-				if val := os.Getenv(nextArg); val != "" {
-					displayVal := val
-					if len(val) > 10 {
-						displayVal = val[:10] + "..."
-					}
-					log.Printf("[LAUNCHER] ✓ Env passthrough: %s=%s (from MCPG process)", nextArg, displayVal)
-				} else {
-					log.Printf("[LAUNCHER] ✗ WARNING: Env passthrough for %s requested but NOT FOUND in MCPG process", nextArg)
-				}
-			}
-			i++
-		}
-	}
+	l.logEnvPassthrough(serverCfg.Args)
 
 	if len(serverCfg.Env) > 0 {
 		log.Printf("[LAUNCHER] Additional env vars: %v", sanitize.TruncateSecretMap(serverCfg.Env))
@@ -335,16 +253,7 @@ func GetOrLaunchForSession(l *Launcher, serverID, sessionID string) (*mcp.Connec
 	case result := <-resultChan:
 		conn, err := result.conn, result.err
 		if err != nil {
-			logger.LogError("backend", "Failed to launch MCP backend server for session: server=%s, session=%s, error=%v", serverID, sessionID, err)
-			log.Printf("[LAUNCHER] ❌ FAILED to launch server '%s' for session '%s'", serverID, sessionID)
-			log.Printf("[LAUNCHER] Error: %v", err)
-			log.Printf("[LAUNCHER] Debug Information:")
-			log.Printf("[LAUNCHER]   - Command: %s", serverCfg.Command)
-			log.Printf("[LAUNCHER]   - Args: %v", serverCfg.Args)
-			log.Printf("[LAUNCHER]   - Env vars: %v", sanitize.TruncateSecretMap(serverCfg.Env))
-			log.Printf("[LAUNCHER]   - Running in container: %v", l.runningInContainer)
-			log.Printf("[LAUNCHER]   - Is direct command: %v", isDirectCommand)
-			log.Printf("[LAUNCHER]   - Startup timeout: %v", l.startupTimeout)
+			l.logLaunchError(serverID, sessionID, err, serverCfg, isDirectCommand)
 
 			// Record error in session pool
 			l.sessionPool.RecordError(serverID, sessionID)
@@ -352,9 +261,7 @@ func GetOrLaunchForSession(l *Launcher, serverID, sessionID string) (*mcp.Connec
 			return nil, fmt.Errorf("failed to create connection: %w", err)
 		}
 
-		logger.LogInfo("backend", "Successfully launched MCP backend server for session: server=%s, session=%s", serverID, sessionID)
-		log.Printf("[LAUNCHER] Successfully launched: %s (session: %s)", serverID, sessionID)
-		logLauncher.Printf("Session connection established: serverID=%s, sessionID=%s", serverID, sessionID)
+		l.logLaunchSuccess(serverID, sessionID)
 
 		// Add to session pool
 		l.sessionPool.Set(serverID, sessionID, conn)
@@ -362,10 +269,7 @@ func GetOrLaunchForSession(l *Launcher, serverID, sessionID string) (*mcp.Connec
 
 	case <-time.After(l.startupTimeout):
 		// Timeout occurred
-		logger.LogError("backend", "MCP backend server startup timeout for session: server=%s, session=%s, timeout=%v", serverID, sessionID, l.startupTimeout)
-		log.Printf("[LAUNCHER] ❌ Server startup timed out after %v", l.startupTimeout)
-		log.Printf("[LAUNCHER] ⚠️  The server may be hanging or taking too long to initialize")
-		log.Printf("[LAUNCHER] ⚠️  Consider increasing 'startupTimeout' in gateway config if server needs more time")
+		l.logTimeoutError(serverID, sessionID)
 		// Record error in session pool before returning
 		l.sessionPool.RecordError(serverID, sessionID)
 		return nil, fmt.Errorf("server startup timeout after %v", l.startupTimeout)

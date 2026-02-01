@@ -290,6 +290,30 @@ logger.LogDebug("category", "Debug details: %+v", details)
 - Use colon (`:`) as separator between package and file/component name
 - Be consistent with existing loggers in the codebase
 
+**Logger Variable Naming Convention:**
+- **Use descriptive names** that match the component: `var log<Component> = logger.New("pkg:component")`
+- Examples: `var logLauncher = logger.New("launcher:launcher")`, `var logConfig = logger.New("config:config")`
+- **Avoid generic `log` name** when it might conflict with standard library or when the file already imports `log` package
+- Capitalize the component part after 'log' (e.g., `logAuth` with capital 'A', `logLauncher` with capital 'L')
+- This convention makes it clear which logger is being used and reduces naming collisions
+- For components with very short files or temporary code, generic `log` is acceptable but descriptive is preferred
+
+**Examples of good logger naming:**
+```go
+// Descriptive - clearly indicates the component (RECOMMENDED)
+var logLauncher = logger.New("launcher:launcher")
+var logPool = logger.New("launcher:pool")
+var logConfig = logger.New("config:config")
+var logValidation = logger.New("config:validation")
+var logUnified = logger.New("server:unified")
+var logRouted = logger.New("server:routed")
+
+// Generic - acceptable for simple cases but less clear
+var log = logger.New("auth:header")
+var log = logger.New("sys:sys")
+```
+
+
 **Debug Output Control:**
 ```bash
 # Enable all debug logs
