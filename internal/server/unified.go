@@ -82,7 +82,8 @@ type UnifiedServer struct {
 	sessionMu        sync.RWMutex
 	tools            map[string]*ToolInfo // prefixed tool name -> tool info
 	toolsMu          sync.RWMutex
-	sequentialLaunch bool // When true, launches MCP servers sequentially during startup. Default is false (parallel launch).
+	sequentialLaunch bool   // When true, launches MCP servers sequentially during startup. Default is false (parallel launch).
+	payloadDir       string // Base directory for storing large payload files (segmented by session ID)
 
 	// DIFC components
 	guardRegistry *guard.Registry
@@ -105,6 +106,12 @@ func NewUnified(ctx context.Context, cfg *config.Config) (*UnifiedServer, error)
 	logUnified.Printf("Creating new unified server: enableDIFC=%v, sequentialLaunch=%v, servers=%d", cfg.EnableDIFC, cfg.SequentialLaunch, len(cfg.Servers))
 	l := launcher.New(ctx, cfg)
 
+	// Get payload directory from config, with fallback to default
+	payloadDir := config.DefaultPayloadDir
+	if cfg.Gateway != nil && cfg.Gateway.PayloadDir != "" {
+		payloadDir = cfg.Gateway.PayloadDir
+	}
+
 	us := &UnifiedServer{
 		launcher:         l,
 		sysServer:        sys.NewSysServer(l.ServerIDs()),
@@ -112,6 +119,7 @@ func NewUnified(ctx context.Context, cfg *config.Config) (*UnifiedServer, error)
 		sessions:         make(map[string]*Session),
 		tools:            make(map[string]*ToolInfo),
 		sequentialLaunch: cfg.SequentialLaunch,
+		payloadDir:       payloadDir,
 
 		// Initialize DIFC components
 		guardRegistry: guard.NewRegistry(),
@@ -340,7 +348,7 @@ func (us *UnifiedServer) registerToolsFromBackend(serverID string) error {
 		// Wrap handler with jqschema middleware if applicable
 		finalHandler := handler
 		if middleware.ShouldApplyMiddleware(prefixedName) {
-			finalHandler = middleware.WrapToolHandler(handler, prefixedName)
+			finalHandler = middleware.WrapToolHandler(handler, prefixedName, us.payloadDir, us.getSessionID)
 		}
 
 		// Store handler for routed mode to reuse

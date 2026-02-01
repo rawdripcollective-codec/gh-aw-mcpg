@@ -20,6 +20,8 @@ const (
 	DefaultStartupTimeout = 60
 	// DefaultToolTimeout is the default timeout for tool execution (seconds)
 	DefaultToolTimeout = 120
+	// DefaultPayloadDir is the default directory for storing large payload files
+	DefaultPayloadDir = "/tmp/jq-payloads"
 )
 
 // Config represents the MCPG configuration
@@ -37,6 +39,7 @@ type GatewayConfig struct {
 	Domain         string `toml:"domain"`
 	StartupTimeout int    `toml:"startup_timeout"` // Seconds
 	ToolTimeout    int    `toml:"tool_timeout"`    // Seconds
+	PayloadDir     string `toml:"payload_dir"`     // Directory for storing large payload files
 }
 
 // ServerConfig represents a single MCP server configuration
@@ -82,6 +85,7 @@ type StdinGatewayConfig struct {
 	Domain         string `json:"domain,omitempty"`
 	StartupTimeout *int   `json:"startupTimeout,omitempty"` // Seconds to wait for backend startup
 	ToolTimeout    *int   `json:"toolTimeout,omitempty"`    // Seconds to wait for tool execution
+	PayloadDir     string `json:"payloadDir,omitempty"`     // Directory for storing large payload files
 }
 
 // LoadFromFile loads configuration from a TOML file
@@ -114,6 +118,9 @@ func LoadFromFile(path string) (*Config, error) {
 		}
 		if cfg.Gateway.Port == 0 {
 			cfg.Gateway.Port = DefaultPort
+		}
+		if cfg.Gateway.PayloadDir == "" {
+			cfg.Gateway.PayloadDir = DefaultPayloadDir
 		}
 	}
 
@@ -185,6 +192,7 @@ func LoadFromStdin() (*Config, error) {
 			Domain:         stdinCfg.Gateway.Domain,
 			StartupTimeout: DefaultStartupTimeout,
 			ToolTimeout:    DefaultToolTimeout,
+			PayloadDir:     DefaultPayloadDir,
 		}
 		if stdinCfg.Gateway.Port != nil {
 			cfg.Gateway.Port = *stdinCfg.Gateway.Port
@@ -194,6 +202,9 @@ func LoadFromStdin() (*Config, error) {
 		}
 		if stdinCfg.Gateway.ToolTimeout != nil {
 			cfg.Gateway.ToolTimeout = *stdinCfg.Gateway.ToolTimeout
+		}
+		if stdinCfg.Gateway.PayloadDir != "" {
+			cfg.Gateway.PayloadDir = stdinCfg.Gateway.PayloadDir
 		}
 	}
 

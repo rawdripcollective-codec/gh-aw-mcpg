@@ -109,9 +109,10 @@ func applyJqSchema(ctx context.Context, jsonData interface{}) (string, error) {
 }
 
 // savePayload saves the payload to disk and returns the file path
-func savePayload(queryID string, payload []byte) (string, error) {
-	// Create directory structure: /tmp/gh-awmg/tools-calls/{RND}
-	dir := filepath.Join("/tmp", "gh-awmg", "tools-calls", queryID)
+// The file is saved to {baseDir}/{sessionID}/{queryID}/payload.json
+func savePayload(baseDir, sessionID, queryID string, payload []byte) (string, error) {
+	// Create directory structure: {baseDir}/{sessionID}/{queryID}
+	dir := filepath.Join(baseDir, sessionID, queryID)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return "", fmt.Errorf("failed to create payload directory: %w", err)
 	}
@@ -128,21 +129,31 @@ func savePayload(queryID string, payload []byte) (string, error) {
 // WrapToolHandler wraps a tool handler with jqschema middleware
 // This middleware:
 // 1. Generates a random ID for the query
-// 2. Saves the response payload to /tmp/gh-awmg/tools-calls/{RND}/payload.json
-// 3. Returns first 500 chars of payload + jq inferred schema
+// 2. Extracts session ID from context (or uses "default")
+// 3. Saves the response payload to {baseDir}/{sessionID}/{queryID}/payload.json
+// 4. Returns first 500 chars of payload + jq inferred schema
 func WrapToolHandler(
 	handler func(context.Context, *sdk.CallToolRequest, interface{}) (*sdk.CallToolResult, interface{}, error),
 	toolName string,
+	baseDir string,
+	getSessionID func(context.Context) string,
 ) func(context.Context, *sdk.CallToolRequest, interface{}) (*sdk.CallToolResult, interface{}, error) {
 	return func(ctx context.Context, req *sdk.CallToolRequest, args interface{}) (*sdk.CallToolResult, interface{}, error) {
 		// Generate random query ID
 		queryID := generateRandomID()
-		logMiddleware.Printf("Processing tool call: tool=%s, queryID=%s", toolName, queryID)
+		
+		// Get session ID from context
+		sessionID := getSessionID(ctx)
+		if sessionID == "" {
+			sessionID = "default"
+		}
+		
+		logMiddleware.Printf("Processing tool call: tool=%s, queryID=%s, sessionID=%s", toolName, queryID, sessionID)
 
 		// Call the original handler
 		result, data, err := handler(ctx, req, args)
 		if err != nil {
-			logMiddleware.Printf("Tool call failed: tool=%s, queryID=%s, error=%v", toolName, queryID, err)
+			logMiddleware.Printf("Tool call failed: tool=%s, queryID=%s, sessionID=%s, error=%v", toolName, queryID, sessionID, err)
 			return result, data, err
 		}
 
@@ -159,13 +170,13 @@ func WrapToolHandler(
 		}
 
 		// Save the payload
-		filePath, saveErr := savePayload(queryID, payloadJSON)
+		filePath, saveErr := savePayload(baseDir, sessionID, queryID, payloadJSON)
 		if saveErr != nil {
-			logMiddleware.Printf("Failed to save payload: tool=%s, queryID=%s, error=%v", toolName, queryID, saveErr)
+			logMiddleware.Printf("Failed to save payload: tool=%s, queryID=%s, sessionID=%s, error=%v", toolName, queryID, sessionID, saveErr)
 			// Continue even if save fails - don't break the tool call
 		} else {
-			logMiddleware.Printf("Saved payload: tool=%s, queryID=%s, path=%s, size=%d bytes",
-				toolName, queryID, filePath, len(payloadJSON))
+			logMiddleware.Printf("Saved payload: tool=%s, queryID=%s, sessionID=%s, path=%s, size=%d bytes",
+				toolName, queryID, sessionID, filePath, len(payloadJSON))
 		}
 
 		// Apply jq schema transformation
@@ -184,7 +195,7 @@ func WrapToolHandler(
 			schemaJSON = schema
 			return nil
 		}(); schemaErr != nil {
-			logMiddleware.Printf("Failed to apply jq schema: tool=%s, queryID=%s, error=%v", toolName, queryID, schemaErr)
+			logMiddleware.Printf("Failed to apply jq schema: tool=%s, queryID=%s, sessionID=%s, error=%v", toolName, queryID, sessionID, schemaErr)
 			// Continue with original response if schema extraction fails
 			return result, data, err
 		}
@@ -208,8 +219,8 @@ func WrapToolHandler(
 			"truncated":    len(payloadStr) > 500,
 		}
 
-		logMiddleware.Printf("Rewritten response: tool=%s, queryID=%s, originalSize=%d, truncated=%v",
-			toolName, queryID, len(payloadJSON), len(payloadStr) > 500)
+		logMiddleware.Printf("Rewritten response: tool=%s, queryID=%s, sessionID=%s, originalSize=%d, truncated=%v",
+			toolName, queryID, sessionID, len(payloadJSON), len(payloadStr) > 500)
 
 		// Parse the schema JSON string back to an object for cleaner display
 		var schemaObj interface{}

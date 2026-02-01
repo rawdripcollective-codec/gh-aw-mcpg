@@ -22,10 +22,10 @@ import (
 
 // Default values for command-line flags.
 const (
-	defaultConfigFile  = "" // No default config file - user must explicitly specify --config or --config-stdin
-	defaultConfigStdin = false
+	defaultConfigFile       = "" // No default config file - user must explicitly specify --config or --config-stdin
+	defaultConfigStdin      = false
 	// DefaultListenIPv4 is the default interface used by the HTTP server.
-	DefaultListenIPv4 = "127.0.0.1"
+	DefaultListenIPv4       = "127.0.0.1"
 	// DefaultListenPort is the default port used by the HTTP server.
 	DefaultListenPort       = "3000"
 	defaultListenAddr       = DefaultListenIPv4 + ":" + DefaultListenPort
@@ -34,6 +34,7 @@ const (
 	defaultEnvFile          = ""
 	defaultEnableDIFC       = false
 	defaultLogDir           = "/tmp/gh-aw/mcp-logs"
+	defaultPayloadDir       = "/tmp/jq-payloads"
 	defaultSequentialLaunch = false
 )
 
@@ -46,6 +47,7 @@ var (
 	envFile          string
 	enableDIFC       bool
 	logDir           string
+	payloadDir       string
 	validateEnv      bool
 	sequentialLaunch bool
 	verbosity        int // Verbosity level: 0 (default), 1 (-v info), 2 (-vv debug), 3 (-vvv trace)
@@ -76,6 +78,7 @@ func init() {
 	rootCmd.Flags().StringVar(&envFile, "env", defaultEnvFile, "Path to .env file to load environment variables")
 	rootCmd.Flags().BoolVar(&enableDIFC, "enable-difc", defaultEnableDIFC, "Enable DIFC enforcement and session requirement (requires sys___init call before tool access)")
 	rootCmd.Flags().StringVar(&logDir, "log-dir", getDefaultLogDir(), "Directory for log files (falls back to stdout if directory cannot be created)")
+	rootCmd.Flags().StringVar(&payloadDir, "payload-dir", getDefaultPayloadDir(), "Directory for storing large payload files (segmented by session ID)")
 	rootCmd.Flags().BoolVar(&validateEnv, "validate-env", false, "Validate execution environment (Docker, env vars) before starting")
 	rootCmd.Flags().BoolVar(&sequentialLaunch, "sequential-launch", defaultSequentialLaunch, "Launch MCP servers sequentially during startup (parallel launch is default)")
 	rootCmd.Flags().CountVarP(&verbosity, "verbose", "v", "Increase verbosity level (use -v for info, -vv for debug, -vvv for trace)")
@@ -99,6 +102,15 @@ func getDefaultLogDir() string {
 	return defaultLogDir
 }
 
+// getDefaultPayloadDir returns the default payload directory, checking MCP_GATEWAY_PAYLOAD_DIR
+// environment variable first, then falling back to the hardcoded default
+func getDefaultPayloadDir() string {
+	if envPayloadDir := os.Getenv("MCP_GATEWAY_PAYLOAD_DIR"); envPayloadDir != "" {
+		return envPayloadDir
+	}
+	return defaultPayloadDir
+}
+
 const (
 	// Debug log patterns for different verbosity levels
 	debugMainPackages = "cmd:*,server:*,launcher:*"
@@ -114,6 +126,11 @@ func registerFlagCompletions(cmd *cobra.Command) {
 
 	// Custom completion for --log-dir flag (complete with directories)
 	cmd.RegisterFlagCompletionFunc("log-dir", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return nil, cobra.ShellCompDirectiveFilterDirs
+	})
+
+	// Custom completion for --payload-dir flag (complete with directories)
+	cmd.RegisterFlagCompletionFunc("payload-dir", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return nil, cobra.ShellCompDirectiveFilterDirs
 	})
 
@@ -242,6 +259,19 @@ func run(cmd *cobra.Command, args []string) error {
 	// Apply command-line flags to config
 	cfg.EnableDIFC = enableDIFC
 	cfg.SequentialLaunch = sequentialLaunch
+	
+	// Override PayloadDir with command-line flag if provided
+	if payloadDir != "" {
+		if cfg.Gateway == nil {
+			cfg.Gateway = &config.GatewayConfig{
+				Port:           config.DefaultPort,
+				StartupTimeout: config.DefaultStartupTimeout,
+				ToolTimeout:    config.DefaultToolTimeout,
+			}
+		}
+		cfg.Gateway.PayloadDir = payloadDir
+	}
+	
 	if enableDIFC {
 		log.Println("DIFC enforcement and session requirement enabled")
 	} else {
