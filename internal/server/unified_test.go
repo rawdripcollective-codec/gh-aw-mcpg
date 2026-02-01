@@ -560,9 +560,8 @@ func TestUnifiedServer_EnsureSessionDirectory(t *testing.T) {
 	nestedSessionID := "test/nested/session"
 	err = us.ensureSessionDirectory(nestedSessionID)
 	require.NoError(t, err, "ensureSessionDirectory() should handle nested paths")
-	
+
 	nestedPath := tmpDir + "/test/nested/session"
 	_, err = os.Stat(nestedPath)
 	require.NoError(t, err, "Nested session directory should exist")
 }
-
