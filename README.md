@@ -185,9 +185,9 @@ See **[Configuration Specification](https://github.com/githubnext/gh-aw/blob/mai
 - **`apiKey`** (optional): API key for authentication
 - **`domain`** (optional): Domain name for the gateway
   - Allowed values: `"localhost"`, `"host.docker.internal"`
-- **`startupTimeout`** (optional): Seconds to wait for backend startup (default: 30)
+- **`startupTimeout`** (optional): Seconds to wait for backend startup (default: 60)
   - Must be positive integer
-- **`toolTimeout`** (optional): Seconds to wait for tool execution (default: 60)
+- **`toolTimeout`** (optional): Seconds to wait for tool execution (default: 120)
   - Must be positive integer
 
 **Note**: Gateway configuration fields are validated and parsed but not yet fully implemented.
