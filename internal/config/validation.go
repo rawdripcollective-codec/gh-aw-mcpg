@@ -258,10 +258,10 @@ func validateGatewayConfig(gateway *StdinGatewayConfig) error {
 		}
 	}
 
-	// Validate payloadDir if provided (per schema: minLength: 1)
+	// Validate payloadDir if provided (per schema: must be absolute path)
 	if gateway.PayloadDir != "" {
 		logValidation.Printf("Validating payload directory: %s", gateway.PayloadDir)
-		if err := rules.NonEmptyString(gateway.PayloadDir, "payloadDir", "gateway.payloadDir"); err != nil {
+		if err := rules.AbsolutePath(gateway.PayloadDir, "payloadDir", "gateway.payloadDir"); err != nil {
 			return err
 		}
 	}

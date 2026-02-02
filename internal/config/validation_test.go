@@ -407,13 +407,42 @@ func TestValidateGatewayConfig(t *testing.T) {
 			shouldErr: false,
 		},
 		{
-			name: "valid gateway with payloadDir",
+			name: "valid gateway with absolute Unix payloadDir",
 			gateway: &StdinGatewayConfig{
 				Port:       intPtr(8080),
 				Domain:     "example.com",
 				PayloadDir: "/tmp/jq-payloads",
 			},
 			shouldErr: false,
+		},
+		{
+			name: "valid gateway with absolute Windows payloadDir",
+			gateway: &StdinGatewayConfig{
+				Port:       intPtr(8080),
+				Domain:     "example.com",
+				PayloadDir: "C:\\payloads",
+			},
+			shouldErr: false,
+		},
+		{
+			name: "invalid gateway with relative payloadDir",
+			gateway: &StdinGatewayConfig{
+				Port:       intPtr(8080),
+				Domain:     "example.com",
+				PayloadDir: "tmp/payloads",
+			},
+			shouldErr: true,
+			errorMsg:  "must be an absolute path",
+		},
+		{
+			name: "invalid gateway with dot-relative payloadDir",
+			gateway: &StdinGatewayConfig{
+				Port:       intPtr(8080),
+				Domain:     "example.com",
+				PayloadDir: "./payloads",
+			},
+			shouldErr: true,
+			errorMsg:  "must be an absolute path",
 		},
 		{
 			name: "port too low",
