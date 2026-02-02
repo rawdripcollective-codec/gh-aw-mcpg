@@ -380,7 +380,6 @@ func TestInitJSONLLoggerWithInvalidPath(t *testing.T) {
 
 func TestLogRPCMessageJSONLDirectionTypes(t *testing.T) {
 	require := require.New(t)
-	assert := assert.New(t)
 	tmpDir := t.TempDir()
 	logDir := filepath.Join(tmpDir, "logs")
 
@@ -422,19 +421,20 @@ func TestLogRPCMessageJSONLDirectionTypes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			a := assert.New(t)
 			testPayload := []byte(`{"jsonrpc":"2.0","id":1}`)
 
 			// Clear previous log file
 			logPath := filepath.Join(logDir, "test.jsonl")
 			os.Remove(logPath)
 
+			// Re-init logger for each subtest
+			CloseJSONLLogger()
+			err := InitJSONLLogger(logDir, "test.jsonl")
+			require.NoError(err, "Re-init failed")
+
 			LogRPCMessageJSONL(tt.direction, tt.msgType, "test-server", "test-method", testPayload, nil)
 			CloseJSONLLogger()
-
-			// Re-init for next iteration
-			if t.Name() != tests[len(tests)-1].name {
-				InitJSONLLogger(logDir, "test.jsonl")
-			}
 
 			// Read and verify
 			content, err := os.ReadFile(logPath)
@@ -445,8 +445,8 @@ func TestLogRPCMessageJSONLDirectionTypes(t *testing.T) {
 			var entry JSONLRPCMessage
 			json.Unmarshal(content, &entry)
 
-			assert.Equal(tt.expected["direction"], entry.Direction, "Direction should match")
-			assert.Equal(tt.expected["type"], entry.Type, "Type should match")
+			a.Equal(tt.expected["direction"], entry.Direction, "Direction should match")
+			a.Equal(tt.expected["type"], entry.Type, "Type should match")
 		})
 	}
 }
