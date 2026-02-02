@@ -50,7 +50,6 @@ Integrity classes are ordered from lowest to highest:
 ```
 ∅ (empty)
 ≤ contributor:<repo>
-≤ maintainer:<repo>
 ≤ project:<repo>
 ```
 
@@ -60,7 +59,6 @@ Interpretation:
 
 - `∅` (empty): No trusted party endorses correctness. An empty integrity label indicates the absence of endorsement.
 - `contributor:<repo>`: Endorsed as originating from a known contributor role in the specified repository.
-- `maintainer:<repo>`: Endorsed by a maintainer of the specified repository.
 - `project:<repo>`: Endorsed as part of the trusted project history (e.g., merged into a protected branch of the specified repository).
 
 ### 3.1 Guard Responsibility for Hierarchical Expansion
@@ -70,8 +68,7 @@ The DIFC evaluator treats labels as opaque strings and does **not** understand t
 | When assigning... | Guard must include... |
 |-------------------|----------------------|
 | `contributor:<repo>` | `contributor:<repo>` |
-| `maintainer:<repo>` | `contributor:<repo>`, `maintainer:<repo>` |
-| `project:<repo>` | `contributor:<repo>`, `maintainer:<repo>`, `project:<repo>` |
+| `project:<repo>` | `contributor:<repo>`, `project:<repo>` |
 
 **Example:** When labeling a commit merged to a protected branch:
 
@@ -79,13 +76,12 @@ The DIFC evaluator treats labels as opaque strings and does **not** understand t
 {
   "integrity": [
     "contributor:github/github-mcp-server",
-    "maintainer:github/github-mcp-server",
     "project:github/github-mcp-server"
   ]
 }
 ```
 
-This explicit expansion ensures that DIFC flow checks work correctly. An agent with `maintainer:<repo>` clearance can write to resources labeled with `contributor:<repo>` because both tags are present in the resource's integrity label.
+This explicit expansion ensures that DIFC flow checks work correctly. An agent with `project:<repo>` clearance can write to resources labeled with `contributor:<repo>` because both tags are present in the resource's integrity label.
 
 **Rationale:** This design keeps the DIFC evaluator domain-agnostic while allowing domain-specific guards (like the GitHub guard) to encode hierarchical trust relationships through label expansion.
 
@@ -202,11 +198,11 @@ Examples:
 - `∅ → contributor:<repo>`  
   If the PR author is a known contributor to the repository.
 
-- `contributor:<repo> → maintainer:<repo>`  
-  If at least one maintainer-approved review exists and required checks pass.
+- `contributor:<repo> → project:<repo>`  
+  If at least one project-approved review exists and required checks pass.
 
-- `maintainer:<repo> → project:<repo>`  
-  If the commit is merged into a protected branch by a maintainer.
+- `project:<repo> → project:<repo>`  
+  If the commit is merged into a protected branch by a project.
 
 These predicates operate on metadata; only the resulting integrity class is recorded logically.
 
@@ -340,19 +336,19 @@ The gateway accepts flags to specify initial session labels:
 ./awmg --enable-config-extensions --config config.toml \
   --session-secrecy "private:github/my-private-repo"
 
-# Specify initial integrity clearance (agent operates at maintainer level)
+# Specify initial integrity clearance (agent operates at project level)
 ./awmg --enable-config-extensions --config config.toml \
-  --session-integrity "contributor:github/my-repo,maintainer:github/my-repo"
+  --session-integrity "contributor:github/my-repo,project:github/my-repo"
 
-# Combined: agent can read private data and write as maintainer
+# Combined: agent can read private data and write as project
 ./awmg --config config.toml \
   --session-secrecy "private:github/my-private-repo" \
-  --session-integrity "contributor:github/my-repo,maintainer:github/my-repo"
+  --session-integrity "contributor:github/my-repo,project:github/my-repo"
 
 # Multiple repos (comma-separated tags)
 ./awmg --config config.toml \
   --session-secrecy "private:github/repo-a,private:github/repo-b" \
-  --session-integrity "contributor:github/repo-a,maintainer:github/repo-b"
+  --session-integrity "contributor:github/repo-a,project:github/repo-b"
 ```
 
 **Flag Reference:**
@@ -360,7 +356,7 @@ The gateway accepts flags to specify initial session labels:
 | Flag | Description | Example |
 |------|-------------|---------|
 | `--session-secrecy` | Comma-separated secrecy tags for agent clearance | `private:owner/repo,secret` |
-| `--session-integrity` | Comma-separated integrity tags for agent clearance | `contributor:owner/repo,maintainer:owner/repo` |
+| `--session-integrity` | Comma-separated integrity tags for agent clearance | `contributor:owner/repo,project:owner/repo` |
 
 #### 11.5.2 Configuration via Environment Variables
 
@@ -369,7 +365,7 @@ The same configuration can be provided via environment variables:
 ```bash
 # Environment variable equivalents
 export MCP_GATEWAY_SESSION_SECRECY="private:github/my-private-repo"
-export MCP_GATEWAY_SESSION_INTEGRITY="contributor:github/my-repo,maintainer:github/my-repo"
+export MCP_GATEWAY_SESSION_INTEGRITY="contributor:github/my-repo,project:github/my-repo"
 
 ./awmg --config config.toml
 ```
@@ -393,7 +389,7 @@ domain = "localhost"
 
 [gateway.session]
 secrecy = ["private:github/my-private-repo"]
-integrity = ["contributor:github/my-repo", "maintainer:github/my-repo"]
+integrity = ["contributor:github/my-repo", "project:github/my-repo"]
 ```
 
 **JSON Format (stdin):**
@@ -404,7 +400,7 @@ integrity = ["contributor:github/my-repo", "maintainer:github/my-repo"]
     "port": 3000,
     "session": {
       "secrecy": ["private:github/my-private-repo"],
-      "integrity": ["contributor:github/my-repo", "maintainer:github/my-repo"]
+      "integrity": ["contributor:github/my-repo", "project:github/my-repo"]
     }
   }
 }
@@ -419,8 +415,7 @@ integrity = ["contributor:github/my-repo", "maintainer:github/my-repo"]
 
 **Integrity Clearance:**
 - An agent with `contributor:<repo>` clearance can write to resources requiring contributor-level integrity
-- An agent with `maintainer:<repo>` clearance can write to resources requiring maintainer-level integrity (and contributor by hierarchical inclusion)
-- An agent with `project:<repo>` clearance can write to any resource in that repo
+- An agent with `project:<repo>` clearance can write to resources requiring project-level integrity (and contributor by hierarchical inclusion)
 - **Important:** Integrity labels must be properly expanded (see Section 3.1)
 
 #### 11.5.5 Example: GitHub Copilot Agent for Private Repo
@@ -428,15 +423,15 @@ integrity = ["contributor:github/my-repo", "maintainer:github/my-repo"]
 A typical setup for an agent working on a private GitHub repository:
 
 ```bash
-# Agent working on github/private-project as a maintainer
+# Agent working on github/private-project as a project
 ./awmg --config config.toml \
   --session-secrecy "private:github/private-project" \
-  --session-integrity "contributor:github/private-project,maintainer:github/private-project"
+  --session-integrity "contributor:github/private-project,project:github/private-project"
 ```
 
 This configuration:
 1. Allows the agent to **read** issues, PRs, and code from `github/private-project`
-2. Allows the agent to **write** (create issues, submit PRs) at maintainer level
+2. Allows the agent to **write** (create issues, submit PRs) at project level
 3. Prevents the agent from accessing other private repos
 4. Prevents the agent from performing project-level operations (e.g., branch protection changes)
 
@@ -724,7 +719,7 @@ This section specifies how to compute integrity and secrecy labels for each GitH
   - Use `search_users` to get user metadata
   - Integrity is contextual: a user's role relative to a repository determines integrity
   - Check repository collaborator status via `get_file_contents` on `.github/CODEOWNERS` or repository settings
-  - `I(user) = maintainer:<repo>` if user has admin/maintain permissions on repository
+  - `I(user) = project:<repo>` if user has admin/maintain permissions on repository
   - `I(user) = contributor:<repo>` if user has write/triage permissions
   - `I(user) = ∅` (empty) otherwise
 - **Secrecy Derivation:**
@@ -735,7 +730,7 @@ This section specifies how to compute integrity and secrecy labels for each GitH
 - **Integrity Derivation:**
   - Use `get_teams` and `get_team_members` to enumerate team membership
   - Team integrity derives from organization role assignments
-  - `I(team) = maintainer:<repo>` if team has maintain permissions on repositories
+  - `I(team) = project:<repo>` if team has maintain permissions on repositories
   - `I(team) = contributor:<repo>` if team has write permissions
 - **Secrecy Derivation:**
   - Use `search_orgs` to check organization visibility
@@ -771,7 +766,7 @@ This section specifies how to compute integrity and secrecy labels for each GitH
   - Use `list_branches` to enumerate branches
   - Check if branch is protected (default branch, protection rules)
   - `I(branch) = project:<repo>` if branch is protected
-  - `I(branch) = maintainer:<repo>` if branch requires maintainer approval
+  - `I(branch) = project:<repo>` if branch requires project approval
   - `I(branch) = ∅` (empty) for unprotected feature branches
 - **Secrecy Derivation:**
   - Inherits from repository: `S(branch) = S(repo)`
@@ -781,7 +776,7 @@ This section specifies how to compute integrity and secrecy labels for each GitH
   - Use `list_tags` and `get_tag` to retrieve tag metadata
   - Use `get_commit` on tagged commit to check author/committer
   - `I(tag) = project:<repo>` if tag points to commit on protected branch
-  - `I(tag) = maintainer:<repo>` if created by maintainer
+  - `I(tag) = project:<repo>` if created by project
   - `I(tag) = ∅` (empty) otherwise
 - **Secrecy Derivation:**
   - Inherits from repository: `S(tag) = S(repo)`
@@ -792,7 +787,7 @@ This section specifies how to compute integrity and secrecy labels for each GitH
   - Use `list_commits` to check branch membership
   - Check if commit is reachable from protected branch
   - `I(commit) = project:<repo>` if merged into protected branch
-  - `I(commit) = maintainer:<repo>` if approved by maintainer review
+  - `I(commit) = project:<repo>` if approved by project review
   - `I(commit) = contributor:<repo>` if authored by contributor
   - `I(commit) = ∅` (empty) otherwise
 - **Secrecy Derivation:**
@@ -823,8 +818,8 @@ This section specifies how to compute integrity and secrecy labels for each GitH
 - **Integrity Derivation:**
   - Use `list_releases`, `get_latest_release`, or `get_release_by_tag` to retrieve release
   - Check release author and associated tag
-  - `I(release) = project:<repo>` if created by maintainer and tag is on protected branch
-  - `I(release) = maintainer:<repo>` if created by maintainer
+  - `I(release) = project:<repo>` if created by project and tag is on protected branch
+  - `I(release) = project:<repo>` if created by project
   - `I(release) = ∅` (empty) otherwise
 - **Secrecy Derivation:**
   - Inherits from repository: `S(release) = S(repo)`
@@ -840,7 +835,7 @@ This section specifies how to compute integrity and secrecy labels for each GitH
   - Use `pull_request_read` with `method: get_status` to check CI status
   - Check merge status and target branch
   - `I(PR) = project:<repo>` if merged into protected branch
-  - `I(PR) = maintainer:<repo>` if approved by maintainer with passing checks
+  - `I(PR) = project:<repo>` if approved by project with passing checks
   - `I(PR) = contributor:<repo>` if author is contributor
   - `I(PR) = ∅` (empty) otherwise
 - **Secrecy Derivation:**
@@ -851,7 +846,7 @@ This section specifies how to compute integrity and secrecy labels for each GitH
 - **Integrity Derivation:**
   - Use `pull_request_read` with `method: get_reviews` to retrieve reviews
   - Check reviewer's role relative to repository
-  - `I(review) = maintainer:<repo>` if reviewer is maintainer
+  - `I(review) = project:<repo>` if reviewer is project
   - `I(review) = contributor:<repo>` if reviewer is contributor
   - `I(review) = ∅` (empty) otherwise
 - **Secrecy Derivation:**
@@ -903,8 +898,8 @@ This section specifies how to compute integrity and secrecy labels for each GitH
 **Label**
 - **Integrity Derivation:**
   - Use `list_label` or `get_label` to retrieve labels
-  - Labels are repository configuration, created by maintainers
-  - `I(label) = maintainer:<repo>` (labels require write access to create)
+  - Labels are repository configuration, created by projects
+  - `I(label) = project:<repo>` (labels require write access to create)
 - **Secrecy Derivation:**
   - Inherits from repository: `S(label) = S(repo)`
 
@@ -941,7 +936,7 @@ This section specifies how to compute integrity and secrecy labels for each GitH
 - **Integrity Derivation:**
   - Use `list_discussion_categories` to retrieve categories
   - Categories are repository configuration
-  - `I(category) = maintainer:<repo>`
+  - `I(category) = project:<repo>`
 - **Secrecy Derivation:**
   - Inherits from repository: `S(category) = S(repo)`
 
@@ -953,7 +948,7 @@ This section specifies how to compute integrity and secrecy labels for each GitH
 - **Integrity Derivation:**
   - Use `get_project` and `list_projects` to retrieve project metadata
   - Projects are organizational/repository configuration
-  - `I(project) = maintainer:<repo>` (requires write access to create)
+  - `I(project) = project:<repo>` (requires write access to create)
 - **Secrecy Derivation:**
   - Check project visibility (public/private)
   - `S(project) = ∅` (empty) for public projects
@@ -971,7 +966,7 @@ This section specifies how to compute integrity and secrecy labels for each GitH
 - **Integrity Derivation:**
   - Use `get_project_field` and `list_project_fields` to retrieve fields
   - Fields are project configuration
-  - `I(field) = maintainer:<repo>`
+  - `I(field) = project:<repo>`
 - **Secrecy Derivation:**
   - Inherits from project: `S(field) = S(project)`
 
@@ -1091,7 +1086,7 @@ This section specifies how to compute integrity and secrecy labels for each GitH
   - Use `list_global_security_advisories`, `get_global_security_advisory`,
     `list_repository_security_advisories`, `list_org_repository_security_advisories`
   - Global advisories: `I(advisory) = project:github` (curated by GitHub)
-  - Repository advisories: `I(advisory) = maintainer:<repo>` (created by maintainers)
+  - Repository advisories: `I(advisory) = project:<repo>` (created by projects)
 - **Secrecy Derivation:**
   - Published advisories: `S(advisory) = ∅` (empty)
   - Draft advisories: `S(advisory) = private:<repo>`
@@ -1279,7 +1274,7 @@ The guard receives **unwrapped** JSON data and returns labeled items:
 {
   "items": [
     {"index": 0, "secrecy": [], "integrity": ["contributor:owner/repo"]},
-    {"index": 1, "secrecy": ["private:owner/repo"], "integrity": ["maintainer:owner/repo"]}
+    {"index": 1, "secrecy": ["private:owner/repo"], "integrity": ["project:owner/repo"]}
   ]
 }
 ```
@@ -1323,7 +1318,7 @@ type BackendCaller interface {
 }
 ```
 
-For example, to label an issue, the guard might call `issue_read` to fetch the issue author, then determine if the author is a maintainer.
+For example, to label an issue, the guard might call `issue_read` to fetch the issue author, then determine if the author is a project.
 
 #### 11.7.7 DIFC Enforcement Flow
 
@@ -1389,7 +1384,7 @@ Backend Response (MCP-wrapped)
      ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │ Items[0]: secrecy=[], integrity=[contributor:owner/repo]            │
-│ Items[1]: secrecy=[private:owner/repo], integrity=[maintainer:...] │
+│ Items[1]: secrecy=[private:owner/repo], integrity=[project:...] │
 └─────────────────────────────────────────────────────────────────────┘
      │
      │ Phase 6: Filter (agent lacks private:owner/repo clearance)
@@ -1692,7 +1687,7 @@ Note: The `result` above is the unwrapped array, not the MCP format:
   "type": "collection",
   "items": [
     { "index": 0, "secrecy": [], "integrity": ["contributor:github/github-mcp-server"] },
-    { "index": 1, "secrecy": ["repo:github/github-mcp-server"], "integrity": ["contributor:github/github-mcp-server", "maintainer:github/github-mcp-server"] }
+    { "index": 1, "secrecy": ["repo:github/github-mcp-server"], "integrity": ["contributor:github/github-mcp-server", "project:github/github-mcp-server"] }
   ]
 }
 ```
@@ -1758,7 +1753,7 @@ If no guard is specified, the gateway uses the built-in `noop` guard (allows all
 
 #### 11.8.5 Metadata Fetch Protocol
 
-When a guard needs to call the backend to gather labeling information (e.g., checking if a user is a maintainer, determining repository visibility), several approaches are available:
+When a guard needs to call the backend to gather labeling information (e.g., checking if a user is a project, determining repository visibility), several approaches are available:
 
 ##### Option A: Direct Backend Access
 
@@ -1877,7 +1872,7 @@ Phase 2 — Gateway fetches and re-invokes:
   "resource": {
     "description": "issue:github/github-mcp-server#42",
     "secrecy": [],
-    "integrity": ["contributor:github/github-mcp-server", "maintainer:github/github-mcp-server"]
+    "integrity": ["contributor:github/github-mcp-server", "project:github/github-mcp-server"]
   },
   "operation": "read"
 }

@@ -10,7 +10,6 @@ require (
 )
 
 require (
-	github.com/githubnext/gh-aw-mcpg v0.0.94
 	github.com/itchyny/gojq v0.12.18
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1
 	github.com/stretchr/testify v1.11.1

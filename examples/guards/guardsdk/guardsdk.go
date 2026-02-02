@@ -12,7 +12,7 @@
 //
 //	package main
 //
-//	import "github.com/githubnext/gh-aw-mcpg/examples/guards/guardsdk"
+//	import "github.com/github/gh-aw-mcpg/examples/guards/guardsdk"
 //
 //	func init() {
 //	    guardsdk.RegisterLabelResource(myLabelResource)

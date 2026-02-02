@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/githubnext/gh-aw-mcpg/internal/logger"
+	"github.com/github/gh-aw-mcpg/internal/logger"
 )
 
 var logLoader = logger.New("guard:loader")

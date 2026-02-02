@@ -13,7 +13,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	sdk "github.com/githubnext/gh-aw-mcpg/examples/guards/guardsdk"
+	sdk "github.com/github/gh-aw-mcpg/examples/guards/guardsdk"
 )
 
 func init() {
