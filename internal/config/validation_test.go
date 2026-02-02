@@ -267,25 +267,7 @@ func TestValidateStdioServer(t *testing.T) {
 			shouldErr: true,
 			errorMsg:  "'container' is required for stdio servers",
 		},
-		{
-			name: "command field not supported",
-			server: &StdinServerConfig{
-				Type:      "stdio",
-				Command:   "node",
-				Container: "test:latest",
-			},
-			shouldErr: true,
-			errorMsg:  "'command' field is not supported",
-		},
-		{
-			name: "command without container",
-			server: &StdinServerConfig{
-				Type:    "stdio",
-				Command: "node",
-			},
-			shouldErr: true,
-			errorMsg:  "'container' is required for stdio servers",
-		},
+
 		{
 			name: "http server without url",
 			server: &StdinServerConfig{

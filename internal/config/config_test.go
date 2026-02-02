@@ -1059,9 +1059,9 @@ func TestLoadFromFile_EmptyFile(t *testing.T) {
 	require.NoError(t, err, "Failed to write temp TOML file")
 
 	cfg, err := LoadFromFile(tmpFile)
-	require.NoError(t, err, "LoadFromFile() should succeed with empty file")
-	require.NotNil(t, cfg, "Config should not be nil")
-	assert.Empty(t, cfg.Servers, "Servers should be empty")
+	require.Error(t, err, "LoadFromFile() should fail with empty file (no servers)")
+	assert.Nil(t, cfg, "Config should be nil on error")
+	assert.Contains(t, err.Error(), "no servers defined", "Error should mention missing servers")
 }
 
 func TestLoadFromFile_MultipleServers(t *testing.T) {

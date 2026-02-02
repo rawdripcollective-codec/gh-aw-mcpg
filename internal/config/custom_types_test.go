@@ -228,7 +228,7 @@ func TestTCFG012_RejectReservedTypeNames(t *testing.T) {
 func TestTCFG013_SchemaURLFetchAndCache(t *testing.T) {
 	t.Run("empty_string_skips_validation", func(t *testing.T) {
 		// Empty string means skip validation
-		customSchemas := map[string]string{
+		customSchemas := map[string]interface{}{
 			"novalidation": "",
 		}
 
@@ -262,7 +262,7 @@ func TestTCFG013_SchemaURLFetchAndCache(t *testing.T) {
 		}))
 		defer mockSchemaServer.Close()
 
-		customSchemas := map[string]string{
+		customSchemas := map[string]interface{}{
 			"cached": mockSchemaServer.URL,
 		}
 
