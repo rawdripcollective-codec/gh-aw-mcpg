@@ -239,8 +239,8 @@ func TestRegisterToolsFromBackend_BackendError(t *testing.T) {
 	// Attempt to register tools should fail with backend error
 	err = us.registerToolsFromBackend("error-backend")
 	require.Error(err, "Should fail when backend returns error")
-	require.Contains(err.Error(), "backend error listing tools", "Error should mention backend error")
-	require.Contains(err.Error(), "code=-32603", "Error should include error code")
+	require.Contains(err.Error(), "failed to list tools", "Error should mention failed to list tools")
+	require.Contains(err.Error(), "unable to list tools", "Error should include backend error message")
 }
 
 // TestRegisterToolsFromBackend_InvalidJSON tests that registration
@@ -310,7 +310,7 @@ func TestRegisterToolsFromBackend_InvalidJSON(t *testing.T) {
 	// Attempt to register tools should fail with JSON parsing error
 	err = us.registerToolsFromBackend("invalid-json-backend")
 	require.Error(err, "Should fail to parse invalid JSON")
-	require.Contains(err.Error(), "failed to parse tools", "Error should mention parsing failure")
+	require.Contains(err.Error(), "cannot unmarshal", "Error should mention JSON unmarshal failure")
 }
 
 // TestRegisterToolsFromBackend_EmptyToolList tests that registration
