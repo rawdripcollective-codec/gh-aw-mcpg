@@ -20,7 +20,7 @@ func authMiddleware(apiKey string, next http.HandlerFunc) http.HandlerFunc {
 	logAuth.Printf("Initialized auth middleware")
 	return func(w http.ResponseWriter, r *http.Request) {
 		logAuth.Printf("Authenticating request: method=%s, path=%s, remote=%s", r.Method, r.URL.Path, r.RemoteAddr)
-		
+
 		// Extract Authorization header
 		authHeader := r.Header.Get("Authorization")
 
@@ -52,7 +52,7 @@ func authMiddleware(apiKey string, next http.HandlerFunc) http.HandlerFunc {
 // logRuntimeError logs runtime errors to stdout per spec section 9.2
 func logRuntimeError(errorType, detail string, r *http.Request, serverName *string) {
 	logAuth.Printf("Logging runtime error: type=%s, detail=%s", errorType, detail)
-	
+
 	timestamp := time.Now().UTC().Format(time.RFC3339)
 	requestID := r.Header.Get("X-Request-ID")
 	if requestID == "" {

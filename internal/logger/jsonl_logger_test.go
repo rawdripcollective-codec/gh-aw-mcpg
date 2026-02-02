@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/githubnext/gh-aw-mcpg/internal/logger/sanitize"
@@ -150,7 +149,7 @@ func TestSanitizePayload(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			require := require.New(t)
 			assert := assert.New(t)
-			
+
 			result := sanitize.SanitizeJSON([]byte(tt.input))
 			require.NotNil(result, "sanitize.SanitizeJSON returned nil")
 
@@ -342,7 +341,7 @@ func TestMultipleMessagesInJSONL(t *testing.T) {
 func TestSanitizePayloadCompactsJSON(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
-	
+
 	// Test that multi-line JSON is compacted to a single line
 	multilineJSON := `{
 		"jsonrpc": "2.0",
@@ -372,7 +371,7 @@ func TestSanitizePayloadCompactsJSON(t *testing.T) {
 
 func TestInitJSONLLoggerWithInvalidPath(t *testing.T) {
 	assert := assert.New(t)
-	
+
 	// Test initialization with an invalid directory path (permission denied scenario)
 	// Using /proc/self as it's read-only and will fail to create subdirectories
 	err := InitJSONLLogger("/proc/self/invalid", "test.jsonl")
@@ -381,7 +380,6 @@ func TestInitJSONLLoggerWithInvalidPath(t *testing.T) {
 
 func TestLogRPCMessageJSONLDirectionTypes(t *testing.T) {
 	require := require.New(t)
-	assert := assert.New(t)
 	tmpDir := t.TempDir()
 	logDir := filepath.Join(tmpDir, "logs")
 
@@ -423,32 +421,32 @@ func TestLogRPCMessageJSONLDirectionTypes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert := assert.New(t)
+			a := assert.New(t)
 			testPayload := []byte(`{"jsonrpc":"2.0","id":1}`)
-			
+
 			// Clear previous log file
 			logPath := filepath.Join(logDir, "test.jsonl")
 			os.Remove(logPath)
-			
+
+			// Re-init logger for each subtest
+			CloseJSONLLogger()
+			err := InitJSONLLogger(logDir, "test.jsonl")
+			require.NoError(err, "Re-init failed")
+
 			LogRPCMessageJSONL(tt.direction, tt.msgType, "test-server", "test-method", testPayload, nil)
 			CloseJSONLLogger()
-			
-			// Re-init for next iteration
-			if t.Name() != tests[len(tests)-1].name {
-				InitJSONLLogger(logDir, "test.jsonl")
-			}
-			
+
 			// Read and verify
 			content, err := os.ReadFile(logPath)
 			if err != nil {
 				return // File might not exist yet
 			}
-			
+
 			var entry JSONLRPCMessage
 			json.Unmarshal(content, &entry)
-			
-			assert.Equal(tt.expected["direction"], entry.Direction, "Direction should match")
-			assert.Equal(tt.expected["type"], entry.Type, "Type should match")
+
+			a.Equal(tt.expected["direction"], entry.Direction, "Direction should match")
+			a.Equal(tt.expected["type"], entry.Type, "Type should match")
 		})
 	}
 }
