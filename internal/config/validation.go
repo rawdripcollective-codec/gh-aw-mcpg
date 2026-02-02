@@ -114,7 +114,7 @@ func validateServerConfig(name string, server *StdinServerConfig) error {
 }
 
 // validateServerConfigWithCustomSchemas validates a server configuration with custom schema support
-func validateServerConfigWithCustomSchemas(name string, server *StdinServerConfig, customSchemas map[string]string) error {
+func validateServerConfigWithCustomSchemas(name string, server *StdinServerConfig, customSchemas map[string]interface{}) error {
 	logValidation.Printf("Validating server config: name=%s, type=%s", name, server.Type)
 	jsonPath := fmt.Sprintf("mcpServers.%s", name)
 
@@ -148,12 +148,6 @@ func validateStandardServerConfig(name string, server *StdinServerConfig, jsonPa
 			return rules.MissingRequired("container", "stdio", jsonPath, "Add a 'container' field (e.g., \"ghcr.io/owner/image:tag\")")
 		}
 
-		// Reject unsupported 'command' field
-		if server.Command != "" {
-			logValidation.Printf("Validation failed: stdio server has unsupported command field, name=%s", name)
-			return rules.UnsupportedField("command", "'command' field is not supported (stdio servers must use 'container')", jsonPath, "Remove 'command' field and use 'container' instead")
-		}
-
 		// Validate mounts if provided
 		if len(server.Mounts) > 0 {
 			logValidation.Printf("Validating mounts for server: name=%s, mount_count=%d", name, len(server.Mounts))
@@ -176,7 +170,7 @@ func validateStandardServerConfig(name string, server *StdinServerConfig, jsonPa
 }
 
 // validateCustomServerConfig validates custom server type configurations
-func validateCustomServerConfig(name string, server *StdinServerConfig, customSchemas map[string]string, jsonPath string) error {
+func validateCustomServerConfig(name string, server *StdinServerConfig, customSchemas map[string]interface{}, jsonPath string) error {
 	serverType := server.Type
 
 	// Check if custom type is registered
@@ -185,10 +179,17 @@ func validateCustomServerConfig(name string, server *StdinServerConfig, customSc
 		return rules.UnsupportedType("type", serverType, jsonPath, "Custom server type '"+serverType+"' is not registered in customSchemas. Add the custom type to the customSchemas field or use a standard type ('stdio' or 'http')")
 	}
 
-	schemaURL, exists := customSchemas[serverType]
+	schemaValue, exists := customSchemas[serverType]
 	if !exists {
 		logValidation.Printf("Custom type not registered: name=%s, type=%s", name, serverType)
 		return rules.UnsupportedType("type", serverType, jsonPath, "Custom server type '"+serverType+"' is not registered in customSchemas. Add the custom type to the customSchemas field or use a standard type ('stdio' or 'http')")
+	}
+
+	// Convert schema value to string if possible
+	schemaURL, ok := schemaValue.(string)
+	if !ok {
+		logValidation.Printf("Custom schema value is not a string: name=%s, type=%s", name, serverType)
+		schemaURL = ""
 	}
 
 	logValidation.Printf("Custom type found in customSchemas: name=%s, type=%s, schemaURL=%s", name, serverType, schemaURL)
@@ -207,7 +208,7 @@ func validateCustomServerConfig(name string, server *StdinServerConfig, customSc
 }
 
 // validateCustomSchemas validates the customSchemas field
-func validateCustomSchemas(customSchemas map[string]string) error {
+func validateCustomSchemas(customSchemas map[string]interface{}) error {
 	if customSchemas == nil {
 		return nil
 	}

@@ -20,39 +20,18 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Default values for command-line flags.
+// Exported constants for use by other packages
 const (
-	defaultConfigFile  = "" // No default config file - user must explicitly specify --config or --config-stdin
-	defaultConfigStdin = false
 	// DefaultListenIPv4 is the default interface used by the HTTP server.
 	DefaultListenIPv4 = "127.0.0.1"
 	// DefaultListenPort is the default port used by the HTTP server.
-	DefaultListenPort       = "3000"
-	defaultListenAddr       = DefaultListenIPv4 + ":" + DefaultListenPort
-	defaultRoutedMode       = false
-	defaultUnifiedMode      = false
-	defaultEnvFile          = ""
-	defaultEnableDIFC       = false
-	defaultLogDir           = "/tmp/gh-aw/mcp-logs"
-	defaultPayloadDir       = "/tmp/jq-payloads"
-	defaultSequentialLaunch = false
+	DefaultListenPort = "3000"
 )
 
+// Package-level variables that don't belong to a specific feature
 var (
-	configFile       string
-	configStdin      bool
-	listenAddr       string
-	routedMode       bool
-	unifiedMode      bool
-	envFile          string
-	enableDIFC       bool
-	logDir           string
-	payloadDir       string
-	validateEnv      bool
-	sequentialLaunch bool
-	verbosity        int // Verbosity level: 0 (default), 1 (-v info), 2 (-vv debug), 3 (-vvv trace)
-	debugLog         = logger.New("cmd:root")
-	version          = "dev" // Default version, overridden by SetVersion
+	debugLog = logger.New("cmd:root")
+	version  = "dev" // Default version, overridden by SetVersion
 )
 
 var rootCmd = &cobra.Command{
@@ -70,45 +49,14 @@ func init() {
 	// Set custom error prefix for better branding
 	rootCmd.SetErrPrefix("MCPG Error:")
 
-	rootCmd.Flags().StringVarP(&configFile, "config", "c", defaultConfigFile, "Path to config file")
-	rootCmd.Flags().BoolVar(&configStdin, "config-stdin", defaultConfigStdin, "Read MCP server configuration from stdin (JSON format). When enabled, overrides --config")
-	rootCmd.Flags().StringVarP(&listenAddr, "listen", "l", defaultListenAddr, "HTTP server listen address")
-	rootCmd.Flags().BoolVar(&routedMode, "routed", defaultRoutedMode, "Run in routed mode (each backend at /mcp/<server>)")
-	rootCmd.Flags().BoolVar(&unifiedMode, "unified", defaultUnifiedMode, "Run in unified mode (all backends at /mcp)")
-	rootCmd.Flags().StringVar(&envFile, "env", defaultEnvFile, "Path to .env file to load environment variables")
-	rootCmd.Flags().BoolVar(&enableDIFC, "enable-difc", defaultEnableDIFC, "Enable DIFC enforcement and session requirement (requires sys___init call before tool access)")
-	rootCmd.Flags().StringVar(&logDir, "log-dir", getDefaultLogDir(), "Directory for log files (falls back to stdout if directory cannot be created)")
-	rootCmd.Flags().StringVar(&payloadDir, "payload-dir", getDefaultPayloadDir(), "Directory for storing large payload files (segmented by session ID)")
-	rootCmd.Flags().BoolVar(&validateEnv, "validate-env", false, "Validate execution environment (Docker, env vars) before starting")
-	rootCmd.Flags().BoolVar(&sequentialLaunch, "sequential-launch", defaultSequentialLaunch, "Launch MCP servers sequentially during startup (parallel launch is default)")
-	rootCmd.Flags().CountVarP(&verbosity, "verbose", "v", "Increase verbosity level (use -v for info, -vv for debug, -vvv for trace)")
-
-	// Mark mutually exclusive flags
-	rootCmd.MarkFlagsMutuallyExclusive("routed", "unified")
+	// Register all flags from feature modules (flags_*.go files)
+	registerAllFlags(rootCmd)
 
 	// Register custom flag completions
 	registerFlagCompletions(rootCmd)
 
 	// Add completion command
 	rootCmd.AddCommand(newCompletionCmd())
-}
-
-// getDefaultLogDir returns the default log directory, checking MCP_GATEWAY_LOG_DIR
-// environment variable first, then falling back to the hardcoded default
-func getDefaultLogDir() string {
-	if envLogDir := os.Getenv("MCP_GATEWAY_LOG_DIR"); envLogDir != "" {
-		return envLogDir
-	}
-	return defaultLogDir
-}
-
-// getDefaultPayloadDir returns the default payload directory, checking MCP_GATEWAY_PAYLOAD_DIR
-// environment variable first, then falling back to the hardcoded default
-func getDefaultPayloadDir() string {
-	if envPayloadDir := os.Getenv("MCP_GATEWAY_PAYLOAD_DIR"); envPayloadDir != "" {
-		return envPayloadDir
-	}
-	return defaultPayloadDir
 }
 
 const (
