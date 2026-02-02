@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/githubnext/gh-aw-mcpg/internal/logger"
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
@@ -97,7 +98,9 @@ func CreateHTTPServerForMCP(addr string, unifiedServer *UnifiedServer, apiKey st
 
 		return unifiedServer.server
 	}, &sdk.StreamableHTTPOptions{
-		Stateless: false, // Support stateful sessions
+		Stateless:      false,                                         // Support stateful sessions
+		Logger:         logger.NewSlogLoggerWithHandler(logTransport), // Integrate SDK logging with project logger
+		SessionTimeout: 30 * time.Minute,                              // Prevent resource leaks from idle connections
 	})
 
 	// Wrap SDK handler with detailed logging for JSON-RPC translation debugging

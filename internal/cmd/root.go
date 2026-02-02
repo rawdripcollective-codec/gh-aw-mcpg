@@ -16,6 +16,7 @@ import (
 
 	"github.com/githubnext/gh-aw-mcpg/internal/config"
 	"github.com/githubnext/gh-aw-mcpg/internal/logger"
+	"github.com/githubnext/gh-aw-mcpg/internal/mcp"
 	"github.com/githubnext/gh-aw-mcpg/internal/server"
 	"github.com/spf13/cobra"
 )
@@ -448,4 +449,5 @@ func SetVersion(v string) {
 	version = v
 	rootCmd.Version = v
 	config.SetGatewayVersion(v)
+	mcp.SetClientGatewayVersion(v)
 }
