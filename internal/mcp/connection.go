@@ -27,7 +27,7 @@ var gatewayVersion = "dev"
 
 // SetClientGatewayVersion sets the gateway version for MCP client implementation reporting
 func SetClientGatewayVersion(version string) {
-	if version != "" {
+	if strings.TrimSpace(version) != "" {
 		gatewayVersion = version
 	}
 }
