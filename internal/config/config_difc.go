@@ -2,6 +2,22 @@
 // This file defines DIFC (Decentralized Information Flow Control) configuration types.
 package config
 
+func init() {
+	// Register a stdin converter for session configuration
+	RegisterStdinConverter(func(cfg *Config, stdinCfg *StdinConfig) {
+		// Convert session config if present
+		if stdinCfg.Gateway != nil && stdinCfg.Gateway.Session != nil {
+			if cfg.Gateway == nil {
+				cfg.Gateway = &GatewayConfig{}
+			}
+			cfg.Gateway.Session = &SessionConfig{
+				Secrecy:   stdinCfg.Gateway.Session.Secrecy,
+				Integrity: stdinCfg.Gateway.Session.Integrity,
+			}
+		}
+	})
+}
+
 // GuardConfig represents a DIFC guard configuration (experimental).
 type GuardConfig struct {
 	// Type is the guard type: "wasm" for WebAssembly guards
