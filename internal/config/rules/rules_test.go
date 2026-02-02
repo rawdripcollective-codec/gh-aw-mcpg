@@ -544,3 +544,187 @@ func TestDocumentationURLConstants(t *testing.T) {
 	assert.True(t, strings.HasPrefix(ConfigSpecURL, "https://"), "ConfigSpecURL should start with https://")
 	assert.True(t, strings.HasPrefix(SchemaURL, "https://"), "SchemaURL should start with https://")
 }
+
+func TestNonEmptyString(t *testing.T) {
+	tests := []struct {
+		name      string
+		value     string
+		fieldName string
+		jsonPath  string
+		shouldErr bool
+		errMsg    string
+	}{
+		{
+			name:      "valid non-empty string",
+			value:     "/tmp/payloads",
+			fieldName: "payloadDir",
+			jsonPath:  "gateway.payloadDir",
+			shouldErr: false,
+		},
+		{
+			name:      "valid single character",
+			value:     "x",
+			fieldName: "payloadDir",
+			jsonPath:  "gateway.payloadDir",
+			shouldErr: false,
+		},
+		{
+			name:      "empty string",
+			value:     "",
+			fieldName: "payloadDir",
+			jsonPath:  "gateway.payloadDir",
+			shouldErr: true,
+			errMsg:    "payloadDir cannot be empty",
+		},
+		{
+			name:      "empty string with different field",
+			value:     "",
+			fieldName: "apiKey",
+			jsonPath:  "gateway.apiKey",
+			shouldErr: true,
+			errMsg:    "apiKey cannot be empty",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := NonEmptyString(tt.value, tt.fieldName, tt.jsonPath)
+
+			if tt.shouldErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errMsg)
+				assert.Contains(t, err.Error(), tt.jsonPath)
+			} else {
+				if err != nil {
+					t.Errorf("expected no error, got: %v", err)
+				}
+			}
+		})
+	}
+}
+
+func TestAbsolutePath(t *testing.T) {
+	tests := []struct {
+		name      string
+		value     string
+		fieldName string
+		jsonPath  string
+		shouldErr bool
+		errMsg    string
+	}{
+		{
+			name:      "valid Unix absolute path",
+			value:     "/tmp/payloads",
+			fieldName: "payloadDir",
+			jsonPath:  "gateway.payloadDir",
+			shouldErr: false,
+		},
+		{
+			name:      "valid Unix root path",
+			value:     "/",
+			fieldName: "payloadDir",
+			jsonPath:  "gateway.payloadDir",
+			shouldErr: false,
+		},
+		{
+			name:      "valid Unix nested path",
+			value:     "/var/lib/payloads",
+			fieldName: "payloadDir",
+			jsonPath:  "gateway.payloadDir",
+			shouldErr: false,
+		},
+		{
+			name:      "valid Windows absolute path - C drive",
+			value:     "C:\\payloads",
+			fieldName: "payloadDir",
+			jsonPath:  "gateway.payloadDir",
+			shouldErr: false,
+		},
+		{
+			name:      "valid Windows absolute path - D drive",
+			value:     "D:\\temp\\payloads",
+			fieldName: "payloadDir",
+			jsonPath:  "gateway.payloadDir",
+			shouldErr: false,
+		},
+		{
+			name:      "valid Windows absolute path - lowercase drive",
+			value:     "c:\\payloads",
+			fieldName: "payloadDir",
+			jsonPath:  "gateway.payloadDir",
+			shouldErr: false,
+		},
+		{
+			name:      "invalid relative Unix path",
+			value:     "tmp/payloads",
+			fieldName: "payloadDir",
+			jsonPath:  "gateway.payloadDir",
+			shouldErr: true,
+			errMsg:    "must be an absolute path",
+		},
+		{
+			name:      "invalid relative path with dot",
+			value:     "./payloads",
+			fieldName: "payloadDir",
+			jsonPath:  "gateway.payloadDir",
+			shouldErr: true,
+			errMsg:    "must be an absolute path",
+		},
+		{
+			name:      "invalid relative path with double dot",
+			value:     "../payloads",
+			fieldName: "payloadDir",
+			jsonPath:  "gateway.payloadDir",
+			shouldErr: true,
+			errMsg:    "must be an absolute path",
+		},
+		{
+			name:      "invalid Windows relative path",
+			value:     "payloads\\data",
+			fieldName: "payloadDir",
+			jsonPath:  "gateway.payloadDir",
+			shouldErr: true,
+			errMsg:    "must be an absolute path",
+		},
+		{
+			name:      "invalid Windows path without backslash",
+			value:     "C:payloads",
+			fieldName: "payloadDir",
+			jsonPath:  "gateway.payloadDir",
+			shouldErr: true,
+			errMsg:    "must be an absolute path",
+		},
+		{
+			name:      "invalid Windows path with forward slash",
+			value:     "C:/payloads",
+			fieldName: "payloadDir",
+			jsonPath:  "gateway.payloadDir",
+			shouldErr: true,
+			errMsg:    "must be an absolute path",
+		},
+		{
+			name:      "empty string",
+			value:     "",
+			fieldName: "payloadDir",
+			jsonPath:  "gateway.payloadDir",
+			shouldErr: true,
+			errMsg:    "cannot be empty",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := AbsolutePath(tt.value, tt.fieldName, tt.jsonPath)
+
+			if tt.shouldErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errMsg)
+				assert.Contains(t, err.Error(), tt.jsonPath)
+			} else {
+				if err != nil {
+					t.Errorf("expected no error, got: %v", err)
+				}
+			}
+		})
+	}
+}

@@ -187,3 +187,52 @@ func MountFormat(mount, jsonPath string, index int) *ValidationError {
 
 	return nil
 }
+
+// NonEmptyString validates that a string field is not empty (minLength: 1)
+// Returns nil if valid, *ValidationError if invalid
+func NonEmptyString(value, fieldName, jsonPath string) *ValidationError {
+	if value == "" {
+		return &ValidationError{
+			Field:      fieldName,
+			Message:    fmt.Sprintf("%s cannot be empty", fieldName),
+			JSONPath:   jsonPath,
+			Suggestion: fmt.Sprintf("Provide a non-empty value for %s", fieldName),
+		}
+	}
+	return nil
+}
+
+// AbsolutePath validates that a directory path is an absolute path
+// Per MCP Gateway schema: Unix paths start with '/', Windows paths start with a drive letter followed by ':\'
+// Pattern: ^(/|[A-Za-z]:\\)
+// Returns nil if valid, *ValidationError if invalid
+func AbsolutePath(value, fieldName, jsonPath string) *ValidationError {
+	if value == "" {
+		return &ValidationError{
+			Field:      fieldName,
+			Message:    fmt.Sprintf("%s cannot be empty", fieldName),
+			JSONPath:   jsonPath,
+			Suggestion: fmt.Sprintf("Provide an absolute path for %s", fieldName),
+		}
+	}
+
+	// Check for Unix absolute path (starts with /)
+	if strings.HasPrefix(value, "/") {
+		return nil
+	}
+
+	// Check for Windows absolute path (drive letter followed by :\)
+	// Pattern: [A-Za-z]:\\
+	if len(value) >= 3 &&
+		((value[0] >= 'A' && value[0] <= 'Z') || (value[0] >= 'a' && value[0] <= 'z')) &&
+		value[1] == ':' && value[2] == '\\' {
+		return nil
+	}
+
+	return &ValidationError{
+		Field:      fieldName,
+		Message:    fmt.Sprintf("%s must be an absolute path, got '%s'", fieldName, value),
+		JSONPath:   jsonPath,
+		Suggestion: "Use an absolute path: Unix paths start with '/' (e.g., '/tmp/payloads'), Windows paths start with a drive letter (e.g., 'C:\\payloads')",
+	}
+}

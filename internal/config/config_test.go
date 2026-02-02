@@ -435,6 +435,39 @@ func TestLoadFromStdin_GatewayWithAllFields(t *testing.T) {
 	assert.Equal(t, toolTimeout, *stdinCfg.Gateway.ToolTimeout, "Expected gateway toolTimeout")
 }
 
+func TestLoadFromStdin_GatewayWithoutPayloadDir(t *testing.T) {
+	jsonConfig := `{
+		"mcpServers": {
+			"test": {
+				"type": "stdio",
+				"container": "test/server:latest",
+				"entrypointArgs": ["server.js"]
+			}
+		},
+		"gateway": {
+			"port": 8080,
+			"apiKey": "test-key-123",
+			"domain": "localhost"
+		}
+	}`
+
+	r, w, _ := os.Pipe()
+	oldStdin := os.Stdin
+	os.Stdin = r
+	go func() {
+		w.Write([]byte(jsonConfig))
+		w.Close()
+	}()
+
+	cfg, err := LoadFromStdin()
+	os.Stdin = oldStdin
+
+	require.NoError(t, err, "LoadFromStdin() failed")
+	require.NotNil(t, cfg, "Config should not be nil")
+	require.NotNil(t, cfg.Gateway, "Gateway config should not be nil")
+	assert.Equal(t, DefaultPayloadDir, cfg.Gateway.PayloadDir, "Expected default payload directory when not specified")
+}
+
 func TestLoadFromStdin_ServerWithURL(t *testing.T) {
 	jsonConfig := `{
 		"mcpServers": {
@@ -915,6 +948,59 @@ args = ["run", "--rm", "-i", "test/container:latest"]
 	assert.Equal(t, "localhost", cfg.Gateway.Domain)
 	assert.Equal(t, 30, cfg.Gateway.StartupTimeout)
 	assert.Equal(t, 60, cfg.Gateway.ToolTimeout)
+}
+
+func TestLoadFromFile_WithGatewayPayloadDir(t *testing.T) {
+	tmpDir := t.TempDir()
+	tmpFile := filepath.Join(tmpDir, "config.toml")
+
+	tomlContent := `
+[gateway]
+port = 8080
+api_key = "test-key-123"
+domain = "localhost"
+payload_dir = "/custom/payload/path"
+
+[servers.test]
+command = "docker"
+args = ["run", "--rm", "-i", "test/container:latest"]
+`
+
+	err := os.WriteFile(tmpFile, []byte(tomlContent), 0644)
+	require.NoError(t, err, "Failed to write temp TOML file")
+
+	cfg, err := LoadFromFile(tmpFile)
+	require.NoError(t, err, "LoadFromFile() failed")
+	require.NotNil(t, cfg, "LoadFromFile() returned nil config")
+	require.NotNil(t, cfg.Gateway, "Gateway config should not be nil")
+
+	assert.Equal(t, "/custom/payload/path", cfg.Gateway.PayloadDir, "Expected custom payload directory")
+}
+
+func TestLoadFromFile_WithoutGatewayPayloadDir(t *testing.T) {
+	tmpDir := t.TempDir()
+	tmpFile := filepath.Join(tmpDir, "config.toml")
+
+	tomlContent := `
+[gateway]
+port = 8080
+api_key = "test-key-123"
+domain = "localhost"
+
+[servers.test]
+command = "docker"
+args = ["run", "--rm", "-i", "test/container:latest"]
+`
+
+	err := os.WriteFile(tmpFile, []byte(tomlContent), 0644)
+	require.NoError(t, err, "Failed to write temp TOML file")
+
+	cfg, err := LoadFromFile(tmpFile)
+	require.NoError(t, err, "LoadFromFile() failed")
+	require.NotNil(t, cfg, "LoadFromFile() returned nil config")
+	require.NotNil(t, cfg.Gateway, "Gateway config should not be nil")
+
+	assert.Equal(t, DefaultPayloadDir, cfg.Gateway.PayloadDir, "Expected default payload directory when not specified")
 }
 
 func TestLoadFromFile_InvalidTOMLWithLineNumber(t *testing.T) {
