@@ -21,6 +21,17 @@ import (
 
 var logConn = logger.New("mcp:connection")
 
+// gatewayVersion stores the gateway version used in MCP client implementation
+// It defaults to "dev" and is set at startup via SetClientGatewayVersion
+var gatewayVersion = "dev"
+
+// SetClientGatewayVersion sets the gateway version for MCP client implementation reporting
+func SetClientGatewayVersion(version string) {
+	if version != "" {
+		gatewayVersion = version
+	}
+}
+
 // parseSSEResponse extracts JSON data from SSE-formatted response
 // SSE format: "event: message\ndata: {json}\n\n"
 func parseSSEResponse(body []byte) ([]byte, error) {
@@ -76,7 +87,7 @@ type Connection struct {
 func newMCPClient() *sdk.Client {
 	return sdk.NewClient(&sdk.Implementation{
 		Name:    "awmg",
-		Version: "1.0.0",
+		Version: gatewayVersion,
 	}, nil)
 }
 
