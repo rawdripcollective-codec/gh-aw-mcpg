@@ -15,47 +15,47 @@ import (
 )
 
 func TestInitJSONLLogger(t *testing.T) {
+	require := require.New(t)
 	tmpDir := t.TempDir()
 	logDir := filepath.Join(tmpDir, "logs")
 
 	// Test successful initialization
 	err := InitJSONLLogger(logDir, "test.jsonl")
-	require.NoError(t, err, "InitJSONLLogger failed")
+	require.NoError(err, "InitJSONLLogger failed")
 	defer CloseJSONLLogger()
 
 	// Verify log file was created
 	logPath := filepath.Join(logDir, "test.jsonl")
-	if _, err := os.Stat(logPath); os.IsNotExist(err) {
-		t.Errorf("Log file was not created: %s", logPath)
-	}
+	_, err = os.Stat(logPath)
+	require.NoError(err, "Log file should exist at %s", logPath)
 }
 
 func TestJSONLLoggerClose(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
 	tmpDir := t.TempDir()
 	logDir := filepath.Join(tmpDir, "logs")
 
-	if err := InitJSONLLogger(logDir, "test.jsonl"); err != nil {
-		t.Fatalf("InitJSONLLogger failed: %v", err)
-	}
+	err := InitJSONLLogger(logDir, "test.jsonl")
+	require.NoError(err, "InitJSONLLogger failed")
 
 	// Test closing
-	if err := CloseJSONLLogger(); err != nil {
-		t.Errorf("CloseJSONLLogger failed: %v", err)
-	}
+	err = CloseJSONLLogger()
+	assert.NoError(err, "CloseJSONLLogger should not error")
 
 	// Test closing again (should not error)
-	if err := CloseJSONLLogger(); err != nil {
-		t.Errorf("CloseJSONLLogger failed on second call: %v", err)
-	}
+	err = CloseJSONLLogger()
+	assert.NoError(err, "CloseJSONLLogger should not error on second call")
 }
 
 func TestLogRPCMessageJSONL(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
 	tmpDir := t.TempDir()
 	logDir := filepath.Join(tmpDir, "logs")
 
-	if err := InitJSONLLogger(logDir, "test.jsonl"); err != nil {
-		t.Fatalf("InitJSONLLogger failed: %v", err)
-	}
+	err := InitJSONLLogger(logDir, "test.jsonl")
+	require.NoError(err, "InitJSONLLogger failed")
 	defer CloseJSONLLogger()
 
 	// Log a request
@@ -72,7 +72,7 @@ func TestLogRPCMessageJSONL(t *testing.T) {
 	// Read and verify the log file
 	logPath := filepath.Join(logDir, "test.jsonl")
 	file, err := os.Open(logPath)
-	require.NoError(t, err, "Failed to open log file")
+	require.NoError(err, "Failed to open log file")
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
@@ -83,57 +83,34 @@ func TestLogRPCMessageJSONL(t *testing.T) {
 		line := scanner.Text()
 
 		var entry JSONLRPCMessage
-		if err := json.Unmarshal([]byte(line), &entry); err != nil {
-			t.Errorf("Failed to parse JSONL line %d: %v, line: %s", lineCount, err, line)
-			continue
-		}
+		err := json.Unmarshal([]byte(line), &entry)
+		require.NoError(err, "Failed to parse JSONL line %d: %s", lineCount, line)
 
 		// Verify common fields
-		if entry.Timestamp == "" {
-			t.Errorf("Line %d: missing timestamp", lineCount)
-		}
-		if entry.Direction == "" {
-			t.Errorf("Line %d: missing direction", lineCount)
-		}
-		if entry.Type == "" {
-			t.Errorf("Line %d: missing type", lineCount)
-		}
-		if entry.ServerID == "" {
-			t.Errorf("Line %d: missing server_id", lineCount)
-		}
-		if entry.Payload == nil {
-			t.Errorf("Line %d: missing payload", lineCount)
-		}
+		assert.NotEmpty(entry.Timestamp, "Line %d: missing timestamp", lineCount)
+		assert.NotEmpty(entry.Direction, "Line %d: missing direction", lineCount)
+		assert.NotEmpty(entry.Type, "Line %d: missing type", lineCount)
+		assert.NotEmpty(entry.ServerID, "Line %d: missing server_id", lineCount)
+		assert.NotNil(entry.Payload, "Line %d: missing payload", lineCount)
 
 		// Verify line-specific fields
 		switch lineCount {
 		case 1:
 			// First line should be a REQUEST
-			if entry.Type != "REQUEST" {
-				t.Errorf("Line 1: expected type REQUEST, got %s", entry.Type)
-			}
-			if entry.Method != "tools/list" {
-				t.Errorf("Line 1: expected method tools/list, got %s", entry.Method)
-			}
-			if entry.Direction != "OUT" {
-				t.Errorf("Line 1: expected direction OUT, got %s", entry.Direction)
-			}
+			assert.Equal("REQUEST", entry.Type, "Line 1: expected type REQUEST")
+			assert.Equal("tools/list", entry.Method, "Line 1: expected method tools/list")
+			assert.Equal("OUT", entry.Direction, "Line 1: expected direction OUT")
 		case 2:
 			// Second line should be a RESPONSE
-			if entry.Type != "RESPONSE" {
-				t.Errorf("Line 2: expected type RESPONSE, got %s", entry.Type)
-			}
-			if entry.Direction != "IN" {
-				t.Errorf("Line 2: expected direction IN, got %s", entry.Direction)
-			}
+			assert.Equal("RESPONSE", entry.Type, "Line 2: expected type RESPONSE")
+			assert.Equal("IN", entry.Direction, "Line 2: expected direction IN")
 		}
 	}
 
-	if err := scanner.Err(); err != nil {
-		t.Fatalf("Error reading log file: %v", err)
-	}
+	err = scanner.Err()
+	require.NoError(err, "Error reading log file")
 
-	assert.Equal(t, 2, lineCount, "2 log entries, got %d")
+	assert.Equal(2, lineCount, "Expected 2 log entries")
 }
 
 func TestSanitizePayload(t *testing.T) {
@@ -171,40 +148,33 @@ func TestSanitizePayload(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			require := require.New(t)
+			assert := assert.New(t)
+			
 			result := sanitize.SanitizeJSON([]byte(tt.input))
-
-			require.NotNil(t, result, "sanitize.SanitizeJSON returned nil")
+			require.NotNil(result, "sanitize.SanitizeJSON returned nil")
 
 			// The result is already a sanitized string
 			sanitizedStr := string(result)
 
 			if tt.expectRedacted {
 				// Should contain [REDACTED]
-				if !strings.Contains(sanitizedStr, "[REDACTED]") {
-					t.Errorf("Expected sanitized payload to contain [REDACTED], got: %s", sanitizedStr)
-				}
+				assert.Contains(sanitizedStr, "[REDACTED]", "Expected sanitized payload to contain [REDACTED]")
 
 				// Should NOT contain the original secret patterns
-				if strings.Contains(sanitizedStr, "ghp_") {
-					t.Errorf("Sanitized payload still contains GitHub token")
-				}
-				if strings.Contains(sanitizedStr, "Bearer eyJ") {
-					t.Errorf("Sanitized payload still contains Bearer token")
-				}
-				if strings.Contains(sanitizedStr, "supersecret") {
-					t.Errorf("Sanitized payload still contains password")
-				}
+				assert.NotContains(sanitizedStr, "ghp_", "Sanitized payload should not contain GitHub token")
+				assert.NotContains(sanitizedStr, "Bearer eyJ", "Sanitized payload should not contain Bearer token")
+				assert.NotContains(sanitizedStr, "supersecret", "Sanitized payload should not contain password")
 			} else {
 				// Should not contain [REDACTED] for clean payloads
-				if strings.Contains(sanitizedStr, "[REDACTED]") {
-					t.Errorf("Clean payload should not be redacted, got: %s", sanitizedStr)
-				}
+				assert.NotContains(sanitizedStr, "[REDACTED]", "Clean payload should not be redacted")
 			}
 		})
 	}
 }
 
 func TestSanitizePayloadWithNestedStructures(t *testing.T) {
+	assert := assert.New(t)
 	input := `{
 		"params": {
 			"credentials": {
@@ -226,31 +196,26 @@ func TestSanitizePayloadWithNestedStructures(t *testing.T) {
 	sanitizedStr := string(result)
 
 	// Should redact all secrets at all levels
-	assert.True(t, strings.Contains(sanitizedStr, "[REDACTED]"), "Expected [REDACTED] in sanitized output")
+	assert.Contains(sanitizedStr, "[REDACTED]", "Expected [REDACTED] in sanitized output")
 
 	// Should NOT contain original secrets
-	if strings.Contains(sanitizedStr, "test_fake_api_key") {
-		t.Errorf("API key not sanitized")
-	}
-	if strings.Contains(sanitizedStr, "ghp_") {
-		t.Errorf("GitHub token not sanitized")
-	}
-	if strings.Contains(sanitizedStr, "password123") {
-		t.Errorf("Password not sanitized")
-	}
+	assert.NotContains(sanitizedStr, "test_fake_api_key", "API key should be sanitized")
+	assert.NotContains(sanitizedStr, "ghp_", "GitHub token should be sanitized")
+	assert.NotContains(sanitizedStr, "password123", "Password should be sanitized")
 
 	// Should preserve non-secret values
-	assert.True(t, strings.Contains(sanitizedStr, "item1"), "Non-secret value 'item1' was lost")
-	assert.True(t, strings.Contains(sanitizedStr, "safe"), "Non-secret value 'safe' was lost")
+	assert.Contains(sanitizedStr, "item1", "Non-secret value 'item1' should be preserved")
+	assert.Contains(sanitizedStr, "safe", "Non-secret value 'safe' should be preserved")
 }
 
 func TestLogRPCMessageJSONLWithError(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
 	tmpDir := t.TempDir()
 	logDir := filepath.Join(tmpDir, "logs")
 
-	if err := InitJSONLLogger(logDir, "test.jsonl"); err != nil {
-		t.Fatalf("InitJSONLLogger failed: %v", err)
-	}
+	err := InitJSONLLogger(logDir, "test.jsonl")
+	require.NoError(err, "InitJSONLLogger failed")
 	defer CloseJSONLLogger()
 
 	// Log a response with error
@@ -264,25 +229,23 @@ func TestLogRPCMessageJSONLWithError(t *testing.T) {
 	// Read and verify
 	logPath := filepath.Join(logDir, "test.jsonl")
 	content, err := os.ReadFile(logPath)
-	require.NoError(t, err, "Failed to read log file")
+	require.NoError(err, "Failed to read log file")
 
 	var entry JSONLRPCMessage
-	if err := json.Unmarshal(content, &entry); err != nil {
-		t.Fatalf("Failed to parse JSONL: %v", err)
-	}
+	err = json.Unmarshal(content, &entry)
+	require.NoError(err, "Failed to parse JSONL")
 
-	if entry.Error != "backend connection failed" {
-		t.Errorf("Expected error 'backend connection failed', got: %s", entry.Error)
-	}
+	assert.Equal("backend connection failed", entry.Error, "Error field should match")
 }
 
 func TestLogRPCMessageJSONLWithInvalidJSON(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
 	tmpDir := t.TempDir()
 	logDir := filepath.Join(tmpDir, "logs")
 
-	if err := InitJSONLLogger(logDir, "test.jsonl"); err != nil {
-		t.Fatalf("InitJSONLLogger failed: %v", err)
-	}
+	err := InitJSONLLogger(logDir, "test.jsonl")
+	require.NoError(err, "InitJSONLLogger failed")
 	defer CloseJSONLLogger()
 
 	// Log invalid JSON
@@ -295,26 +258,19 @@ func TestLogRPCMessageJSONLWithInvalidJSON(t *testing.T) {
 	// Read and verify
 	logPath := filepath.Join(logDir, "test.jsonl")
 	content, err := os.ReadFile(logPath)
-	require.NoError(t, err, "Failed to read log file")
+	require.NoError(err, "Failed to read log file")
 
 	var entry JSONLRPCMessage
-	if err := json.Unmarshal(content, &entry); err != nil {
-		t.Fatalf("Failed to parse JSONL: %v", err)
-	}
+	err = json.Unmarshal(content, &entry)
+	require.NoError(err, "Failed to parse JSONL")
 
 	// The payload should be wrapped in a valid JSON object with an error marker
 	var payloadObj map[string]interface{}
-	if err := json.Unmarshal(entry.Payload, &payloadObj); err != nil {
-		t.Fatalf("Failed to parse payload: %v", err)
-	}
+	err = json.Unmarshal(entry.Payload, &payloadObj)
+	require.NoError(err, "Failed to parse payload")
 
-	if payloadObj["_error"] != "invalid JSON" {
-		t.Errorf("Expected _error field in payload, got: %v", payloadObj)
-	}
-
-	if !strings.Contains(fmt.Sprintf("%v", payloadObj["_raw"]), "invalid") {
-		t.Errorf("Expected _raw field to contain original invalid JSON, got: %v", payloadObj["_raw"])
-	}
+	assert.Equal("invalid JSON", payloadObj["_error"], "Expected _error field in payload")
+	assert.Contains(fmt.Sprintf("%v", payloadObj["_raw"]), "invalid", "Expected _raw field to contain original invalid JSON")
 }
 
 func TestJSONLLoggerNotInitialized(t *testing.T) {
@@ -328,12 +284,13 @@ func TestJSONLLoggerNotInitialized(t *testing.T) {
 }
 
 func TestMultipleMessagesInJSONL(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
 	tmpDir := t.TempDir()
 	logDir := filepath.Join(tmpDir, "logs")
 
-	if err := InitJSONLLogger(logDir, "test.jsonl"); err != nil {
-		t.Fatalf("InitJSONLLogger failed: %v", err)
-	}
+	err := InitJSONLLogger(logDir, "test.jsonl")
+	require.NoError(err, "InitJSONLLogger failed")
 	defer CloseJSONLLogger()
 
 	// Log multiple messages
@@ -360,7 +317,7 @@ func TestMultipleMessagesInJSONL(t *testing.T) {
 	// Read and verify all lines
 	logPath := filepath.Join(logDir, "test.jsonl")
 	file, err := os.Open(logPath)
-	require.NoError(t, err, "Failed to open log file")
+	require.NoError(err, "Failed to open log file")
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
@@ -371,23 +328,21 @@ func TestMultipleMessagesInJSONL(t *testing.T) {
 		line := scanner.Text()
 
 		var entry JSONLRPCMessage
-		if err := json.Unmarshal([]byte(line), &entry); err != nil {
-			t.Errorf("Failed to parse JSONL line %d: %v", lineCount, err)
-			continue
-		}
+		err := json.Unmarshal([]byte(line), &entry)
+		require.NoError(err, "Failed to parse JSONL line %d", lineCount)
 
-		// Each line should be valid JSONL
-		if entry.Timestamp == "" || entry.ServerID == "" {
-			t.Errorf("Line %d: incomplete entry", lineCount)
-		}
+		// Each line should be valid JSONL with required fields
+		assert.NotEmpty(entry.Timestamp, "Line %d: missing timestamp", lineCount)
+		assert.NotEmpty(entry.ServerID, "Line %d: missing server_id", lineCount)
 	}
 
-	if lineCount != len(messages) {
-		t.Errorf("Expected %d log entries, got %d", len(messages), lineCount)
-	}
+	assert.Equal(len(messages), lineCount, "Expected %d log entries", len(messages))
 }
 
 func TestSanitizePayloadCompactsJSON(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+	
 	// Test that multi-line JSON is compacted to a single line
 	multilineJSON := `{
 		"jsonrpc": "2.0",
@@ -400,21 +355,160 @@ func TestSanitizePayloadCompactsJSON(t *testing.T) {
 	}`
 
 	result := sanitize.SanitizeJSON([]byte(multilineJSON))
+	resultStr := string(result)
 
 	// The result should not contain newlines
-	resultStr := string(result)
-	if strings.Contains(resultStr, "\n") {
-		t.Errorf("Result contains newlines, should be single-line JSON: %s", resultStr)
-	}
+	assert.NotContains(resultStr, "\n", "Result should not contain newlines")
 
 	// Should still be valid JSON
 	var tmp interface{}
-	if err := json.Unmarshal(result, &tmp); err != nil {
-		t.Errorf("Result is not valid JSON: %v", err)
-	}
+	err := json.Unmarshal(result, &tmp)
+	require.NoError(err, "Result should be valid JSON")
 
 	// Should contain the expected values
-	if !strings.Contains(resultStr, "jsonrpc") || !strings.Contains(resultStr, "test") {
-		t.Errorf("Result missing expected content: %s", resultStr)
+	assert.Contains(resultStr, "jsonrpc", "Result should contain 'jsonrpc'")
+	assert.Contains(resultStr, "test", "Result should contain 'test'")
+}
+
+func TestInitJSONLLoggerWithInvalidPath(t *testing.T) {
+	assert := assert.New(t)
+	
+	// Test initialization with an invalid directory path (permission denied scenario)
+	// Using /proc/self as it's read-only and will fail to create subdirectories
+	err := InitJSONLLogger("/proc/self/invalid", "test.jsonl")
+	assert.Error(err, "InitJSONLLogger should fail with invalid directory path")
+}
+
+func TestLogRPCMessageJSONLDirectionTypes(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+	tmpDir := t.TempDir()
+	logDir := filepath.Join(tmpDir, "logs")
+
+	err := InitJSONLLogger(logDir, "test.jsonl")
+	require.NoError(err, "InitJSONLLogger failed")
+	defer CloseJSONLLogger()
+
+	tests := []struct {
+		name      string
+		direction RPCMessageDirection
+		msgType   RPCMessageType
+		expected  map[string]string
+	}{
+		{
+			name:      "outbound request",
+			direction: RPCDirectionOutbound,
+			msgType:   RPCMessageRequest,
+			expected:  map[string]string{"direction": "OUT", "type": "REQUEST"},
+		},
+		{
+			name:      "inbound request",
+			direction: RPCDirectionInbound,
+			msgType:   RPCMessageRequest,
+			expected:  map[string]string{"direction": "IN", "type": "REQUEST"},
+		},
+		{
+			name:      "outbound response",
+			direction: RPCDirectionOutbound,
+			msgType:   RPCMessageResponse,
+			expected:  map[string]string{"direction": "OUT", "type": "RESPONSE"},
+		},
+		{
+			name:      "inbound response",
+			direction: RPCDirectionInbound,
+			msgType:   RPCMessageResponse,
+			expected:  map[string]string{"direction": "IN", "type": "RESPONSE"},
+		},
 	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert := assert.New(t)
+			testPayload := []byte(`{"jsonrpc":"2.0","id":1}`)
+			
+			// Clear previous log file
+			logPath := filepath.Join(logDir, "test.jsonl")
+			os.Remove(logPath)
+			
+			LogRPCMessageJSONL(tt.direction, tt.msgType, "test-server", "test-method", testPayload, nil)
+			CloseJSONLLogger()
+			
+			// Re-init for next iteration
+			if t.Name() != tests[len(tests)-1].name {
+				InitJSONLLogger(logDir, "test.jsonl")
+			}
+			
+			// Read and verify
+			content, err := os.ReadFile(logPath)
+			if err != nil {
+				return // File might not exist yet
+			}
+			
+			var entry JSONLRPCMessage
+			json.Unmarshal(content, &entry)
+			
+			assert.Equal(tt.expected["direction"], entry.Direction, "Direction should match")
+			assert.Equal(tt.expected["type"], entry.Type, "Type should match")
+		})
+	}
+}
+
+func TestLogRPCMessageJSONLEmptyPayload(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+	tmpDir := t.TempDir()
+	logDir := filepath.Join(tmpDir, "logs")
+
+	err := InitJSONLLogger(logDir, "test.jsonl")
+	require.NoError(err, "InitJSONLLogger failed")
+	defer CloseJSONLLogger()
+
+	// Log with empty payload
+	emptyPayload := []byte(`{}`)
+	LogRPCMessageJSONL(RPCDirectionOutbound, RPCMessageRequest, "github", "test", emptyPayload, nil)
+
+	CloseJSONLLogger()
+
+	// Read and verify
+	logPath := filepath.Join(logDir, "test.jsonl")
+	content, err := os.ReadFile(logPath)
+	require.NoError(err, "Failed to read log file")
+
+	var entry JSONLRPCMessage
+	err = json.Unmarshal(content, &entry)
+	require.NoError(err, "Failed to parse JSONL")
+
+	// Should still have a valid payload field
+	assert.NotNil(entry.Payload, "Payload should not be nil even when empty")
+	assert.NotEmpty(entry.Timestamp, "Timestamp should be present")
+	assert.Equal("github", entry.ServerID, "ServerID should match")
+}
+
+func TestLogRPCMessageJSONLWithNilError(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+	tmpDir := t.TempDir()
+	logDir := filepath.Join(tmpDir, "logs")
+
+	err := InitJSONLLogger(logDir, "test.jsonl")
+	require.NoError(err, "InitJSONLLogger failed")
+	defer CloseJSONLLogger()
+
+	// Log with nil error (normal case)
+	payload := []byte(`{"jsonrpc":"2.0","id":1}`)
+	LogRPCMessageJSONL(RPCDirectionOutbound, RPCMessageRequest, "github", "test", payload, nil)
+
+	CloseJSONLLogger()
+
+	// Read and verify
+	logPath := filepath.Join(logDir, "test.jsonl")
+	content, err := os.ReadFile(logPath)
+	require.NoError(err, "Failed to read log file")
+
+	var entry JSONLRPCMessage
+	err = json.Unmarshal(content, &entry)
+	require.NoError(err, "Failed to parse JSONL")
+
+	// Error field should be empty when nil error is passed
+	assert.Empty(entry.Error, "Error field should be empty when no error")
 }
