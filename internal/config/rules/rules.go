@@ -187,3 +187,17 @@ func MountFormat(mount, jsonPath string, index int) *ValidationError {
 
 	return nil
 }
+
+// NonEmptyString validates that a string field is not empty (minLength: 1)
+// Returns nil if valid, *ValidationError if invalid
+func NonEmptyString(value, fieldName, jsonPath string) *ValidationError {
+	if value == "" {
+		return &ValidationError{
+			Field:      fieldName,
+			Message:    fmt.Sprintf("%s cannot be empty", fieldName),
+			JSONPath:   jsonPath,
+			Suggestion: fmt.Sprintf("Provide a non-empty value for %s", fieldName),
+		}
+	}
+	return nil
+}

@@ -258,6 +258,14 @@ func validateGatewayConfig(gateway *StdinGatewayConfig) error {
 		}
 	}
 
+	// Validate payloadDir if provided (per schema: minLength: 1)
+	if gateway.PayloadDir != "" {
+		logValidation.Printf("Validating payload directory: %s", gateway.PayloadDir)
+		if err := rules.NonEmptyString(gateway.PayloadDir, "payloadDir", "gateway.payloadDir"); err != nil {
+			return err
+		}
+	}
+
 	logValidation.Print("Gateway config validation passed")
 	return nil
 }

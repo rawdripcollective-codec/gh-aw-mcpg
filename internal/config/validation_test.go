@@ -407,6 +407,15 @@ func TestValidateGatewayConfig(t *testing.T) {
 			shouldErr: false,
 		},
 		{
+			name: "valid gateway with payloadDir",
+			gateway: &StdinGatewayConfig{
+				Port:       intPtr(8080),
+				Domain:     "example.com",
+				PayloadDir: "/tmp/jq-payloads",
+			},
+			shouldErr: false,
+		},
+		{
 			name: "port too low",
 			gateway: &StdinGatewayConfig{
 				Port: intPtr(0),

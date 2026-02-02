@@ -544,3 +544,61 @@ func TestDocumentationURLConstants(t *testing.T) {
 	assert.True(t, strings.HasPrefix(ConfigSpecURL, "https://"), "ConfigSpecURL should start with https://")
 	assert.True(t, strings.HasPrefix(SchemaURL, "https://"), "SchemaURL should start with https://")
 }
+
+func TestNonEmptyString(t *testing.T) {
+	tests := []struct {
+		name      string
+		value     string
+		fieldName string
+		jsonPath  string
+		shouldErr bool
+		errMsg    string
+	}{
+		{
+			name:      "valid non-empty string",
+			value:     "/tmp/payloads",
+			fieldName: "payloadDir",
+			jsonPath:  "gateway.payloadDir",
+			shouldErr: false,
+		},
+		{
+			name:      "valid single character",
+			value:     "x",
+			fieldName: "payloadDir",
+			jsonPath:  "gateway.payloadDir",
+			shouldErr: false,
+		},
+		{
+			name:      "empty string",
+			value:     "",
+			fieldName: "payloadDir",
+			jsonPath:  "gateway.payloadDir",
+			shouldErr: true,
+			errMsg:    "payloadDir cannot be empty",
+		},
+		{
+			name:      "empty string with different field",
+			value:     "",
+			fieldName: "apiKey",
+			jsonPath:  "gateway.apiKey",
+			shouldErr: true,
+			errMsg:    "apiKey cannot be empty",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := NonEmptyString(tt.value, tt.fieldName, tt.jsonPath)
+
+			if tt.shouldErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errMsg)
+				assert.Contains(t, err.Error(), tt.jsonPath)
+			} else {
+				if err != nil {
+					t.Errorf("expected no error, got: %v", err)
+				}
+			}
+		})
+	}
+}
