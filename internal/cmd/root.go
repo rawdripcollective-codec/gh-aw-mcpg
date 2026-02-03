@@ -98,7 +98,8 @@ func preRun(cmd *cobra.Command, args []string) error {
 
 	// Apply verbosity level to logging (if DEBUG is not already set)
 	// -v (1): info level, -vv (2): debug level, -vvv (3): trace level
-	if verbosity > 0 && os.Getenv("DEBUG") == "" {
+	debugEnv := os.Getenv(logger.EnvDebug)
+	if verbosity > 0 && debugEnv == "" {
 		// Set DEBUG env var based on verbosity level
 		// Level 1: basic info (no special DEBUG setting needed, handled by logger)
 		// Level 2: enable debug logs for cmd and server packages
@@ -106,16 +107,18 @@ func preRun(cmd *cobra.Command, args []string) error {
 		switch verbosity {
 		case 1:
 			// Info level - no special DEBUG setting (standard log output)
-			debugLog.Printf("Verbosity level: info")
+			log.Printf("Logging level: info (-v)")
 		case 2:
 			// Debug level - enable debug logs for main packages
 			os.Setenv("DEBUG", debugMainPackages)
-			debugLog.Printf("Verbosity level: debug (DEBUG=%s)", debugMainPackages)
+			log.Printf("Logging level: debug (-vv), DEBUG=%s", debugMainPackages)
 		default:
 			// Trace level (3+) - enable all debug logs
 			os.Setenv("DEBUG", debugAllPackages)
-			debugLog.Printf("Verbosity level: trace (DEBUG=%s)", debugAllPackages)
+			log.Printf("Logging level: trace (-vvv), DEBUG=%s", debugAllPackages)
 		}
+	} else if debugEnv != "" {
+		log.Printf("Logging level: DEBUG=%s (from environment)", debugEnv)
 	}
 
 	return nil

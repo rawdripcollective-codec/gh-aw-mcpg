@@ -22,8 +22,8 @@ type Logger struct {
 }
 
 var (
-	// DEBUG_COLORS environment variable to control color output.
-	debugColors = os.Getenv("DEBUG_COLORS") != "0"
+	// debugColors checks the DEBUG_COLORS environment variable to control color output.
+	debugColors = os.Getenv(EnvDebugColors) != "0"
 
 	// Check if stderr is a terminal (for color support).
 	isTTY = tty.IsStderrTerminal()
@@ -150,7 +150,7 @@ func (l *Logger) Print(args ...any) {
 // computeEnabled computes whether a namespace matches the DEBUG patterns
 func computeEnabled(namespace string) bool {
 	// Read DEBUG from environment each time to support t.Setenv() in tests
-	debugEnv := os.Getenv("DEBUG")
+	debugEnv := os.Getenv(EnvDebug)
 	patterns := strings.Split(debugEnv, ",")
 
 	enabled := false
