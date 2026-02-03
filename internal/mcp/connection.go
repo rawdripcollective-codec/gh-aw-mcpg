@@ -190,12 +190,6 @@ func NewConnection(ctx context.Context, command string, args []string, env map[s
 		}
 	}
 
-	// Capture stderr to help diagnose container failures
-	// The SDK's CommandTransport only uses stdin/stdout for MCP protocol,
-	// so we can capture stderr separately for debugging
-	var stderrBuf bytes.Buffer
-	cmd.Stderr = &stderrBuf
-
 	logger.LogInfo("backend", "Starting MCP backend server, command=%s, args=%v", command, sanitize.SanitizeArgs(expandedArgs))
 	log.Printf("Starting MCP server command: %s %v", command, sanitize.SanitizeArgs(expandedArgs))
 	transport := &sdk.CommandTransport{Command: cmd}
@@ -213,16 +207,6 @@ func NewConnection(ctx context.Context, command string, args []string, env map[s
 		log.Printf("   Command: %s", command)
 		log.Printf("   Args: %v", sanitize.SanitizeArgs(expandedArgs))
 		log.Printf("   Error: %v", err)
-
-		// Log captured stderr output from the container/process
-		stderrOutput := strings.TrimSpace(stderrBuf.String())
-		if stderrOutput != "" {
-			logger.LogErrorMd("backend", "MCP backend stderr output:\n%s", stderrOutput)
-			log.Printf("   📋 Container/Process stderr output:")
-			for _, line := range strings.Split(stderrOutput, "\n") {
-				log.Printf("      %s", line)
-			}
-		}
 
 		// Check if it's a command not found error
 		if strings.Contains(err.Error(), "executable file not found") ||

@@ -25,10 +25,6 @@ var (
 	// gatewayVersion stores the version string to include in error messages
 	gatewayVersion = "dev"
 
-	// configExtensionsEnabled controls whether DIFC config extensions (guards, session labels)
-	// are validated. When false, only the upstream MCP Gateway spec is used.
-	configExtensionsEnabled = false
-
 	// logSchema is the debug logger for schema validation
 	logSchema = logger.New("config:validation_schema")
 
@@ -52,29 +48,6 @@ var (
 	cachedSchema *jsonschema.Schema
 	schemaErr    error
 )
-
-// SetConfigExtensionsEnabled enables or disables config extensions (guards, session labels).
-// This must be called before any config loading/validation occurs.
-// When disabled, only the upstream MCP Gateway spec is validated.
-// Note: Changing this after schema compilation requires calling ResetSchemaCache().
-func SetConfigExtensionsEnabled(enabled bool) {
-	configExtensionsEnabled = enabled
-	logSchema.Printf("Config extensions %s", map[bool]string{true: "enabled", false: "disabled"}[enabled])
-}
-
-// ConfigExtensionsEnabled returns whether config extensions are enabled
-func ConfigExtensionsEnabled() bool {
-	return configExtensionsEnabled
-}
-
-// ResetSchemaCache resets the cached schema, forcing recompilation on next use.
-// This is primarily for testing purposes when config extension settings change.
-func ResetSchemaCache() {
-	schemaOnce = sync.Once{}
-	cachedSchema = nil
-	schemaErr = nil
-	logSchema.Print("Schema cache reset")
-}
 
 // SetGatewayVersion sets the gateway version for error reporting
 func SetGatewayVersion(version string) {
@@ -182,22 +155,6 @@ func fetchAndFixSchema(url string) ([]byte, error) {
 				}
 			}
 		}
-	}
-
-	// Conditionally add DIFC extensions to the schema
-	// These extensions are only applied when --enable-config-extensions is set
-	if configExtensionsEnabled {
-		logSchema.Print("Applying config extensions (guards, session labels)")
-
-		// Add DIFC guard support to the schema
-		// This extends the upstream schema to support guard configuration for DIFC enforcement
-		addGuardSchemaSupport(schema)
-
-		// Add session label support to the gateway config
-		// This extends the upstream schema to support DIFC session initialization (github-difc.md section 11.5)
-		addSessionSchemaSupport(schema)
-	} else {
-		logSchema.Print("Config extensions disabled - using upstream schema only")
 	}
 
 	fixedBytes, err := json.Marshal(schema)
@@ -501,130 +458,4 @@ func validateStringPatterns(stdinCfg *StdinConfig) error {
 	}
 
 	return nil
-}
-
-// addGuardSchemaSupport extends the upstream schema to support DIFC guard configuration.
-// This adds:
-// 1. "guard" property to stdioServerConfig and httpServerConfig (optional string reference)
-// 2. "guards" property to the root schema (map of guard configurations)
-//
-// Guard Configuration Schema:
-//
-//	{
-//	  "guards": {
-//	    "my-guard": {
-//	      "type": "wasm",
-//	      "path": "/path/to/guard.wasm",
-//	      "url": "https://example.com/guard.wasm"  // alternative to path
-//	    }
-//	  },
-//	  "mcpServers": {
-//	    "my-server": {
-//	      "guard": "my-guard",
-//	      ...
-//	    }
-//	  }
-//	}
-func addGuardSchemaSupport(schema map[string]interface{}) {
-	// Define the guard reference property (used in server configs)
-	guardRefProperty := map[string]interface{}{
-		"type":        "string",
-		"description": "Reference to a guard defined in the guards section (requires --enable-difc)",
-	}
-
-	// Add "guard" property to stdioServerConfig and httpServerConfig
-	if definitions, ok := schema["definitions"].(map[string]interface{}); ok {
-		// Add to stdioServerConfig
-		if stdioConfig, ok := definitions["stdioServerConfig"].(map[string]interface{}); ok {
-			if properties, ok := stdioConfig["properties"].(map[string]interface{}); ok {
-				properties["guard"] = guardRefProperty
-			}
-		}
-
-		// Add to httpServerConfig
-		if httpConfig, ok := definitions["httpServerConfig"].(map[string]interface{}); ok {
-			if properties, ok := httpConfig["properties"].(map[string]interface{}); ok {
-				properties["guard"] = guardRefProperty
-			}
-		}
-
-		// Add to customServerConfig
-		if customConfig, ok := definitions["customServerConfig"].(map[string]interface{}); ok {
-			if properties, ok := customConfig["properties"].(map[string]interface{}); ok {
-				properties["guard"] = guardRefProperty
-			}
-		}
-
-		// Add guardConfig definition
-		definitions["guardConfig"] = map[string]interface{}{
-			"type":        "object",
-			"description": "WASM guard configuration for DIFC enforcement",
-			"properties": map[string]interface{}{
-				"type": map[string]interface{}{
-					"type":        "string",
-					"enum":        []string{"wasm"},
-					"description": "Guard type (currently only 'wasm' is supported)",
-				},
-				"path": map[string]interface{}{
-					"type":        "string",
-					"description": "Local file path to the WASM guard module",
-				},
-				"url": map[string]interface{}{
-					"type":        "string",
-					"pattern":     "^https?://.+",
-					"description": "URL to download the WASM guard module from",
-				},
-			},
-			"required": []string{"type"},
-		}
-	}
-
-	// Add "guards" property to root schema
-	if properties, ok := schema["properties"].(map[string]interface{}); ok {
-		properties["guards"] = map[string]interface{}{
-			"type":        "object",
-			"description": "DIFC guard definitions (requires --enable-difc flag)",
-			"additionalProperties": map[string]interface{}{
-				"$ref": "#/definitions/guardConfig",
-			},
-		}
-	}
-}
-
-// addSessionSchemaSupport extends the schema to support session label configuration
-// in the gateway config section. See github-difc.md section 11.5 for specification.
-func addSessionSchemaSupport(schema map[string]interface{}) {
-	// Add sessionConfig definition
-	if definitions, ok := schema["definitions"].(map[string]interface{}); ok {
-		definitions["sessionConfig"] = map[string]interface{}{
-			"type":        "object",
-			"description": "DIFC session label configuration for initializing agent clearances",
-			"properties": map[string]interface{}{
-				"secrecy": map[string]interface{}{
-					"type":        "array",
-					"description": "Initial secrecy clearance tags (e.g., private:owner/repo)",
-					"items": map[string]interface{}{
-						"type": "string",
-					},
-				},
-				"integrity": map[string]interface{}{
-					"type":        "array",
-					"description": "Initial integrity clearance tags (e.g., contributor:owner/repo, maintainer:owner/repo)",
-					"items": map[string]interface{}{
-						"type": "string",
-					},
-				},
-			},
-			"additionalProperties": false,
-		}
-
-		// Add "session" property to gatewayConfig
-		if gatewayConfig, ok := definitions["gatewayConfig"].(map[string]interface{}); ok {
-			if properties, ok := gatewayConfig["properties"].(map[string]interface{}); ok {
-				properties["session"] = map[string]interface{}{
-					"$ref": "#/definitions/sessionConfig",
-				}
-			}
-		}
-	}
 }
