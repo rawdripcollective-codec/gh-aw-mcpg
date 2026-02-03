@@ -12,7 +12,7 @@ import (
 
 func TestSlogAdapter(t *testing.T) {
 	// Only run if DEBUG is enabled
-	if os.Getenv("DEBUG") == "" {
+	if os.Getenv(EnvDebug) == "" {
 		t.Skip("Skipping test: DEBUG environment variable not set")
 	}
 
@@ -64,7 +64,7 @@ func TestSlogAdapter(t *testing.T) {
 
 func TestSlogAdapterDisabled(t *testing.T) {
 	// Only run if DEBUG is not set
-	if os.Getenv("DEBUG") != "" {
+	if os.Getenv(EnvDebug) != "" {
 		t.Skip("Skipping test: DEBUG environment variable is set")
 	}
 
@@ -95,7 +95,7 @@ func TestSlogAdapterDisabled(t *testing.T) {
 
 func TestNewSlogLoggerWithHandler(t *testing.T) {
 	// Only run if DEBUG is enabled
-	if os.Getenv("DEBUG") == "" {
+	if os.Getenv(EnvDebug) == "" {
 		t.Skip("Skipping test: DEBUG environment variable not set")
 	}
 

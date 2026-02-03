@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/github/gh-aw-mcpg/internal/config"
+	"github.com/github/gh-aw-mcpg/internal/logger"
 )
 
 func TestGetDefaultLogDir(t *testing.T) {
@@ -164,60 +165,60 @@ func TestPreRunValidation(t *testing.T) {
 		err := preRun(nil, nil)
 		assert.NoError(t, err)
 		// Level 1 doesn't set DEBUG env var
-		assert.Empty(t, os.Getenv("DEBUG"))
+		assert.Empty(t, os.Getenv(logger.EnvDebug))
 	})
 
 	t.Run("verbosity level 2 sets DEBUG for main packages", func(t *testing.T) {
 		// Save and clear DEBUG env var
-		origDebug, wasSet := os.LookupEnv("DEBUG")
+		origDebug, wasSet := os.LookupEnv(logger.EnvDebug)
 		t.Cleanup(func() {
 			if wasSet {
-				os.Setenv("DEBUG", origDebug)
+				os.Setenv(logger.EnvDebug, origDebug)
 			} else {
-				os.Unsetenv("DEBUG")
+				os.Unsetenv(logger.EnvDebug)
 			}
 		})
-		os.Unsetenv("DEBUG")
+		os.Unsetenv(logger.EnvDebug)
 
 		configFile = "test.toml"
 		configStdin = false
 		verbosity = 2
 		err := preRun(nil, nil)
 		assert.NoError(t, err)
-		assert.Equal(t, "cmd:*,server:*,launcher:*", os.Getenv("DEBUG"))
+		assert.Equal(t, "cmd:*,server:*,launcher:*", os.Getenv(logger.EnvDebug))
 	})
 
 	t.Run("verbosity level 3 sets DEBUG to all", func(t *testing.T) {
 		// Save and clear DEBUG env var
-		origDebug, wasSet := os.LookupEnv("DEBUG")
+		origDebug, wasSet := os.LookupEnv(logger.EnvDebug)
 		t.Cleanup(func() {
 			if wasSet {
-				os.Setenv("DEBUG", origDebug)
+				os.Setenv(logger.EnvDebug, origDebug)
 			} else {
-				os.Unsetenv("DEBUG")
+				os.Unsetenv(logger.EnvDebug)
 			}
 		})
-		os.Unsetenv("DEBUG")
+		os.Unsetenv(logger.EnvDebug)
 
 		configFile = "test.toml"
 		configStdin = false
 		verbosity = 3
 		err := preRun(nil, nil)
 		assert.NoError(t, err)
-		assert.Equal(t, "*", os.Getenv("DEBUG"))
+		assert.Equal(t, "*", os.Getenv(logger.EnvDebug))
 	})
 
 	t.Run("does not override existing DEBUG env var", func(t *testing.T) {
 		// Save DEBUG env var
-		origDebug, wasSet := os.LookupEnv("DEBUG")
+		origDebug, wasSet := os.LookupEnv(logger.EnvDebug)
 		t.Cleanup(func() {
 			if wasSet {
-				os.Setenv("DEBUG", origDebug)
+				os.Setenv(logger.EnvDebug, origDebug)
 			} else {
-				os.Unsetenv("DEBUG")
+				os.Unsetenv(logger.EnvDebug)
 			}
 		})
-		os.Setenv("DEBUG", "custom:*")
+		os.Setenv(logger.EnvDebug, "custom:*")
 
 		configFile = "test.toml"
 		configStdin = false
@@ -225,7 +226,7 @@ func TestPreRunValidation(t *testing.T) {
 		err := preRun(nil, nil)
 		assert.NoError(t, err)
 		// Should not override existing DEBUG
-		assert.Equal(t, "custom:*", os.Getenv("DEBUG"))
+		assert.Equal(t, "custom:*", os.Getenv(logger.EnvDebug))
 	})
 }
 
