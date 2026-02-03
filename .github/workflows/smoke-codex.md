@@ -34,7 +34,7 @@ tools:
   serena: ["go"]
 sandbox:
   mcp:
-    container: "ghcr.io/github/gh-aw-mcpg"
+    container: "ghcr.io/github/gh-aw-mcpg:v0.0.94"
 safe-outputs:
     add-comment:
       hide-older-comments: true
