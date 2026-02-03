@@ -81,7 +81,7 @@ Add meaningful debug logging calls to Go files in the `internal/` directory foll
 If a file doesn't have a logger, add this at the top of the file (after imports):
 
 ```go
-import "github.com/githubnext/gh-aw-mcpg/internal/logger"
+import "github.com/github/gh-aw-mcpg/internal/logger"
 
 var log = logger.New("pkg:filename")
 ```
@@ -187,7 +187,7 @@ For the selected file:
 For the selected file:
 
 1. **Add logger declaration if missing:**
-   - Add import: `"github.com/githubnext/gh-aw-mcpg/internal/logger"`
+   - Add import: `"github.com/github/gh-aw-mcpg/internal/logger"`
    - Add logger variable using correct naming: `var log = logger.New("pkg:filename")`
    
 2. **Reuse existing logger if present:**
@@ -272,7 +272,7 @@ import (
     "fmt"
     "net/http"
     
-    "github.com/githubnext/gh-aw-mcpg/internal/logger"
+    "github.com/github/gh-aw-mcpg/internal/logger"
 )
 
 var log = logger.New("server:server")

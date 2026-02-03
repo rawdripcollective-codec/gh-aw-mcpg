@@ -5,8 +5,8 @@ import (
 	"os"
 	"regexp"
 
-	"github.com/githubnext/gh-aw-mcpg/internal/config/rules"
-	"github.com/githubnext/gh-aw-mcpg/internal/logger"
+	"github.com/github/gh-aw-mcpg/internal/config/rules"
+	"github.com/github/gh-aw-mcpg/internal/logger"
 )
 
 // ValidationError is an alias for rules.ValidationError for backward compatibility

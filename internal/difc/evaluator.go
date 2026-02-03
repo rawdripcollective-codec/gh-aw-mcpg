@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/githubnext/gh-aw-mcpg/internal/logger"
+	"github.com/github/gh-aw-mcpg/internal/logger"
 )
 
 var logEvaluator = logger.New("difc:evaluator")

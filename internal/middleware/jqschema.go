@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/githubnext/gh-aw-mcpg/internal/logger"
+	"github.com/github/gh-aw-mcpg/internal/logger"
 	"github.com/itchyny/gojq"
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )

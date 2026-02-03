@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/githubnext/gh-aw-mcpg/internal/logger"
+	"github.com/github/gh-aw-mcpg/internal/logger"
 )
 
 var logAuth = logger.New("server:auth")

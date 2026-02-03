@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://github.com/githubnext/gh-aw/schemas/main_workflow_schema.json",
+  "$id": "https://github.com/github/gh-aw/schemas/main_workflow_schema.json",
   "title": "GitHub Agentic Workflow Schema",
   "description": "JSON Schema for validating agentic workflow frontmatter configuration",
   "version": "1.0.0",
@@ -20,8 +20,8 @@
     },
     "source": {
       "type": "string",
-      "description": "Optional source reference indicating where this workflow was added from. Format: owner/repo/path@ref (e.g., githubnext/agentics/workflows/ci-doctor.md@v1.0.0). Rendered as a comment in the generated lock file.",
-      "examples": ["githubnext/agentics/workflows/ci-doctor.md", "githubnext/agentics/workflows/daily-perf-improver.md@1f181b37d3fe5862ab590648f25a292e345b5de6"]
+      "description": "Optional source reference indicating where this workflow was added from. Format: owner/repo/path@ref (e.g., github/agentics/workflows/ci-doctor.md@v1.0.0). Rendered as a comment in the generated lock file.",
+      "examples": ["github/agentics/workflows/ci-doctor.md", "github/agentics/workflows/daily-perf-improver.md@1f181b37d3fe5862ab590648f25a292e345b5de6"]
     },
     "tracker-id": {
       "type": "string",
@@ -64,7 +64,7 @@
     },
     "imports": {
       "type": "array",
-      "description": "Optional array of workflow specifications to import (similar to @include directives but defined in frontmatter). Format: owner/repo/path@ref (e.g., githubnext/agentics/workflows/shared/common.md@v1.0.0). Can be strings or objects with path and inputs. Any markdown files under .github/agents directory are treated as custom agent files and only one agent file is allowed per workflow.",
+      "description": "Optional array of workflow specifications to import (similar to @include directives but defined in frontmatter). Format: owner/repo/path@ref (e.g., github/agentics/workflows/shared/common.md@v1.0.0). Can be strings or objects with path and inputs. Any markdown files under .github/agents directory are treated as custom agent files and only one agent file is allowed per workflow.",
       "items": {
         "oneOf": [
           {
@@ -1806,7 +1806,7 @@
       ]
     },
     "env": {
-      "$comment": "See environment variable precedence documentation: https://githubnext.github.io/gh-aw/reference/environment-variables/",
+      "$comment": "See environment variable precedence documentation: https://github.github.io/gh-aw/reference/environment-variables/",
       "description": "Environment variables for the workflow",
       "oneOf": [
         {
@@ -2368,14 +2368,14 @@
         },
         {
           "mcp": {
-            "container": "ghcr.io/githubnext/mcp-gateway",
+            "container": "ghcr.io/github/mcp-gateway",
             "port": 8080
           }
         },
         {
           "agent": "awf",
           "mcp": {
-            "container": "ghcr.io/githubnext/mcp-gateway",
+            "container": "ghcr.io/github/mcp-gateway",
             "port": 8080,
             "api-key": "${{ secrets.MCP_GATEWAY_API_KEY }}"
           }
@@ -5286,7 +5286,7 @@
       "type": "boolean",
       "default": true,
       "$comment": "Strict mode enforces several security constraints that are validated in Go code (pkg/workflow/strict_mode_validation.go) rather than JSON Schema: (1) Write Permissions + Safe Outputs: When strict=true AND permissions contains write values (contents:write, issues:write, pull-requests:write), safe-outputs must be configured. This relationship is too complex for JSON Schema as it requires checking if ANY permission property has a 'write' value. (2) Network Requirements: When strict=true, the 'network' field must be present and cannot contain wildcard '*'. (3) MCP Container Network: Custom MCP servers with containers require explicit network configuration. (4) Action Pinning: Actions must be pinned to commit SHAs. These are enforced during compilation via validateStrictMode().",
-      "description": "Enable strict mode validation for enhanced security and compliance. Strict mode enforces: (1) Write Permissions - refuses contents:write, issues:write, pull-requests:write; requires safe-outputs instead, (2) Network Configuration - requires explicit network configuration with no wildcard '*' in allowed domains, (3) Action Pinning - enforces actions pinned to commit SHAs instead of tags/branches, (4) MCP Network - requires network configuration for custom MCP servers with containers, (5) Deprecated Fields - refuses deprecated frontmatter fields. Can be enabled per-workflow via 'strict: true' in frontmatter, or disabled via 'strict: false'. CLI flag takes precedence over frontmatter (gh aw compile --strict enforces strict mode). Defaults to true. See: https://githubnext.github.io/gh-aw/reference/frontmatter/#strict-mode-strict",
+      "description": "Enable strict mode validation for enhanced security and compliance. Strict mode enforces: (1) Write Permissions - refuses contents:write, issues:write, pull-requests:write; requires safe-outputs instead, (2) Network Configuration - requires explicit network configuration with no wildcard '*' in allowed domains, (3) Action Pinning - enforces actions pinned to commit SHAs instead of tags/branches, (4) MCP Network - requires network configuration for custom MCP servers with containers, (5) Deprecated Fields - refuses deprecated frontmatter fields. Can be enabled per-workflow via 'strict: true' in frontmatter, or disabled via 'strict: false'. CLI flag takes precedence over frontmatter (gh aw compile --strict enforces strict mode). Defaults to true. See: https://github.github.io/gh-aw/reference/frontmatter/#strict-mode-strict",
       "examples": [true, false]
     },
     "safe-inputs": {

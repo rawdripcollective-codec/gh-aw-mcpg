@@ -8,8 +8,8 @@ import (
 
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/githubnext/gh-aw-mcpg/internal/config"
-	"github.com/githubnext/gh-aw-mcpg/internal/server"
+	"github.com/github/gh-aw-mcpg/internal/config"
+	"github.com/github/gh-aw-mcpg/internal/server"
 )
 
 // TestDriver manages test servers and the gateway for integration testing

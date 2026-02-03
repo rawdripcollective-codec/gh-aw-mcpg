@@ -499,9 +499,9 @@ Structure:
 The Docker image for this release is available at:
 
 \`\`\`bash
-docker pull ghcr.io/githubnext/gh-aw-mcpg:${RELEASE_TAG}
+docker pull ghcr.io/github/gh-aw-mcpg:${RELEASE_TAG}
 # or
-docker pull ghcr.io/githubnext/gh-aw-mcpg:latest
+docker pull ghcr.io/github/gh-aw-mcpg:latest
 \`\`\`
 
 Supported platforms: `linux/amd64`, `linux/arm64`
@@ -514,7 +514,7 @@ For complete details, see the [full release notes](${{ github.server_url }}/${{ 
 - Lead with benefits: "MCP Gateway now supports remote mode" not "Added remote mode"
 - Be specific: "Reduced server startup time by 40%" not "Faster startup"
 - Skip internal changes unless they have user impact
-- Use docs links: `[Configuration Guide](https://github.com/githubnext/gh-aw-mcpg/blob/main/docs/config.md)`
+- Use docs links: `[Configuration Guide](https://github.com/github/gh-aw-mcpg/blob/main/docs/config.md)`
 - Keep breaking changes prominent with action items
 - Mention Docker image availability prominently
 
@@ -538,9 +538,9 @@ Welcome to the inaugural release of MCP Gateway! This Go-based proxy server enab
 The Docker image for this release is available at:
 
 \`\`\`bash
-docker pull ghcr.io/githubnext/gh-aw-mcpg:${RELEASE_TAG}
+docker pull ghcr.io/github/gh-aw-mcpg:${RELEASE_TAG}
 # or
-docker pull ghcr.io/githubnext/gh-aw-mcpg:latest
+docker pull ghcr.io/github/gh-aw-mcpg:latest
 \`\`\`
 
 Supported platforms: `linux/amd64`, `linux/arm64`
@@ -550,7 +550,7 @@ Supported platforms: `linux/amd64`, `linux/arm64`
 2. Configure: Edit `config.toml` with your MCP servers
 3. Run: `./awmg --config config.toml`
 
-See the [README](https://github.com/githubnext/gh-aw-mcpg#readme) for complete setup instructions.
+See the [README](https://github.com/github/gh-aw-mcpg#readme) for complete setup instructions.
 ```
 
 **Maintenance Release** (no user-facing changes):
@@ -564,9 +564,9 @@ Dependency updates and internal improvements to keep MCP Gateway running smoothl
 The Docker image for this release is available at:
 
 \`\`\`bash
-docker pull ghcr.io/githubnext/gh-aw-mcpg:${RELEASE_TAG}
+docker pull ghcr.io/github/gh-aw-mcpg:${RELEASE_TAG}
 # or
-docker pull ghcr.io/githubnext/gh-aw-mcpg:latest
+docker pull ghcr.io/github/gh-aw-mcpg:latest
 \`\`\`
 
 Supported platforms: `linux/amd64`, `linux/arm64`
@@ -592,7 +592,7 @@ update_release({
 **WARNING**: If you don't call the `update_release` tool, the release notes will NOT be updated!
 
 **Documentation Base URL:**
-- Repository docs: `https://github.com/githubnext/gh-aw-mcpg/blob/main/docs/`
-- Repository README: `https://github.com/githubnext/gh-aw-mcpg#readme`
+- Repository docs: `https://github.com/github/gh-aw-mcpg/blob/main/docs/`
+- Repository README: `https://github.com/github/gh-aw-mcpg#readme`
 
 Verify paths exist in `docs_files.txt` before linking.

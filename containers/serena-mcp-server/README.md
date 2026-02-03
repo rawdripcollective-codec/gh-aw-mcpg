@@ -27,7 +27,7 @@ Run the Serena MCP server with the MCP Gateway:
   "mcpServers": {
     "serena": {
       "type": "stdio",
-      "container": "ghcr.io/githubnext/serena-mcp-server:latest",
+      "container": "ghcr.io/github/serena-mcp-server:latest",
       "mounts": [
         "/path/to/your/workspace:/workspace:ro"
       ]
@@ -66,7 +66,7 @@ args = [
   "-v", "/path/to/workspace:/workspace:ro",
   "-e", "NO_COLOR=1",
   "-e", "TERM=dumb",
-  "ghcr.io/githubnext/serena-mcp-server:latest"
+  "ghcr.io/github/serena-mcp-server:latest"
 ]
 ```
 
@@ -76,7 +76,7 @@ args = [
   "mcpServers": {
     "serena": {
       "type": "stdio",
-      "container": "ghcr.io/githubnext/serena-mcp-server:latest",
+      "container": "ghcr.io/github/serena-mcp-server:latest",
       "mounts": [
         "/path/to/workspace:/workspace:ro"
       ],
@@ -105,7 +105,7 @@ To build for multiple architectures (amd64 and arm64):
 ```bash
 docker buildx build \
   --platform linux/amd64,linux/arm64 \
-  -t ghcr.io/githubnext/serena-mcp-server:latest \
+  -t ghcr.io/github/serena-mcp-server:latest \
   --push \
   .
 ```
@@ -174,4 +174,4 @@ If Serena is slow:
 - [Serena GitHub Repository](https://github.com/oraios/serena)
 - [Serena Documentation](https://oraios.github.io/serena/)
 - [Model Context Protocol](https://github.com/modelcontextprotocol)
-- [MCP Gateway Configuration](https://github.com/githubnext/gh-aw/blob/main/docs/src/content/docs/reference/mcp-gateway.md)
+- [MCP Gateway Configuration](https://github.com/github/gh-aw/blob/main/docs/src/content/docs/reference/mcp-gateway.md)

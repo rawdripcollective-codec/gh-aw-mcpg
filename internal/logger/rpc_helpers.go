@@ -19,7 +19,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/githubnext/gh-aw-mcpg/internal/logger/sanitize"
+	"github.com/github/gh-aw-mcpg/internal/logger/sanitize"
 )
 
 // Pre-compiled regexes for performance (avoid recompiling in hot paths).

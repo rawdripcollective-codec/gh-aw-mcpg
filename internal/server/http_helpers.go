@@ -7,9 +7,9 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/githubnext/gh-aw-mcpg/internal/auth"
-	"github.com/githubnext/gh-aw-mcpg/internal/logger"
-	"github.com/githubnext/gh-aw-mcpg/internal/mcp"
+	"github.com/github/gh-aw-mcpg/internal/auth"
+	"github.com/github/gh-aw-mcpg/internal/logger"
+	"github.com/github/gh-aw-mcpg/internal/mcp"
 )
 
 var logHelpers = logger.New("server:helpers")

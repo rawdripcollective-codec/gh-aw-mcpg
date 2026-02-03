@@ -1,4 +1,4 @@
-module github.com/githubnext/gh-aw-mcpg
+module github.com/github/gh-aw-mcpg
 
 go 1.25.0
 

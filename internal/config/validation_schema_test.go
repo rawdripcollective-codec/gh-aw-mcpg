@@ -555,7 +555,7 @@ func TestEnhancedErrorMessages(t *testing.T) {
 				"Location:",
 				"Error:",
 				"Details:",
-				"https://raw.githubusercontent.com/githubnext/gh-aw/main/docs/public/schemas/mcp-gateway-config.schema.json",
+				"https://raw.githubusercontent.com/github/gh-aw/main/docs/public/schemas/mcp-gateway-config.schema.json",
 			},
 		},
 		{
@@ -663,7 +663,7 @@ func TestSchemaURLConfiguration(t *testing.T) {
 
 	// The current implementation uses 'main' branch
 	// For production, consider pinning to a specific commit SHA or version tag
-	expectedPattern := "https://raw.githubusercontent.com/githubnext/gh-aw/"
+	expectedPattern := "https://raw.githubusercontent.com/github/gh-aw/"
 
 	// We can't directly test the package-level schemaURL variable,
 	// but we can verify that the schema compiles and validates correctly

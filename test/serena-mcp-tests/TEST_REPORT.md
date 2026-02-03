@@ -1,7 +1,7 @@
 # Serena MCP Server Test Report
 
 **Test Execution Date:** January 19, 2026  
-**Container Image:** `ghcr.io/githubnext/serena-mcp-server:latest`  
+**Container Image:** `ghcr.io/github/serena-mcp-server:latest`  
 **Test Script:** `test_serena.sh` (Updated)  
 **Test Location:** `/home/runner/work/gh-aw-mcpg/gh-aw-mcpg/test/serena-mcp-tests`
 
@@ -21,7 +21,7 @@ The test suite validates multi-language support (Go, Java, JavaScript, Python), 
 | Test # | Test Name | Status | Notes |
 |--------|-----------|--------|-------|
 | 1 | Docker Availability | ✓ PASS | Docker is installed and operational |
-| 2 | Container Image Availability | ✓ PASS | Successfully pulled `ghcr.io/githubnext/serena-mcp-server:latest` |
+| 2 | Container Image Availability | ✓ PASS | Successfully pulled `ghcr.io/github/serena-mcp-server:latest` |
 | 3 | Container Basic Functionality | ✓ PASS | Container help command works correctly |
 
 ### Language Runtime Verification (4/4 Passed)

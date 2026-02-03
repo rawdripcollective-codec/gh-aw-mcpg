@@ -38,11 +38,11 @@ You are an AI agent that monitors MCP Gateway logs from the gh-aw repository to 
 
 ## Mission
 
-Analyze workflow runs from the last 24 hours in the `githubnext/gh-aw` repository, looking for MCP Gateway errors in the artifact logs. Create a comprehensive issue summarizing any problems found.
+Analyze workflow runs from the last 24 hours in the `github/gh-aw` repository, looking for MCP Gateway errors in the artifact logs. Create a comprehensive issue summarizing any problems found.
 
 ## Target Workflows
 
-Focus on these specific workflow files in `githubnext/gh-aw`:
+Focus on these specific workflow files in `github/gh-aw`:
 1. `code-scanning-fixer.lock.yml`
 2. `copilot-agent-analysis.lock.yml`
 
@@ -53,7 +53,7 @@ Use the GitHub MCP server to fetch workflow runs from the last 24 hours:
 1. **List workflow runs for code-scanning-fixer:**
    ```
    Use github-mcp-server list_workflow_runs with:
-   - owner: githubnext
+   - owner: github
    - repo: gh-aw
    - resource_id: code-scanning-fixer.lock.yml
    ```
@@ -61,7 +61,7 @@ Use the GitHub MCP server to fetch workflow runs from the last 24 hours:
 2. **List workflow runs for copilot-agent-analysis:**
    ```
    Use github-mcp-server list_workflow_runs with:
-   - owner: githubnext
+   - owner: github
    - repo: gh-aw
    - resource_id: copilot-agent-analysis.lock.yml
    ```
@@ -78,7 +78,7 @@ For each workflow run found:
 1. **List artifacts:**
    ```
    Use github-mcp-server list_workflow_run_artifacts with:
-   - owner: githubnext
+   - owner: github
    - repo: gh-aw
    - resource_id: <workflow_run_id>
    ```
@@ -408,9 +408,9 @@ For each reproducible error, provide:
 
 ## Workflow Run References
 
-- [§run_id_1](https://github.com/githubnext/gh-aw/actions/runs/run_id_1)
-- [§run_id_2](https://github.com/githubnext/gh-aw/actions/runs/run_id_2)
-- [§run_id_3](https://github.com/githubnext/gh-aw/actions/runs/run_id_3)
+- [§run_id_1](https://github.com/github/gh-aw/actions/runs/run_id_1)
+- [§run_id_2](https://github.com/github/gh-aw/actions/runs/run_id_2)
+- [§run_id_3](https://github.com/github/gh-aw/actions/runs/run_id_3)
 
 ## Analysis Period
 
@@ -529,7 +529,7 @@ Use GitHub API to download artifacts (if MCP tools are not available):
 # Note: GITHUB_TOKEN will be available in the workflow environment
 # Get artifact download URL
 artifact_url=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
-  "https://api.github.com/repos/githubnext/gh-aw/actions/artifacts/$artifact_id/zip" \
+  "https://api.github.com/repos/github/gh-aw/actions/artifacts/$artifact_id/zip" \
   -w '%{redirect_url}')
 
 # Download and extract

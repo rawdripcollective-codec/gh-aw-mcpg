@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/githubnext/gh-aw-mcpg/internal/logger"
+	"github.com/github/gh-aw-mcpg/internal/logger"
 )
 
 var logHealth = logger.New("server:health")

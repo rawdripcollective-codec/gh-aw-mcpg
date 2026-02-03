@@ -26,7 +26,7 @@ This document explains the architectural differences for developers interested i
 **Production Deployment (Both Servers):**
 ```
 Gateway → docker run -i ghcr.io/github/github-mcp-server (stdio) ✅
-Gateway → docker run -i ghcr.io/githubnext/serena-mcp-server (stdio) ✅
+Gateway → docker run -i ghcr.io/github/serena-mcp-server (stdio) ✅
 ```
 
 **Both servers:**
@@ -234,7 +234,7 @@ args = ["run", "--rm", "-i", "ghcr.io/github/github-mcp-server:latest"]
 ```toml
 [servers.serena]
 command = "docker"
-args = ["run", "--rm", "-i", "ghcr.io/githubnext/serena-mcp-server:latest"]
+args = ["run", "--rm", "-i", "ghcr.io/github/serena-mcp-server:latest"]
 ```
 
 **config.json:**
@@ -242,7 +242,7 @@ args = ["run", "--rm", "-i", "ghcr.io/githubnext/serena-mcp-server:latest"]
 {
   "serena": {
     "type": "stdio",
-    "container": "ghcr.io/githubnext/serena-mcp-server:latest"
+    "container": "ghcr.io/github/serena-mcp-server:latest"
   }
 }
 ```
@@ -365,7 +365,7 @@ Both patterns work correctly with the gateway's stdio transport and session conn
     },
     "serena": {
       "type": "stdio",
-      "container": "ghcr.io/githubnext/serena-mcp-server:latest"
+      "container": "ghcr.io/github/serena-mcp-server:latest"
     }
   }
 }

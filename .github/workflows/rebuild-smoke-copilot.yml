@@ -34,7 +34,7 @@ jobs:
         run: |
           cd /tmp
           rm -rf gh-aw
-          git clone https://github.com/githubnext/gh-aw.git
+          git clone https://github.com/github/gh-aw.git
           echo "✓ Cloned gh-aw repository"
 
       - name: Build gh-aw compiler
@@ -76,7 +76,7 @@ jobs:
             This PR updates the `smoke-copilot.lock.yml` file by recompiling it from the source `smoke-copilot.md` using the latest gh-aw compiler.
             
             ### Changes
-            - Cloned and built gh-aw from https://github.com/githubnext/gh-aw
+            - Cloned and built gh-aw from https://github.com/github/gh-aw
             - Recompiled `.github/workflows/smoke-copilot.md` using `gh-aw compile smoke-copilot`
             - Updated `.github/workflows/smoke-copilot.lock.yml` with the latest compilation
             

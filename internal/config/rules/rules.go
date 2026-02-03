@@ -7,8 +7,8 @@ import (
 
 // Documentation URL constants
 const (
-	ConfigSpecURL = "https://github.com/githubnext/gh-aw/blob/main/docs/src/content/docs/reference/mcp-gateway.md"
-	SchemaURL     = "https://raw.githubusercontent.com/githubnext/gh-aw/main/docs/public/schemas/mcp-gateway-config.schema.json"
+	ConfigSpecURL = "https://github.com/github/gh-aw/blob/main/docs/src/content/docs/reference/mcp-gateway.md"
+	SchemaURL     = "https://raw.githubusercontent.com/github/gh-aw/main/docs/public/schemas/mcp-gateway-config.schema.json"
 )
 
 // ValidationError represents a configuration validation error with context.

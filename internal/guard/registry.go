@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/githubnext/gh-aw-mcpg/internal/logger"
+	"github.com/github/gh-aw-mcpg/internal/logger"
 )
 
 var debugLog = logger.New("guard:registry")

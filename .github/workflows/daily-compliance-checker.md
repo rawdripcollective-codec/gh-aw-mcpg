@@ -41,7 +41,7 @@ strict: true
 
 # Daily MCP Gateway Compliance Checker 🔍
 
-You are an AI compliance auditor that verifies the MCP Gateway implementation follows the official [MCP Gateway Specification](https://github.com/githubnext/gh-aw/blob/main/docs/src/content/docs/reference/mcp-gateway.md).
+You are an AI compliance auditor that verifies the MCP Gateway implementation follows the official [MCP Gateway Specification](https://github.com/github/gh-aw/blob/main/docs/src/content/docs/reference/mcp-gateway.md).
 
 ## Mission
 
@@ -111,14 +111,14 @@ Use cache memory to avoid re-validating already-checked aspects:
 Get the latest specification to check against using the GitHub MCP:
 
 Use the GitHub MCP's `get_file_contents` tool to read the specification file:
-- **Owner**: `githubnext`
+- **Owner**: `github`
 - **Repo**: `gh-aw`
 - **Path**: `docs/src/content/docs/reference/mcp-gateway.md`
 - **Ref**: `main` (to get the latest version)
 
 Example:
 ```
-Use github get_file_contents with owner=githubnext, repo=gh-aw, path=docs/src/content/docs/reference/mcp-gateway.md, ref=main
+Use github get_file_contents with owner=github, repo=gh-aw, path=docs/src/content/docs/reference/mcp-gateway.md, ref=main
 ```
 
 Parse the specification to extract:
@@ -153,7 +153,7 @@ Review each section of the specification systematically. For **CHANGED FILES fro
 7. Verify HTTP servers require `url` field
 
 **Deep Link Template:**
-`https://github.com/githubnext/gh-aw/blob/main/docs/src/content/docs/reference/mcp-gateway.md#41-configuration-format`
+`https://github.com/github/gh-aw/blob/main/docs/src/content/docs/reference/mcp-gateway.md#41-configuration-format`
 
 ### 4.2 Containerization Requirement (Section 3.2.1)
 
@@ -167,7 +167,7 @@ Review each section of the specification systematically. For **CHANGED FILES fro
 4. Check that `command` field is rejected during validation
 
 **Deep Link:**
-`https://github.com/githubnext/gh-aw/blob/main/docs/src/content/docs/reference/mcp-gateway.md#321-containerization-requirement`
+`https://github.com/github/gh-aw/blob/main/docs/src/content/docs/reference/mcp-gateway.md#321-containerization-requirement`
 
 ### 4.3 Protocol Behavior (Section 5)
 
@@ -187,7 +187,7 @@ Review each section of the specification systematically. For **CHANGED FILES fro
 5. Check timeout enforcement
 
 **Deep Link:**
-`https://github.com/githubnext/gh-aw/blob/main/docs/src/content/docs/reference/mcp-gateway.md#5-protocol-behavior`
+`https://github.com/github/gh-aw/blob/main/docs/src/content/docs/reference/mcp-gateway.md#5-protocol-behavior`
 
 ### 4.4 Server Isolation (Section 6)
 
@@ -205,7 +205,7 @@ Review each section of the specification systematically. For **CHANGED FILES fro
 4. Verify failure isolation
 
 **Deep Link:**
-`https://github.com/githubnext/gh-aw/blob/main/docs/src/content/docs/reference/mcp-gateway.md#6-server-isolation`
+`https://github.com/github/gh-aw/blob/main/docs/src/content/docs/reference/mcp-gateway.md#6-server-isolation`
 
 ### 4.5 Authentication (Section 7)
 
@@ -222,7 +222,7 @@ Review each section of the specification systematically. For **CHANGED FILES fro
 4. Verify no plaintext API key logging
 
 **Deep Link:**
-`https://github.com/githubnext/gh-aw/blob/main/docs/src/content/docs/reference/mcp-gateway.md#7-authentication`
+`https://github.com/github/gh-aw/blob/main/docs/src/content/docs/reference/mcp-gateway.md#7-authentication`
 
 ### 4.6 Health Monitoring (Section 8)
 
@@ -239,7 +239,7 @@ Review each section of the specification systematically. For **CHANGED FILES fro
 4. Verify automatic restart logic
 
 **Deep Link:**
-`https://github.com/githubnext/gh-aw/blob/main/docs/src/content/docs/reference/mcp-gateway.md#8-health-monitoring`
+`https://github.com/github/gh-aw/blob/main/docs/src/content/docs/reference/mcp-gateway.md#8-health-monitoring`
 
 ### 4.7 Error Handling (Section 9)
 
@@ -257,7 +257,7 @@ Review each section of the specification systematically. For **CHANGED FILES fro
 4. Verify error codes match specification
 
 **Deep Link:**
-`https://github.com/githubnext/gh-aw/blob/main/docs/src/content/docs/reference/mcp-gateway.md#9-error-handling`
+`https://github.com/github/gh-aw/blob/main/docs/src/content/docs/reference/mcp-gateway.md#9-error-handling`
 
 ### 4.8 Compliance Testing (Section 10)
 
@@ -275,7 +275,7 @@ The specification defines test categories that implementations MUST pass:
 4. Verify test coverage for critical requirements
 
 **Deep Link:**
-`https://github.com/githubnext/gh-aw/blob/main/docs/src/content/docs/reference/mcp-gateway.md#10-compliance-testing`
+`https://github.com/github/gh-aw/blob/main/docs/src/content/docs/reference/mcp-gateway.md#10-compliance-testing`
 
 ## Step 5: Cross-Reference with README and Documentation 📚
 
@@ -304,7 +304,7 @@ For each compliance issue found:
    - **Requirement:** The specific MUST/SHOULD/SHALL requirement
    - **Current State:** What the code currently does
    - **Gap:** How it deviates from the specification
-   - **Deep Link:** Direct link to the spec section (format: `https://github.com/githubnext/gh-aw/blob/main/docs/src/content/docs/reference/mcp-gateway.md#section-id`)
+   - **Deep Link:** Direct link to the spec section (format: `https://github.com/github/gh-aw/blob/main/docs/src/content/docs/reference/mcp-gateway.md#section-id`)
    - **File References:** Specific files and line numbers
    - **Severity:** Critical (MUST violation), Important (SHOULD violation), Minor (MAY suggestion)
 
@@ -313,7 +313,7 @@ For each compliance issue found:
    ### Issue: Variable Expansion Not Failing Fast
 
    **Specification Section:** 4.2.2 Variable Expression Resolution
-   **Deep Link:** https://github.com/githubnext/gh-aw/blob/main/docs/src/content/docs/reference/mcp-gateway.md#422-resolution-behavior
+   **Deep Link:** https://github.com/github/gh-aw/blob/main/docs/src/content/docs/reference/mcp-gateway.md#422-resolution-behavior
 
    **Requirement:** 
    > "The gateway MUST... FAIL IMMEDIATELY if a referenced variable is not defined"
@@ -375,7 +375,7 @@ If compliance issues are found:
    ### Task 1: Fix Variable Expansion Validation
    **Description:** Update validation logic to fail immediately on undefined variables
    **Files:** `internal/config/validation.go`
-   **Specification Reference:** https://github.com/githubnext/gh-aw/blob/main/docs/src/content/docs/reference/mcp-gateway.md#422-resolution-behavior
+   **Specification Reference:** https://github.com/github/gh-aw/blob/main/docs/src/content/docs/reference/mcp-gateway.md#422-resolution-behavior
    **Estimated Effort:** Small (2-3 hours)
 
    ### Task 2: [Next task...]
@@ -389,7 +389,7 @@ If compliance issues are found:
 
    ## References
 
-   - [MCP Gateway Specification](https://github.com/githubnext/gh-aw/blob/main/docs/src/content/docs/reference/mcp-gateway.md)
+   - [MCP Gateway Specification](https://github.com/github/gh-aw/blob/main/docs/src/content/docs/reference/mcp-gateway.md)
    - Last review: [Previous review issue if any]
    - Commits reviewed: [commit range]
    ```

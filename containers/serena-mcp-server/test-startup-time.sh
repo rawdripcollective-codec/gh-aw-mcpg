@@ -37,7 +37,7 @@ export MCP_GATEWAY_DOMAIN="host.docker.internal"
 export MCP_GATEWAY_API_KEY=$(openssl rand -base64 45 | tr -d '/+=')
 export WORKSPACE="${WORKSPACE_ARG:-${PWD}}"
 
-GATEWAY_IMAGE="ghcr.io/githubnext/gh-aw-mcpg:v0.0.84"
+GATEWAY_IMAGE="ghcr.io/github/gh-aw-mcpg:v0.0.84"
 SERENA_IMAGE="${SERENA_IMAGE:-serena-mcp-server:slim}"
 
 echo "=== Serena Startup Time Test ==="

@@ -3,7 +3,7 @@ package guard
 import (
 	"context"
 
-	"github.com/githubnext/gh-aw-mcpg/internal/difc"
+	"github.com/github/gh-aw-mcpg/internal/difc"
 )
 
 // BackendCaller provides a way for guards to make read-only calls to the backend

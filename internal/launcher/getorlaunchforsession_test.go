@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/githubnext/gh-aw-mcpg/internal/config"
+	"github.com/github/gh-aw-mcpg/internal/config"
 )
 
 // NOTE: Many tests in this file that originally used stdio backends with commands like

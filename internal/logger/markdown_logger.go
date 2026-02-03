@@ -6,7 +6,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/githubnext/gh-aw-mcpg/internal/logger/sanitize"
+	"github.com/github/gh-aw-mcpg/internal/logger/sanitize"
 )
 
 // MarkdownLogger manages logging to a markdown file for GitHub workflow previews

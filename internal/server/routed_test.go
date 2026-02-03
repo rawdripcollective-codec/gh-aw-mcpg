@@ -12,7 +12,7 @@ import (
 
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/githubnext/gh-aw-mcpg/internal/config"
+	"github.com/github/gh-aw-mcpg/internal/config"
 )
 
 // TestCloseEndpoint_Success tests the successful shutdown flow

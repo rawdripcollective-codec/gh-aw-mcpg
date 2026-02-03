@@ -4,7 +4,7 @@
 
 ### Prerequisites
 1. Docker installed and running
-2. Network access to pull `ghcr.io/githubnext/serena-mcp-server:latest`
+2. Network access to pull `ghcr.io/github/serena-mcp-server:latest`
 
 ### Run All Tests
 
@@ -33,7 +33,7 @@ SERENA_IMAGE="serena-mcp-server:local" ./test/serena-mcp-tests/test_serena.sh
 ========================================
 Serena MCP Server Comprehensive Test Suite
 ========================================
-[INFO] Container Image: ghcr.io/githubnext/serena-mcp-server:latest
+[INFO] Container Image: ghcr.io/github/serena-mcp-server:latest
 [INFO] Test Directory: /path/to/test/serena-mcp-tests
 [INFO] Samples Directory: /path/to/test/serena-mcp-tests/samples
 
@@ -127,7 +127,7 @@ Install Docker: https://docs.docker.com/get-docker/
 ### "Failed to pull container image"
 - Check network connectivity
 - Verify you have access to the GitHub Container Registry
-- Try pulling manually: `docker pull ghcr.io/githubnext/serena-mcp-server:latest`
+- Try pulling manually: `docker pull ghcr.io/github/serena-mcp-server:latest`
 
 ### Tests timeout or hang
 - Increase Docker resource limits (CPU/Memory)

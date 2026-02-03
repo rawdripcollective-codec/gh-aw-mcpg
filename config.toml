@@ -24,7 +24,7 @@ command = "docker"
 args = ["run", "--rm", "-i",
         "-v", "${PWD}:/workspace:ro",
         "-e", "NO_COLOR=1", "-e", "TERM=dumb",
-        "ghcr.io/githubnext/serena-mcp-server:latest"]
+        "ghcr.io/github/serena-mcp-server:latest"]
 
 # Note: DOCKER_API_VERSION is automatically set based on architecture
 # - ARM64 (M1/M2/M3 Macs): 1.43

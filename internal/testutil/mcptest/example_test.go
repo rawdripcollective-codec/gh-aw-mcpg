@@ -9,7 +9,7 @@ import (
 
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/githubnext/gh-aw-mcpg/internal/testutil/mcptest"
+	"github.com/github/gh-aw-mcpg/internal/testutil/mcptest"
 )
 
 // TestCompleteWorkflow demonstrates a complete end-to-end test workflow

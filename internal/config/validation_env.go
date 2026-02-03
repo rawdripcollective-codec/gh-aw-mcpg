@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/githubnext/gh-aw-mcpg/internal/config/rules"
-	"github.com/githubnext/gh-aw-mcpg/internal/logger"
+	"github.com/github/gh-aw-mcpg/internal/config/rules"
+	"github.com/github/gh-aw-mcpg/internal/logger"
 )
 
 var logEnv = logger.New("config:validation_env")

@@ -29,7 +29,7 @@ jobs:
         run: |
           cd /tmp
           rm -rf gh-aw
-          git clone https://github.com/githubnext/gh-aw.git
+          git clone https://github.com/github/gh-aw.git
           echo "✓ Cloned gh-aw repository"
 
       - name: Build gh-aw compiler
@@ -71,7 +71,7 @@ jobs:
             This PR updates the `smoke-codex.lock.yml` file by recompiling it from the source `smoke-codex.md` using the latest gh-aw compiler.
             
             ### Changes
-            - Cloned and built gh-aw from https://github.com/githubnext/gh-aw
+            - Cloned and built gh-aw from https://github.com/github/gh-aw
             - Recompiled `.github/workflows/smoke-codex.md` using `gh-aw compile smoke-codex`
             - Updated `.github/workflows/smoke-codex.lock.yml` with the latest compilation
             

@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/githubnext/gh-aw-mcpg/internal/logger"
-	"github.com/githubnext/gh-aw-mcpg/internal/mcp"
+	"github.com/github/gh-aw-mcpg/internal/logger"
+	"github.com/github/gh-aw-mcpg/internal/mcp"
 )
 
 var logPool = logger.New("launcher:pool")

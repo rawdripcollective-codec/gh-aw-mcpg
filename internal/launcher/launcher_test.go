@@ -12,8 +12,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/githubnext/gh-aw-mcpg/internal/config"
-	"github.com/githubnext/gh-aw-mcpg/internal/logger/sanitize"
+	"github.com/github/gh-aw-mcpg/internal/config"
+	"github.com/github/gh-aw-mcpg/internal/logger/sanitize"
 )
 
 // loadConfigFromJSON is a test helper that creates a config from JSON via stdin

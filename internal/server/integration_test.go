@@ -18,7 +18,7 @@ import (
 
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/githubnext/gh-aw-mcpg/internal/config"
+	"github.com/github/gh-aw-mcpg/internal/config"
 )
 
 // TestTransparentProxy_RoutedMode tests that awmg acts as a transparent proxy

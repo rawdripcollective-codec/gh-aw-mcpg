@@ -14,7 +14,7 @@ Thank you for your interest in contributing to MCP Gateway! This document provid
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/githubnext/gh-aw-mcpg.git
+   git clone https://github.com/github/gh-aw-mcpg.git
    cd gh-aw-mcpg
    ```
 
@@ -251,7 +251,7 @@ awmg/
 Use the logger package for debug logging:
 
 ```go
-import "github.com/githubnext/gh-aw-mcpg/internal/logger"
+import "github.com/github/gh-aw-mcpg/internal/logger"
 
 // Create a logger with namespace following pkg:filename convention
 // Use descriptive variable names (e.g., logLauncher, logConfig) for clarity
@@ -454,7 +454,7 @@ make release major
    ✓ Release workflow will be triggered automatically
 
    Monitor the release workflow at:
-     https://github.com/githubnext/gh-aw-mcpg/actions/workflows/release.lock.yml
+     https://github.com/github/gh-aw-mcpg/actions/workflows/release.lock.yml
    ```
 
 ### What Happens Automatically
@@ -463,7 +463,7 @@ When you push a release tag, the automated release workflow:
 - Runs the full test suite
 - Builds multi-platform binaries (Linux for amd64, arm, and arm64)
 - Creates a GitHub release with all binaries and checksums
-- Builds and pushes a multi-arch Docker image to `ghcr.io/githubnext/gh-aw-mcpg` with tags:
+- Builds and pushes a multi-arch Docker image to `ghcr.io/github/gh-aw-mcpg` with tags:
   - `latest` - Always points to the newest release
   - `v1.2.4` - Specific version tag
   - `<commit-sha>` - Specific commit reference
@@ -489,7 +489,7 @@ When you push a release tag, the automated release workflow:
 
 ## Questions or Issues?
 
-- Check existing [issues](https://github.com/githubnext/gh-aw-mcpg/issues)
+- Check existing [issues](https://github.com/github/gh-aw-mcpg/issues)
 - Open a new issue with a clear description
 - Join discussions in pull requests
 

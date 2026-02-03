@@ -17,7 +17,7 @@
         },
         "serena": {
             "type": "stdio",
-            "container": "ghcr.io/githubnext/serena-mcp-server:latest",
+            "container": "ghcr.io/github/serena-mcp-server:latest",
             "mounts": [
                 "${PWD}:/workspace:ro"
             ],

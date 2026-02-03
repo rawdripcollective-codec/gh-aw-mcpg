@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/githubnext/gh-aw-mcpg/internal/logger/sanitize"
+	"github.com/github/gh-aw-mcpg/internal/logger/sanitize"
 )
 
 // JSONLLogger manages logging RPC messages to a JSONL file (one JSON object per line)
