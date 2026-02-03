@@ -49,7 +49,7 @@ jobs:
       comment_repo: ""
     steps:
       - name: Setup Scripts
-        uses: github/gh-aw/actions/setup@v0.36.0
+        uses: github/gh-aw/actions/setup@v0.40.0
         with:
           destination: /opt/gh-aw/actions
       - name: Check workflow file timestamps
@@ -85,7 +85,7 @@ jobs:
       output_types: ${{ steps.collect_output.outputs.output_types }}
     steps:
       - name: Setup Scripts
-        uses: github/gh-aw/actions/setup@v0.36.0
+        uses: github/gh-aw/actions/setup@v0.40.0
         with:
           destination: /opt/gh-aw/actions
       - name: Checkout repository
@@ -1247,7 +1247,7 @@ jobs:
       total_count: ${{ steps.missing_tool.outputs.total_count }}
     steps:
       - name: Setup Scripts
-        uses: github/gh-aw/actions/setup@v0.36.0
+        uses: github/gh-aw/actions/setup@v0.40.0
         with:
           destination: /opt/gh-aw/actions
       - name: Debug job inputs
@@ -1332,7 +1332,7 @@ jobs:
       success: ${{ steps.parse_results.outputs.success }}
     steps:
       - name: Setup Scripts
-        uses: github/gh-aw/actions/setup@v0.36.0
+        uses: github/gh-aw/actions/setup@v0.40.0
         with:
           destination: /opt/gh-aw/actions
       - name: Download agent artifacts
@@ -1492,7 +1492,7 @@ jobs:
       process_safe_outputs_temporary_id_map: ${{ steps.process_safe_outputs.outputs.temporary_id_map }}
     steps:
       - name: Setup Scripts
-        uses: github/gh-aw/actions/setup@v0.36.0
+        uses: github/gh-aw/actions/setup@v0.40.0
         with:
           destination: /opt/gh-aw/actions
       - name: Download agent output artifact
