@@ -93,6 +93,7 @@ type UnifiedServer struct {
 	capabilities  *difc.Capabilities
 	evaluator     *difc.Evaluator
 	enableDIFC    bool // When true, DIFC enforcement and session requirement are enabled
+	difcFilter    bool // When true, filters response data based on DIFC labels
 
 	// Shutdown state tracking
 	isShutdown   bool
@@ -105,13 +106,27 @@ type UnifiedServer struct {
 
 // NewUnified creates a new unified MCP server
 func NewUnified(ctx context.Context, cfg *config.Config) (*UnifiedServer, error) {
-	logUnified.Printf("Creating new unified server: enableDIFC=%v, sequentialLaunch=%v, servers=%d", cfg.EnableDIFC, cfg.SequentialLaunch, len(cfg.Servers))
+	logUnified.Printf("Creating new unified server: enableDIFC=%v, difcFilter=%v, sequentialLaunch=%v, servers=%d, guards=%d", cfg.EnableDIFC, cfg.DIFCFilter, cfg.SequentialLaunch, len(cfg.Servers), len(cfg.Guards))
 	l := launcher.New(ctx, cfg)
 
 	// Get payload directory from config, with fallback to default
 	payloadDir := config.DefaultPayloadDir
 	if cfg.Gateway != nil && cfg.Gateway.PayloadDir != "" {
 		payloadDir = cfg.Gateway.PayloadDir
+	}
+
+	// Build default session labels from config (per github-difc.md section 11.5)
+	var defaultSecrecy, defaultIntegrity []difc.Tag
+	if cfg.Gateway != nil && cfg.Gateway.Session != nil {
+		for _, s := range cfg.Gateway.Session.Secrecy {
+			defaultSecrecy = append(defaultSecrecy, difc.Tag(s))
+		}
+		for _, i := range cfg.Gateway.Session.Integrity {
+			defaultIntegrity = append(defaultIntegrity, difc.Tag(i))
+		}
+		if len(defaultSecrecy) > 0 || len(defaultIntegrity) > 0 {
+			logUnified.Printf("Session defaults: secrecy=%v, integrity=%v", defaultSecrecy, defaultIntegrity)
+		}
 	}
 
 	us := &UnifiedServer{
@@ -123,12 +138,13 @@ func NewUnified(ctx context.Context, cfg *config.Config) (*UnifiedServer, error)
 		sequentialLaunch: cfg.SequentialLaunch,
 		payloadDir:       payloadDir,
 
-		// Initialize DIFC components
+		// Initialize DIFC components with default session labels
 		guardRegistry: guard.NewRegistry(),
-		agentRegistry: difc.NewAgentRegistry(),
+		agentRegistry: difc.NewAgentRegistryWithDefaults(defaultSecrecy, defaultIntegrity),
 		capabilities:  difc.NewCapabilities(),
 		evaluator:     difc.NewEvaluator(),
 		enableDIFC:    cfg.EnableDIFC,
+		difcFilter:    cfg.DIFCFilter,
 	}
 
 	// Create MCP server
@@ -141,7 +157,7 @@ func NewUnified(ctx context.Context, cfg *config.Config) (*UnifiedServer, error)
 
 	// Register guards for all backends
 	for _, serverID := range l.ServerIDs() {
-		us.registerGuard(serverID)
+		us.registerGuard(serverID, cfg)
 	}
 
 	// Register aggregated tools from all backends
@@ -448,13 +464,13 @@ func (us *UnifiedServer) registerSysTools() error {
 	us.toolsMu.Lock()
 	us.tools["sys___init"] = &ToolInfo{
 		Name:        "sys___init",
-		Description: "Initialize the MCPG system and get available MCP servers",
+		Description: "[DEPRECATED] Initialize the MCPG system. This tool is no longer required - sessions are automatically created from the Authorization header. Kept for backward compatibility only.",
 		InputSchema: map[string]interface{}{
 			"type": "object",
 			"properties": map[string]interface{}{
 				"token": map[string]interface{}{
 					"type":        "string",
-					"description": "Authentication token for session initialization (can be empty for first call)",
+					"description": "Authentication token for session initialization (ignored - session ID is extracted from Authorization header)",
 				},
 			},
 		},
@@ -466,13 +482,13 @@ func (us *UnifiedServer) registerSysTools() error {
 	// Register with SDK
 	sdk.AddTool(us.server, &sdk.Tool{
 		Name:        "sys___init",
-		Description: "Initialize the MCPG system and get available MCP servers",
+		Description: "[DEPRECATED] Initialize the MCPG system. This tool is no longer required - sessions are automatically created from the Authorization header. Kept for backward compatibility only.",
 		InputSchema: map[string]interface{}{
 			"type": "object",
 			"properties": map[string]interface{}{
 				"token": map[string]interface{}{
 					"type":        "string",
-					"description": "Authentication token for session initialization (can be empty for first call)",
+					"description": "Authentication token for session initialization (ignored - session ID is extracted from Authorization header)",
 				},
 			},
 		},
@@ -533,13 +549,76 @@ func (us *UnifiedServer) registerSysTools() error {
 }
 
 // registerGuard registers a guard for a specific backend server
-func (us *UnifiedServer) registerGuard(serverID string) {
-	// For now, use noop guards for all servers
-	// In the future, this will load guards based on configuration
-	// or use guard.CreateGuard() with a guard name from config
-	g := guard.NewNoopGuard()
-	us.guardRegistry.Register(serverID, g)
-	log.Printf("[DIFC] Registered guard '%s' for server '%s'", g.Name(), serverID)
+func (us *UnifiedServer) registerGuard(serverID string, cfg *config.Config) {
+	// Check if server specifies a guard binding
+	serverCfg, ok := cfg.Servers[serverID]
+	if !ok || serverCfg.Guard == "" {
+		// No guard binding, use noop guard
+		g := guard.NewNoopGuard()
+		us.guardRegistry.Register(serverID, g)
+		log.Printf("[DIFC] Registered noop guard for server '%s'", serverID)
+		return
+	}
+
+	guardID := serverCfg.Guard
+
+	// Check if we have a guard configuration
+	guardCfg, ok := cfg.Guards[guardID]
+	if !ok {
+		// Guard not configured, use noop guard as fallback
+		log.Printf("[DIFC] Warning: guard '%s' specified for server '%s' but not configured, using noop guard", guardID, serverID)
+		g := guard.NewNoopGuard()
+		us.guardRegistry.Register(serverID, g)
+		return
+	}
+
+	// Create appropriate guard based on type
+	switch guardCfg.Type {
+	case "wasm":
+		// Create backend caller for this guard
+		backendCaller := &guardBackendCaller{
+			server:   us,
+			serverID: serverID,
+			ctx:      us.ctx,
+		}
+
+		// Load WASM guard from path or URL
+		loadCfg := guard.LoaderConfig{
+			Path:     guardCfg.Path,
+			URL:      guardCfg.URL,
+			SHA256:   guardCfg.SHA256,
+			CacheDir: guardCfg.CacheDir,
+		}
+
+		loadResult, err := guard.Load(us.ctx, loadCfg)
+		if err != nil {
+			log.Printf("[DIFC] Failed to load WASM guard '%s': %v, using noop guard", guardID, err)
+			g := guard.NewNoopGuard()
+			us.guardRegistry.Register(serverID, g)
+			return
+		}
+
+		// Create WASM guard from loaded bytes
+		wasmGuard, err := guard.NewWasmGuardFromBytes(us.ctx, guardID, loadResult.WASMBytes, backendCaller)
+		if err != nil {
+			log.Printf("[DIFC] Failed to create WASM guard '%s': %v, using noop guard", guardID, err)
+			g := guard.NewNoopGuard()
+			us.guardRegistry.Register(serverID, g)
+			return
+		}
+
+		us.guardRegistry.Register(serverID, wasmGuard)
+		if guardCfg.URL != "" {
+			log.Printf("[DIFC] Registered WASM guard '%s' for server '%s' (url: %s, source: %s)", guardID, serverID, guardCfg.URL, loadResult.Source)
+		} else {
+			log.Printf("[DIFC] Registered WASM guard '%s' for server '%s' (path: %s)", guardID, serverID, guardCfg.Path)
+		}
+
+	default:
+		log.Printf("[DIFC] Warning: unsupported guard type '%s' for guard '%s', using noop guard", guardCfg.Type, guardID)
+		g := guard.NewNoopGuard()
+		us.guardRegistry.Register(serverID, g)
+	}
 }
 
 // guardBackendCaller implements guard.BackendCaller for guards to query backend metadata
@@ -664,24 +743,34 @@ func (us *UnifiedServer) callBackendTool(ctx context.Context, serverID, toolName
 		resource.Description, operation, resource.Secrecy.Label.GetTags(), resource.Integrity.Label.GetTags())
 
 	// **Phase 2: Reference Monitor performs coarse-grained access check**
-	isWrite := (operation == difc.OperationWrite || operation == difc.OperationReadWrite)
+	// For read operations with filtering enabled, we skip the coarse-grained block
+	// and let the request proceed. Fine-grained filtering at Phase 5 will filter
+	// individual items from the response based on their labels.
+	isReadOperation := (operation == difc.OperationRead)
 	result := us.evaluator.Evaluate(agentLabels.Secrecy, agentLabels.Integrity, resource, operation)
 
 	if !result.IsAllowed() {
-		// Access denied - log and return detailed error
-		log.Printf("[DIFC] Access DENIED for agent %s to %s: %s", agentID, resource.Description, result.Reason)
-		detailedErr := difc.FormatViolationError(result, agentLabels.Secrecy, agentLabels.Integrity, resource)
-		return &sdk.CallToolResult{
-			Content: []sdk.Content{
-				&sdk.TextContent{
-					Text: detailedErr.Error(),
+		if isReadOperation && us.difcFilter {
+			// Read operation with filtering enabled - skip coarse-grained block
+			// The guard will label response items and Phase 5 will filter them
+			log.Printf("[DIFC] Coarse-grained check failed for read, but filtering enabled - proceeding to backend")
+			log.Printf("[DIFC] Response items will be filtered at Phase 5 based on per-item labels")
+		} else {
+			// Write operation OR filtering disabled - block the request
+			log.Printf("[DIFC] Access DENIED for agent %s to %s: %s", agentID, resource.Description, result.Reason)
+			detailedErr := difc.FormatViolationError(result, agentLabels.Secrecy, agentLabels.Integrity, resource)
+			return &sdk.CallToolResult{
+				Content: []sdk.Content{
+					&sdk.TextContent{
+						Text: detailedErr.Error(),
+					},
 				},
-			},
-			IsError: true,
-		}, nil, detailedErr
+				IsError: true,
+			}, nil, detailedErr
+		}
+	} else {
+		log.Printf("[DIFC] Access ALLOWED for agent %s to %s", agentID, resource.Description)
 	}
-
-	log.Printf("[DIFC] Access ALLOWED for agent %s to %s", agentID, resource.Description)
 
 	// **Phase 3: Execute the backend call**
 	// Get or launch backend connection (use session-aware connection for stateful backends)
@@ -745,23 +834,12 @@ func (us *UnifiedServer) callBackendTool(ctx context.Context, serverID, toolName
 			}
 		}
 
-		// **Phase 6: Accumulate labels from this operation (for reads)**
-		if !isWrite {
-			overall := labeledData.Overall()
-			agentLabels.AccumulateFromRead(overall)
-			log.Printf("[DIFC] Agent %s accumulated labels | Secrecy: %v | Integrity: %v",
-				agentID, agentLabels.GetSecrecyTags(), agentLabels.GetIntegrityTags())
-		}
+		// Note: Automatic label accumulation is disabled.
+		// Agent labels remain fixed at their initial session values.
+		// Future versions will support explicit primitives for label changes.
 	} else {
 		// No fine-grained labeling - use original backend result
 		finalResult = backendResult
-
-		// **Phase 6: Accumulate labels from resource (for reads)**
-		if !isWrite {
-			agentLabels.AccumulateFromRead(resource)
-			log.Printf("[DIFC] Agent %s accumulated labels | Secrecy: %v | Integrity: %v",
-				agentID, agentLabels.GetSecrecyTags(), agentLabels.GetIntegrityTags())
-		}
 	}
 
 	// Convert finalResult to SDK CallToolResult format
@@ -832,48 +910,36 @@ func (us *UnifiedServer) ensureSessionDirectory(sessionID string) error {
 }
 
 // requireSession checks that a session has been initialized for this request
-// When DIFC is disabled (default), automatically creates a session if one doesn't exist
+// Sessions are auto-created from the Authorization header for all modes.
+// When DIFC is enabled, the session ID is used to track labels per-agent.
 func (us *UnifiedServer) requireSession(ctx context.Context) error {
 	sessionID := us.getSessionID(ctx)
 	log.Printf("Checking session for ID: %s", sessionID)
 
-	// If DIFC is disabled (default), use double-checked locking to auto-create session
-	if !us.enableDIFC {
-		us.sessionMu.RLock()
-		session := us.sessions[sessionID]
-		us.sessionMu.RUnlock()
-
-		if session == nil {
-			// Need to create session - acquire write lock
-			us.sessionMu.Lock()
-			// Double-check after acquiring write lock to avoid race condition
-			if us.sessions[sessionID] == nil {
-				log.Printf("DIFC disabled: auto-creating session for ID: %s", sessionID)
-				us.sessions[sessionID] = NewSession(sessionID, "")
-				log.Printf("Session auto-created for ID: %s", sessionID)
-
-				// Ensure session directory exists in payload mount point
-				// This is done after releasing the lock to avoid holding it during I/O
-				us.sessionMu.Unlock()
-				if err := us.ensureSessionDirectory(sessionID); err != nil {
-					logger.LogWarn("client", "Failed to create session directory for session=%s: %v", sessionID, err)
-					// Don't fail - payloads will attempt to create the directory when needed
-				}
-				return nil
-			}
-			us.sessionMu.Unlock()
-		}
-		return nil
-	}
-
-	// DIFC is enabled - require explicit session initialization
+	// Use double-checked locking to auto-create session if needed
 	us.sessionMu.RLock()
 	session := us.sessions[sessionID]
 	us.sessionMu.RUnlock()
 
 	if session == nil {
-		log.Printf("Session not found for ID: %s. Available sessions: %v", sessionID, us.getSessionKeys())
-		return fmt.Errorf("sys___init must be called before any other tool calls")
+		// Need to create session - acquire write lock
+		us.sessionMu.Lock()
+		// Double-check after acquiring write lock to avoid race condition
+		if us.sessions[sessionID] == nil {
+			log.Printf("Auto-creating session for ID: %s (DIFC enabled: %v)", sessionID, us.enableDIFC)
+			us.sessions[sessionID] = NewSession(sessionID, "")
+			log.Printf("Session auto-created for ID: %s", sessionID)
+
+			// Ensure session directory exists in payload mount point
+			// This is done after releasing the lock to avoid holding it during I/O
+			us.sessionMu.Unlock()
+			if err := us.ensureSessionDirectory(sessionID); err != nil {
+				logger.LogWarn("client", "Failed to create session directory for session=%s: %v", sessionID, err)
+				// Don't fail - payloads will attempt to create the directory when needed
+			}
+			return nil
+		}
+		us.sessionMu.Unlock()
 	}
 
 	log.Printf("Session validated for ID: %s", sessionID)
