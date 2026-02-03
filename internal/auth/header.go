@@ -38,8 +38,8 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/githubnext/gh-aw-mcpg/internal/logger"
-	"github.com/githubnext/gh-aw-mcpg/internal/logger/sanitize"
+	"github.com/github/gh-aw-mcpg/internal/logger"
+	"github.com/github/gh-aw-mcpg/internal/logger/sanitize"
 )
 
 var log = logger.New("auth:header")

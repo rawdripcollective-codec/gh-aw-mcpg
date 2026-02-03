@@ -197,7 +197,7 @@ release:
 	echo "✓ Release workflow will be triggered automatically"; \
 	echo ""; \
 	echo "Monitor the release workflow at:"; \
-	echo "  https://github.com/githubnext/gh-aw-mcpg/actions/workflows/release.lock.yml"
+	echo "  https://github.com/github/gh-aw-mcpg/actions/workflows/release.lock.yml"
 
 # Prevent make from treating the argument as a target
 %:

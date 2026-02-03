@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/githubnext/gh-aw-mcpg/internal/auth"
-	"github.com/githubnext/gh-aw-mcpg/internal/logger"
+	"github.com/github/gh-aw-mcpg/internal/auth"
+	"github.com/github/gh-aw-mcpg/internal/logger"
 )
 
 var logSDK = logger.New("server:sdk-frontend")

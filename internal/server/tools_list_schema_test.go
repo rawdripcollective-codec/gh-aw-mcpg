@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"encoding/json"
-	"github.com/githubnext/gh-aw-mcpg/internal/config"
+	"github.com/github/gh-aw-mcpg/internal/config"
 	"io"
 	"net/http"
 	"net/http/httptest"

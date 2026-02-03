@@ -8,10 +8,10 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/githubnext/gh-aw-mcpg/internal/launcher"
-	"github.com/githubnext/gh-aw-mcpg/internal/logger"
-	"github.com/githubnext/gh-aw-mcpg/internal/mcp"
-	"github.com/githubnext/gh-aw-mcpg/internal/sys"
+	"github.com/github/gh-aw-mcpg/internal/launcher"
+	"github.com/github/gh-aw-mcpg/internal/logger"
+	"github.com/github/gh-aw-mcpg/internal/mcp"
+	"github.com/github/gh-aw-mcpg/internal/sys"
 )
 
 var logServer = logger.New("server:server")

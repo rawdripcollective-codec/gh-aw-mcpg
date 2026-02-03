@@ -3,8 +3,8 @@ package guard
 import (
 	"context"
 
-	"github.com/githubnext/gh-aw-mcpg/internal/difc"
-	"github.com/githubnext/gh-aw-mcpg/internal/logger"
+	"github.com/github/gh-aw-mcpg/internal/difc"
+	"github.com/github/gh-aw-mcpg/internal/logger"
 )
 
 var logNoop = logger.New("guard:noop")

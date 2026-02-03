@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/githubnext/gh-aw-mcpg/internal/config"
+	"github.com/github/gh-aw-mcpg/internal/config"
 )
 
 // TestUnifiedServer_ToolCallArguments tests that tool arguments are correctly passed through the gateway

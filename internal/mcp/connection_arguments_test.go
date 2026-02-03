@@ -36,13 +36,13 @@ func TestCallTool_ArgumentsPassed(t *testing.T) {
 			inputParams: map[string]interface{}{
 				"name": "list_issues",
 				"arguments": map[string]interface{}{
-					"owner": "githubnext",
+					"owner": "github",
 					"repo":  "gh-aw-mcpg",
 					"state": "open",
 				},
 			},
 			expectedArguments: map[string]interface{}{
-				"owner": "githubnext",
+				"owner": "github",
 				"repo":  "gh-aw-mcpg",
 				"state": "open",
 			},

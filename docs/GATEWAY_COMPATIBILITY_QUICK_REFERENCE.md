@@ -47,7 +47,7 @@ args = ["run", "--rm", "-i", "ghcr.io/github/github-mcp-server:latest"]
   "mcpServers": {
     "serena": {
       "type": "stdio",
-      "container": "ghcr.io/githubnext/serena-mcp-server:latest",
+      "container": "ghcr.io/github/serena-mcp-server:latest",
       "env": {
         "SERENA_CONFIG": "/path/to/config"
       }
@@ -60,7 +60,7 @@ args = ["run", "--rm", "-i", "ghcr.io/github/github-mcp-server:latest"]
 ```toml
 [servers.serena]
 command = "docker"
-args = ["run", "--rm", "-i", "ghcr.io/githubnext/serena-mcp-server:latest"]
+args = ["run", "--rm", "-i", "ghcr.io/github/serena-mcp-server:latest"]
 ```
 
 ---
@@ -110,7 +110,7 @@ Client Request 2 (session abc):
 
 ## For More Details
 
-📖 **Configuration Specification:** [MCP Gateway Configuration Reference](https://github.com/githubnext/gh-aw/blob/main/docs/src/content/docs/reference/mcp-gateway.md)
+📖 **Configuration Specification:** [MCP Gateway Configuration Reference](https://github.com/github/gh-aw/blob/main/docs/src/content/docs/reference/mcp-gateway.md)
 
 📊 **Test Results:** [Serena Test Results](../SERENA_TEST_RESULTS.md)
 

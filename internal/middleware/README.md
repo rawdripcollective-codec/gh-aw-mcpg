@@ -161,5 +161,5 @@ Payloads are stored in:
 
 ## References
 
-- Original jqschema utility: [gh-aw/.github/workflows/shared/jqschema.md](https://github.com/githubnext/gh-aw/blob/main/.github/workflows/shared/jqschema.md)
+- Original jqschema utility: [gh-aw/.github/workflows/shared/jqschema.md](https://github.com/github/gh-aw/blob/main/.github/workflows/shared/jqschema.md)
 - gojq library: [github.com/itchyny/gojq](https://github.com/itchyny/gojq)

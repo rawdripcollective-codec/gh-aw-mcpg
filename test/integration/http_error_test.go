@@ -11,9 +11,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"time"
 
-	"github.com/githubnext/gh-aw-mcpg/internal/config"
-	"github.com/githubnext/gh-aw-mcpg/internal/launcher"
-	"github.com/githubnext/gh-aw-mcpg/internal/mcp"
+	"github.com/github/gh-aw-mcpg/internal/config"
+	"github.com/github/gh-aw-mcpg/internal/launcher"
+	"github.com/github/gh-aw-mcpg/internal/mcp"
 )
 
 // TestHTTPError_ServerError tests that 5xx server errors are properly propagated

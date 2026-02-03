@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/githubnext/gh-aw-mcpg/internal/config/rules"
-	"github.com/githubnext/gh-aw-mcpg/internal/logger"
+	"github.com/github/gh-aw-mcpg/internal/config/rules"
+	"github.com/github/gh-aw-mcpg/internal/logger"
 	"github.com/santhosh-tekuri/jsonschema/v5"
 )
 
@@ -33,14 +33,14 @@ var (
 	//
 	// Build Reproducibility:
 	// For production builds, consider pinning to a specific commit SHA or version tag:
-	//   - Commit SHA: "https://raw.githubusercontent.com/githubnext/gh-aw/<commit-sha>/docs/public/schemas/mcp-gateway-config.schema.json"
-	//   - Version tag: "https://raw.githubusercontent.com/githubnext/gh-aw/v1.0.0/docs/public/schemas/mcp-gateway-config.schema.json"
+	//   - Commit SHA: "https://raw.githubusercontent.com/github/gh-aw/<commit-sha>/docs/public/schemas/mcp-gateway-config.schema.json"
+	//   - Version tag: "https://raw.githubusercontent.com/github/gh-aw/v1.0.0/docs/public/schemas/mcp-gateway-config.schema.json"
 	//
 	// Using 'main' branch ensures we always use the latest schema but may introduce
 	// changes that break builds. For stable releases, pin to a specific version.
 	//
 	// Alternative: Embed the schema using go:embed directive for zero network dependency.
-	schemaURL = "https://raw.githubusercontent.com/githubnext/gh-aw/main/docs/public/schemas/mcp-gateway-config.schema.json"
+	schemaURL = "https://raw.githubusercontent.com/github/gh-aw/main/docs/public/schemas/mcp-gateway-config.schema.json"
 
 	// Schema caching to avoid recompiling the JSON schema on every validation
 	// This improves performance by compiling the schema once and reusing it

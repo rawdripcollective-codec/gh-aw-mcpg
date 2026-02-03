@@ -7,8 +7,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/githubnext/gh-aw-mcpg/internal/config"
-	"github.com/githubnext/gh-aw-mcpg/internal/mcp"
+	"github.com/github/gh-aw-mcpg/internal/config"
+	"github.com/github/gh-aw-mcpg/internal/mcp"
 )
 
 // TestSchemaNormalization_Integration tests that broken schemas from backends

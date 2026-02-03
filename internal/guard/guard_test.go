@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/githubnext/gh-aw-mcpg/internal/auth"
-	"github.com/githubnext/gh-aw-mcpg/internal/difc"
+	"github.com/github/gh-aw-mcpg/internal/auth"
+	"github.com/github/gh-aw-mcpg/internal/difc"
 )
 
 // mockGuard is a simple guard implementation for testing that can be distinguished by ID

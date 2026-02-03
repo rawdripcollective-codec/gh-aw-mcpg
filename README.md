@@ -2,9 +2,9 @@
 
 A gateway for Model Context Protocol (MCP) servers.
 
-This gateway is used with [GitHub Agentic Workflows](https://github.com/githubnext/gh-aw) via the `sandbox.mcp` configuration to provide MCP server access to AI agents running in sandboxed environments.
+This gateway is used with [GitHub Agentic Workflows](https://github.com/github/gh-aw) via the `sandbox.mcp` configuration to provide MCP server access to AI agents running in sandboxed environments.
 
-📖 **[Full Configuration Specification](https://github.com/githubnext/gh-aw/blob/main/docs/src/content/docs/reference/mcp-gateway.md)** - Complete reference for all configuration options and validation rules.
+📖 **[Full Configuration Specification](https://github.com/github/gh-aw/blob/main/docs/src/content/docs/reference/mcp-gateway.md)** - Complete reference for all configuration options and validation rules.
 
 ## Features
 
@@ -32,7 +32,7 @@ For detailed setup instructions, building from source, and local development, se
 
 1. **Pull the Docker image** (when available):
    ```bash
-   docker pull ghcr.io/githubnext/gh-aw-mcpg:latest
+   docker pull ghcr.io/github/gh-aw-mcpg:latest
    ```
 
 2. **Create a configuration file** (`config.json`):
@@ -59,7 +59,7 @@ For detailed setup instructions, building from source, and local development, se
      -v /var/run/docker.sock:/var/run/docker.sock \
      -v /path/to/logs:/tmp/gh-aw/mcp-logs \
      -p 8000:8000 \
-     ghcr.io/githubnext/gh-aw-mcpg:latest < config.json
+     ghcr.io/github/gh-aw-mcpg:latest < config.json
    ```
 
 **Required flags:**
@@ -97,7 +97,7 @@ args = ["/path/to/filesystem-server.js"]
 
 ### JSON Stdin Format
 
-For the complete JSON configuration specification with all validation rules, see the **[MCP Gateway Configuration Reference](https://github.com/githubnext/gh-aw/blob/main/docs/src/content/docs/reference/mcp-gateway.md)**.
+For the complete JSON configuration specification with all validation rules, see the **[MCP Gateway Configuration Reference](https://github.com/github/gh-aw/blob/main/docs/src/content/docs/reference/mcp-gateway.md)**.
 
 ```json
 {
@@ -176,7 +176,7 @@ For the complete JSON configuration specification with all validation rules, see
     - `mode` must be either `"ro"` or `"rw"`
     - Both source and destination paths are required (cannot be empty)
 
-See **[Configuration Specification](https://github.com/githubnext/gh-aw/blob/main/docs/src/content/docs/reference/mcp-gateway.md)** for complete validation rules.
+See **[Configuration Specification](https://github.com/github/gh-aw/blob/main/docs/src/content/docs/reference/mcp-gateway.md)** for complete validation rules.
 
 #### Gateway Configuration Fields (Reserved)
 
@@ -283,7 +283,7 @@ docker run -i \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v /path/to/logs:/tmp/gh-aw/mcp-logs \
   -p 8080:8080 \
-  ghcr.io/githubnext/gh-aw-mcpg:latest < config.json
+  ghcr.io/github/gh-aw-mcpg:latest < config.json
 ```
 
 **Important flags:**
@@ -489,7 +489,7 @@ Both GitHub MCP and Serena MCP servers pass comprehensive test suites including 
 ```bash
 # Both servers use stdio transport via Docker containers
 docker run -i ghcr.io/github/github-mcp-server          # GitHub MCP
-docker run -i ghcr.io/githubnext/serena-mcp-server     # Serena MCP
+docker run -i ghcr.io/github/serena-mcp-server     # Serena MCP
 ```
 
 ### Using MCP Servers with the Gateway
@@ -502,7 +502,7 @@ Configure MCP servers to connect directly via stdio transport for optimal perfor
   "mcpServers": {
     "serena": {
       "type": "stdio",
-      "container": "ghcr.io/githubnext/serena-mcp-server:latest"
+      "container": "ghcr.io/github/serena-mcp-server:latest"
     },
     "github": {
       "type": "stdio",

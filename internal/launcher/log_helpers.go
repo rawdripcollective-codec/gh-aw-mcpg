@@ -6,9 +6,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/githubnext/gh-aw-mcpg/internal/config"
-	"github.com/githubnext/gh-aw-mcpg/internal/logger"
-	"github.com/githubnext/gh-aw-mcpg/internal/logger/sanitize"
+	"github.com/github/gh-aw-mcpg/internal/config"
+	"github.com/github/gh-aw-mcpg/internal/logger"
+	"github.com/github/gh-aw-mcpg/internal/logger/sanitize"
 )
 
 // sessionSuffix returns a formatted session suffix for log messages

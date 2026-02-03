@@ -12,9 +12,9 @@ FROM python:3.11-slim
 # OCI labels for GitHub Container Registry
 LABEL org.opencontainers.image.title="Serena MCP Server"
 LABEL org.opencontainers.image.description="A containerized MCP server with semantic code analysis for Python, Go, and TypeScript"
-LABEL org.opencontainers.image.source="https://github.com/githubnext/gh-aw-mcpg/tree/main/containers/serena-mcp-server"
-LABEL org.opencontainers.image.documentation="https://github.com/githubnext/gh-aw-mcpg/blob/main/containers/serena-mcp-server/README.md"
-LABEL org.opencontainers.image.url="https://github.com/githubnext/gh-aw-mcpg/pkgs/container/serena-mcp-server"
+LABEL org.opencontainers.image.source="https://github.com/github/gh-aw-mcpg/tree/main/containers/serena-mcp-server"
+LABEL org.opencontainers.image.documentation="https://github.com/github/gh-aw-mcpg/blob/main/containers/serena-mcp-server/README.md"
+LABEL org.opencontainers.image.url="https://github.com/github/gh-aw-mcpg/pkgs/container/serena-mcp-server"
 LABEL org.opencontainers.image.vendor="GitHub"
 
 # Set working directory

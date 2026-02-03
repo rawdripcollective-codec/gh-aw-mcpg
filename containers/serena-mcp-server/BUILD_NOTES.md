@@ -60,11 +60,11 @@ Once the container is available, test with:
 
 ```bash
 # Pull the image
-docker pull ghcr.io/githubnext/serena-mcp-server:latest
+docker pull ghcr.io/github/serena-mcp-server:latest
 
 # Run basic test
 echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}' | \
 docker run --rm -i \
   -v $(pwd):/workspace:ro \
-  ghcr.io/githubnext/serena-mcp-server:latest
+  ghcr.io/github/serena-mcp-server:latest
 ```

@@ -44,7 +44,7 @@ Quick reference for AI agents working with MCP Gateway (Go-based MCP proxy serve
 
 ## Config Examples
 
-**Configuration Spec**: See **[MCP Gateway Configuration Reference](https://github.com/githubnext/gh-aw/blob/main/docs/src/content/docs/reference/mcp-gateway.md)** for complete specification.
+**Configuration Spec**: See **[MCP Gateway Configuration Reference](https://github.com/github/gh-aw/blob/main/docs/src/content/docs/reference/mcp-gateway.md)** for complete specification.
 
 **TOML** (`config.toml`):
 ```toml
@@ -253,7 +253,7 @@ make agent-finished
 **ALWAYS use the logger package for debug logging:**
 
 ```go
-import "github.com/githubnext/gh-aw-mcpg/internal/logger"
+import "github.com/github/gh-aw-mcpg/internal/logger"
 
 // Create a logger with namespace following pkg:filename convention
 var log = logger.New("pkg:filename")
@@ -273,7 +273,7 @@ if log.Enabled() {
 **For operational/file logging, use the file logger directly:**
 
 ```go
-import "github.com/githubnext/gh-aw-mcpg/internal/logger"
+import "github.com/github/gh-aw-mcpg/internal/logger"
 
 // Log operational events (written to mcp-gateway.log)
 logger.LogInfo("category", "Operation completed successfully")

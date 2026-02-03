@@ -126,7 +126,7 @@ The direct connection test confirmed all 29 Serena tools are available:
 **Date:** January 19, 2026  
 **Command:** `make test-serena-gateway`  
 **Connection Type:** HTTP requests through MCP Gateway to Serena backend  
-**Gateway Image:** `ghcr.io/githubnext/gh-aw-mcpg:latest`  
+**Gateway Image:** `ghcr.io/github/gh-aw-mcpg:latest`  
 **Results Directory:** `test/serena-mcp-tests/results-gateway/`
 
 ### Summary

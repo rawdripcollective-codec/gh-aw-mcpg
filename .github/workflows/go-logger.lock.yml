@@ -17,7 +17,7 @@
 #
 # To update this file, edit the corresponding .md file and run:
 #   gh aw compile
-# For more information: https://github.com/githubnext/gh-aw/blob/main/.github/aw/github-agentic-workflows.md
+# For more information: https://github.com/github/gh-aw/blob/main/.github/aw/github-agentic-workflows.md
 #
 # Analyzes and enhances Go logging practices across the codebase for improved debugging and observability
 
@@ -48,7 +48,7 @@ jobs:
       comment_repo: ""
     steps:
       - name: Setup Scripts
-        uses: githubnext/gh-aw/actions/setup@v0.36.0
+        uses: github/gh-aw/actions/setup@v0.36.0
         with:
           destination: /opt/gh-aw/actions
       - name: Check workflow file timestamps
@@ -83,7 +83,7 @@ jobs:
       output_types: ${{ steps.collect_output.outputs.output_types }}
     steps:
       - name: Setup Scripts
-        uses: githubnext/gh-aw/actions/setup@v0.36.0
+        uses: github/gh-aw/actions/setup@v0.36.0
         with:
           destination: /opt/gh-aw/actions
       - name: Checkout repository
@@ -134,7 +134,7 @@ jobs:
             const { main } = require('/opt/gh-aw/actions/checkout_pr_branch.cjs');
             await main();
       - name: Validate COPILOT_GITHUB_TOKEN secret
-        run: /opt/gh-aw/actions/validate_multi_secret.sh COPILOT_GITHUB_TOKEN GitHub Copilot CLI https://githubnext.github.io/gh-aw/reference/engines/#github-copilot-default
+        run: /opt/gh-aw/actions/validate_multi_secret.sh COPILOT_GITHUB_TOKEN GitHub Copilot CLI https://github.github.io/gh-aw/reference/engines/#github-copilot-default
         env:
           COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
       - name: Install GitHub Copilot CLI
@@ -153,7 +153,7 @@ jobs:
       - name: Install awf binary
         run: |
           echo "Installing awf via installer script (requested version: v0.8.2)"
-          curl -sSL https://raw.githubusercontent.com/githubnext/gh-aw-firewall/main/install.sh | sudo AWF_VERSION=v0.8.2 bash
+          curl -sSL https://raw.githubusercontent.com/github/gh-aw-firewall/main/install.sh | sudo AWF_VERSION=v0.8.2 bash
           which awf
           awf --version
       - name: Determine automatic lockdown mode for GitHub MCP server
@@ -481,7 +481,7 @@ jobs:
           If a file doesn't have a logger, add this at the top of the file (after imports):
           
           ```go
-          import "github.com/githubnext/gh-aw-mcpg/internal/logger"
+          import "github.com/github/gh-aw-mcpg/internal/logger"
           
           var log = logger.New("pkg:filename")
           ```
@@ -587,7 +587,7 @@ jobs:
           For the selected file:
           
           1. **Add logger declaration if missing:**
-             - Add import: `"github.com/githubnext/gh-aw-mcpg/internal/logger"`
+             - Add import: `"github.com/github/gh-aw-mcpg/internal/logger"`
              - Add logger variable using correct naming: `var log = logger.New("pkg:filename")`
              
           2. **Reuse existing logger if present:**
@@ -672,7 +672,7 @@ jobs:
               "fmt"
               "net/http"
               
-              "github.com/githubnext/gh-aw-mcpg/internal/logger"
+              "github.com/github/gh-aw-mcpg/internal/logger"
           )
           
           var log = logger.New("server:server")
@@ -1035,7 +1035,7 @@ jobs:
       total_count: ${{ steps.missing_tool.outputs.total_count }}
     steps:
       - name: Setup Scripts
-        uses: githubnext/gh-aw/actions/setup@v0.36.0
+        uses: github/gh-aw/actions/setup@v0.36.0
         with:
           destination: /opt/gh-aw/actions
       - name: Debug job inputs
@@ -1118,7 +1118,7 @@ jobs:
       success: ${{ steps.parse_results.outputs.success }}
     steps:
       - name: Setup Scripts
-        uses: githubnext/gh-aw/actions/setup@v0.36.0
+        uses: github/gh-aw/actions/setup@v0.36.0
         with:
           destination: /opt/gh-aw/actions
       - name: Download agent artifacts
@@ -1197,7 +1197,7 @@ jobs:
           mkdir -p /tmp/gh-aw/threat-detection
           touch /tmp/gh-aw/threat-detection/detection.log
       - name: Validate COPILOT_GITHUB_TOKEN secret
-        run: /opt/gh-aw/actions/validate_multi_secret.sh COPILOT_GITHUB_TOKEN GitHub Copilot CLI https://githubnext.github.io/gh-aw/reference/engines/#github-copilot-default
+        run: /opt/gh-aw/actions/validate_multi_secret.sh COPILOT_GITHUB_TOKEN GitHub Copilot CLI https://github.github.io/gh-aw/reference/engines/#github-copilot-default
         env:
           COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
       - name: Install GitHub Copilot CLI
@@ -1280,7 +1280,7 @@ jobs:
       process_safe_outputs_temporary_id_map: ${{ steps.process_safe_outputs.outputs.temporary_id_map }}
     steps:
       - name: Setup Scripts
-        uses: githubnext/gh-aw/actions/setup@v0.36.0
+        uses: github/gh-aw/actions/setup@v0.36.0
         with:
           destination: /opt/gh-aw/actions
       - name: Download agent output artifact
@@ -1342,7 +1342,7 @@ jobs:
     permissions: {}
     steps:
       - name: Setup Scripts
-        uses: githubnext/gh-aw/actions/setup@v0.36.0
+        uses: github/gh-aw/actions/setup@v0.36.0
         with:
           destination: /opt/gh-aw/actions
       - name: Download cache-memory artifact (default)

@@ -18,8 +18,8 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-GATEWAY_IMAGE="${GATEWAY_IMAGE:-ghcr.io/githubnext/gh-aw-mcpg:latest}"
-SERENA_IMAGE="${SERENA_IMAGE:-ghcr.io/githubnext/serena-mcp-server:latest}"
+GATEWAY_IMAGE="${GATEWAY_IMAGE:-ghcr.io/github/gh-aw-mcpg:latest}"
+SERENA_IMAGE="${SERENA_IMAGE:-ghcr.io/github/serena-mcp-server:latest}"
 TEST_DIR="$(cd "$(dirname "$0")" && pwd)"
 SAMPLES_DIR="${TEST_DIR}/samples"
 EXPECTED_DIR="${TEST_DIR}/expected"

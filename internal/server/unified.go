@@ -10,14 +10,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/githubnext/gh-aw-mcpg/internal/config"
-	"github.com/githubnext/gh-aw-mcpg/internal/difc"
-	"github.com/githubnext/gh-aw-mcpg/internal/guard"
-	"github.com/githubnext/gh-aw-mcpg/internal/launcher"
-	"github.com/githubnext/gh-aw-mcpg/internal/logger"
-	"github.com/githubnext/gh-aw-mcpg/internal/mcp"
-	"github.com/githubnext/gh-aw-mcpg/internal/middleware"
-	"github.com/githubnext/gh-aw-mcpg/internal/sys"
+	"github.com/github/gh-aw-mcpg/internal/config"
+	"github.com/github/gh-aw-mcpg/internal/difc"
+	"github.com/github/gh-aw-mcpg/internal/guard"
+	"github.com/github/gh-aw-mcpg/internal/launcher"
+	"github.com/github/gh-aw-mcpg/internal/logger"
+	"github.com/github/gh-aw-mcpg/internal/mcp"
+	"github.com/github/gh-aw-mcpg/internal/middleware"
+	"github.com/github/gh-aw-mcpg/internal/sys"
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 

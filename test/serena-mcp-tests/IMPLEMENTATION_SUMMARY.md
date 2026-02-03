@@ -31,13 +31,13 @@ This implementation adds a comprehensive test suite for testing the Serena MCP S
 ## Test Configuration
 
 ### Gateway Setup
-- **Image**: `ghcr.io/githubnext/gh-aw-mcpg:latest`
+- **Image**: `ghcr.io/github/gh-aw-mcpg:latest`
 - **Port**: 18080 (configurable)
 - **Mode**: Routed mode (`/mcp/serena` endpoint)
 - **Config**: JSON via stdin with proper `gateway` section
 
 ### Serena Backend
-- **Image**: `ghcr.io/githubnext/serena-mcp-server:latest`
+- **Image**: `ghcr.io/github/serena-mcp-server:latest`
 - **Mount**: Test samples at `/workspace:ro`
 - **Init Time**: ~25 seconds (accounted for in tests)
 

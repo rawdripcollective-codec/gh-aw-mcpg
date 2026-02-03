@@ -23,7 +23,7 @@ package guard
 import (
 	"context"
 
-	"github.com/githubnext/gh-aw-mcpg/internal/logger"
+	"github.com/github/gh-aw-mcpg/internal/logger"
 )
 
 var log = logger.New("guard:context")

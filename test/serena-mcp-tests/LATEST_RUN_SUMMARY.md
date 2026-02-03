@@ -2,7 +2,7 @@
 
 **Test Date:** January 19, 2026  
 **Test Script:** `make test-serena`  
-**Container Image:** `ghcr.io/githubnext/serena-mcp-server:latest`  
+**Container Image:** `ghcr.io/github/serena-mcp-server:latest`  
 **Container Size:** 2.5GB
 
 ## Overall Results

@@ -495,7 +495,7 @@ func TestGitHubMCPRealBackend(t *testing.T) {
 			{
 				toolPattern: "list_branches",
 				args: map[string]interface{}{
-					"owner": "githubnext",
+					"owner": "github",
 					"repo":  "gh-aw-mcpg",
 				},
 				description: "List repository branches",
@@ -504,7 +504,7 @@ func TestGitHubMCPRealBackend(t *testing.T) {
 			{
 				toolPattern: "list_commits",
 				args: map[string]interface{}{
-					"owner": "githubnext",
+					"owner": "github",
 					"repo":  "gh-aw-mcpg",
 				},
 				description: "List repository commits",
@@ -513,7 +513,7 @@ func TestGitHubMCPRealBackend(t *testing.T) {
 			{
 				toolPattern: "get_file_contents",
 				args: map[string]interface{}{
-					"owner": "githubnext",
+					"owner": "github",
 					"repo":  "gh-aw-mcpg",
 					"path":  "README.md",
 				},
@@ -531,7 +531,7 @@ func TestGitHubMCPRealBackend(t *testing.T) {
 			{
 				toolPattern: "list_issues",
 				args: map[string]interface{}{
-					"owner": "githubnext",
+					"owner": "github",
 					"repo":  "gh-aw-mcpg",
 				},
 				description: "List issues",
@@ -540,7 +540,7 @@ func TestGitHubMCPRealBackend(t *testing.T) {
 			{
 				toolPattern: "list_pull_requests",
 				args: map[string]interface{}{
-					"owner": "githubnext",
+					"owner": "github",
 					"repo":  "gh-aw-mcpg",
 				},
 				description: "List pull requests",

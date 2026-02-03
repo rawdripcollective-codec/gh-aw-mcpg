@@ -17,7 +17,7 @@
 #
 # To update this file, edit the corresponding .md file and run:
 #   gh aw compile
-# For more information: https://github.com/githubnext/gh-aw/blob/main/.github/aw/github-agentic-workflows.md
+# For more information: https://github.com/github/gh-aw/blob/main/.github/aw/github-agentic-workflows.md
 #
 # Smoke Copilot
 
@@ -64,7 +64,7 @@ jobs:
             actions
           persist-credentials: false
       - name: Setup Scripts
-        uses: githubnext/gh-aw/actions/setup@v0.37.0
+        uses: github/gh-aw/actions/setup@v0.37.0
         with:
           destination: /opt/gh-aw/actions
       - name: Check workflow file timestamps
@@ -122,7 +122,7 @@ jobs:
             actions
           persist-credentials: false
       - name: Setup Scripts
-        uses: githubnext/gh-aw/actions/setup@v0.37.0
+        uses: github/gh-aw/actions/setup@v0.37.0
         with:
           destination: /opt/gh-aw/actions
       - name: Checkout repository
@@ -168,7 +168,7 @@ jobs:
             await main();
       - name: Validate COPILOT_GITHUB_TOKEN secret
         id: validate-secret
-        run: /opt/gh-aw/actions/validate_multi_secret.sh COPILOT_GITHUB_TOKEN 'GitHub Copilot CLI' https://githubnext.github.io/gh-aw/reference/engines/#github-copilot-default
+        run: /opt/gh-aw/actions/validate_multi_secret.sh COPILOT_GITHUB_TOKEN 'GitHub Copilot CLI' https://github.github.io/gh-aw/reference/engines/#github-copilot-default
         env:
           COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
       - name: Install GitHub Copilot CLI
@@ -188,7 +188,7 @@ jobs:
       - name: Install awf binary
         run: |
           echo "Installing awf via installer script (requested version: v0.10.0)"
-          curl -sSL https://raw.githubusercontent.com/githubnext/gh-aw-firewall/main/install.sh | sudo AWF_VERSION=v0.10.0 bash
+          curl -sSL https://raw.githubusercontent.com/github/gh-aw-firewall/main/install.sh | sudo AWF_VERSION=v0.10.0 bash
           which awf
           awf --version
       - name: Determine automatic lockdown mode for GitHub MCP server
@@ -202,18 +202,18 @@ jobs:
             const determineAutomaticLockdown = require('/opt/gh-aw/actions/determine_automatic_lockdown.cjs');
             await determineAutomaticLockdown(github, context, core);
       - name: Download container images
-        run: bash /opt/gh-aw/actions/download_docker_images.sh alpine:latest ghcr.io/github/github-mcp-server:v0.28.1 ghcr.io/githubnext/gh-aw-mcpg:latest mcr.microsoft.com/playwright/mcp node:lts-alpine ghcr.io/githubnext/serena-mcp-server:latest
+        run: bash /opt/gh-aw/actions/download_docker_images.sh alpine:latest ghcr.io/github/github-mcp-server:v0.28.1 ghcr.io/github/gh-aw-mcpg:latest mcr.microsoft.com/playwright/mcp node:lts-alpine ghcr.io/github/serena-mcp-server:latest
       - name: Install gh-aw extension
         env:
           GH_TOKEN: ${{ secrets.GH_AW_GITHUB_MCP_SERVER_TOKEN || secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
           # Check if gh-aw extension is already installed
-          if gh extension list | grep -q "githubnext/gh-aw"; then
+          if gh extension list | grep -q "github/gh-aw"; then
             echo "gh-aw extension already installed, upgrading..."
             gh extension upgrade gh-aw || true
           else
             echo "Installing gh-aw extension..."
-            gh extension install githubnext/gh-aw
+            gh extension install github/gh-aw
           fi
           gh aw --version
           # Copy the gh-aw binary to /opt/gh-aw for MCP server containerization
@@ -510,7 +510,7 @@ jobs:
           # Register API key as secret to mask it from logs
           echo "::add-mask::${MCP_GATEWAY_API_KEY}"
           export GH_AW_ENGINE="copilot"
-          export MCP_GATEWAY_DOCKER_COMMAND='docker run -i --rm --network host -v /var/run/docker.sock:/var/run/docker.sock -e MCP_GATEWAY_PORT -e MCP_GATEWAY_DOMAIN -e MCP_GATEWAY_API_KEY -e DEBUG="*" -e MCP_GATEWAY_LOG_DIR -e GH_AW_MCP_LOG_DIR -e GH_AW_SAFE_OUTPUTS -e GH_AW_SAFE_OUTPUTS_CONFIG_PATH -e GH_AW_SAFE_OUTPUTS_TOOLS_PATH -e GH_AW_ASSETS_BRANCH -e GH_AW_ASSETS_MAX_SIZE_KB -e GH_AW_ASSETS_ALLOWED_EXTS -e DEFAULT_BRANCH -e GITHUB_MCP_SERVER_TOKEN -e GITHUB_MCP_LOCKDOWN -e GITHUB_REPOSITORY -e GITHUB_SERVER_URL -e GITHUB_SHA -e GITHUB_WORKSPACE -e GITHUB_TOKEN -v /opt:/opt:ro -v /tmp:/tmp:rw -v '"${GITHUB_WORKSPACE}"':'"${GITHUB_WORKSPACE}"':rw ghcr.io/githubnext/gh-aw-mcpg:latest'
+          export MCP_GATEWAY_DOCKER_COMMAND='docker run -i --rm --network host -v /var/run/docker.sock:/var/run/docker.sock -e MCP_GATEWAY_PORT -e MCP_GATEWAY_DOMAIN -e MCP_GATEWAY_API_KEY -e DEBUG="*" -e MCP_GATEWAY_LOG_DIR -e GH_AW_MCP_LOG_DIR -e GH_AW_SAFE_OUTPUTS -e GH_AW_SAFE_OUTPUTS_CONFIG_PATH -e GH_AW_SAFE_OUTPUTS_TOOLS_PATH -e GH_AW_ASSETS_BRANCH -e GH_AW_ASSETS_MAX_SIZE_KB -e GH_AW_ASSETS_ALLOWED_EXTS -e DEFAULT_BRANCH -e GITHUB_MCP_SERVER_TOKEN -e GITHUB_MCP_LOCKDOWN -e GITHUB_REPOSITORY -e GITHUB_SERVER_URL -e GITHUB_SHA -e GITHUB_WORKSPACE -e GITHUB_TOKEN -v /opt:/opt:ro -v /tmp:/tmp:rw -v '"${GITHUB_WORKSPACE}"':'"${GITHUB_WORKSPACE}"':rw ghcr.io/github/gh-aw-mcpg:latest'
           
           mkdir -p /home/runner/.copilot
           cat << MCPCONFIG_EOF | bash /opt/gh-aw/actions/start_mcp_gateway.sh
@@ -566,7 +566,7 @@ jobs:
               },
               "serena": {
                 "type": "stdio",
-                "container": "ghcr.io/githubnext/serena-mcp-server:latest",
+                "container": "ghcr.io/github/serena-mcp-server:latest",
                 "args": ["--network", "host"],
                 "entrypoint": "serena",
                 "entrypointArgs": ["start-mcp-server", "--context", "codex", "--project", "${{ github.workspace }}"],
@@ -977,7 +977,7 @@ jobs:
             actions
           persist-credentials: false
       - name: Setup Scripts
-        uses: githubnext/gh-aw/actions/setup@v0.37.0
+        uses: github/gh-aw/actions/setup@v0.37.0
         with:
           destination: /opt/gh-aw/actions
       - name: Debug job inputs
@@ -1082,7 +1082,7 @@ jobs:
             actions
           persist-credentials: false
       - name: Setup Scripts
-        uses: githubnext/gh-aw/actions/setup@v0.37.0
+        uses: github/gh-aw/actions/setup@v0.37.0
         with:
           destination: /opt/gh-aw/actions
       - name: Download agent artifacts
@@ -1162,7 +1162,7 @@ jobs:
           touch /tmp/gh-aw/threat-detection/detection.log
       - name: Validate COPILOT_GITHUB_TOKEN secret
         id: validate-secret
-        run: /opt/gh-aw/actions/validate_multi_secret.sh COPILOT_GITHUB_TOKEN 'GitHub Copilot CLI' https://githubnext.github.io/gh-aw/reference/engines/#github-copilot-default
+        run: /opt/gh-aw/actions/validate_multi_secret.sh COPILOT_GITHUB_TOKEN 'GitHub Copilot CLI' https://github.github.io/gh-aw/reference/engines/#github-copilot-default
         env:
           COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
       - name: Install GitHub Copilot CLI
@@ -1245,7 +1245,7 @@ jobs:
             actions
           persist-credentials: false
       - name: Setup Scripts
-        uses: githubnext/gh-aw/actions/setup@v0.37.0
+        uses: github/gh-aw/actions/setup@v0.37.0
         with:
           destination: /opt/gh-aw/actions
       - name: Add eyes reaction for immediate feedback
@@ -1301,7 +1301,7 @@ jobs:
             actions
           persist-credentials: false
       - name: Setup Scripts
-        uses: githubnext/gh-aw/actions/setup@v0.37.0
+        uses: github/gh-aw/actions/setup@v0.37.0
         with:
           destination: /opt/gh-aw/actions
       - name: Download agent output artifact
@@ -1345,7 +1345,7 @@ jobs:
             actions
           persist-credentials: false
       - name: Setup Scripts
-        uses: githubnext/gh-aw/actions/setup@v0.37.0
+        uses: github/gh-aw/actions/setup@v0.37.0
         with:
           destination: /opt/gh-aw/actions
       - name: Download cache-memory artifact (default)

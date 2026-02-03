@@ -1,6 +1,6 @@
 # Serena MCP Server Test Suite
 
-Comprehensive shell script tests for the Serena MCP Server (`ghcr.io/githubnext/serena-mcp-server:latest`), covering all 23 MCP tools across 4 programming languages.
+Comprehensive shell script tests for the Serena MCP Server (`ghcr.io/github/serena-mcp-server:latest`), covering all 23 MCP tools across 4 programming languages.
 
 ## Quick Start
 
@@ -53,7 +53,7 @@ These tests connect directly to the Serena MCP Server container via stdio (stand
 These tests connect to Serena through the MCP Gateway container, which proxies requests to the backend Serena server. This validates that Serena works correctly when accessed through the gateway infrastructure.
 
 - **Connection Method**: HTTP requests to MCP Gateway → Gateway proxies to Serena via stdio
-- **Gateway Image**: `ghcr.io/githubnext/gh-aw-mcpg:latest`
+- **Gateway Image**: `ghcr.io/github/gh-aw-mcpg:latest`
 - **Results Directory**: `results-gateway/`
 - **Use Case**: Testing Serena through production gateway setup
 - **Purpose**: Identify any behavioral differences when using the gateway
@@ -369,7 +369,7 @@ Example GitHub Actions usage:
 
 - [Serena MCP Server Documentation](https://github.com/oraios/serena)
 - [Model Context Protocol Specification](https://github.com/modelcontextprotocol)
-- [MCP Gateway Configuration](https://github.com/githubnext/gh-aw/blob/main/docs/src/content/docs/reference/mcp-gateway.md)
+- [MCP Gateway Configuration](https://github.com/github/gh-aw/blob/main/docs/src/content/docs/reference/mcp-gateway.md)
 
 ## Contributing
 

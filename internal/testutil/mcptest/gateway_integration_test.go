@@ -11,9 +11,9 @@ import (
 
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/githubnext/gh-aw-mcpg/internal/config"
-	"github.com/githubnext/gh-aw-mcpg/internal/server"
-	"github.com/githubnext/gh-aw-mcpg/internal/testutil/mcptest"
+	"github.com/github/gh-aw-mcpg/internal/config"
+	"github.com/github/gh-aw-mcpg/internal/server"
+	"github.com/github/gh-aw-mcpg/internal/testutil/mcptest"
 )
 
 // TestGatewayWithSingleBackend tests the gateway with a single backend MCP server

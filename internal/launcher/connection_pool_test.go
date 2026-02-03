@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/githubnext/gh-aw-mcpg/internal/mcp"
+	"github.com/github/gh-aw-mcpg/internal/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

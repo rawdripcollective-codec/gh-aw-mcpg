@@ -54,7 +54,7 @@ package guard
 
 import (
     "context"
-    "github.com/githubnext/gh-aw-mcpg/internal/difc"
+    "github.com/github/gh-aw-mcpg/internal/difc"
     sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -554,7 +554,7 @@ package guard
 
 import (
     "context"
-    "github.com/githubnext/gh-aw-mcpg/internal/difc"
+    "github.com/github/gh-aw-mcpg/internal/difc"
     sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -591,8 +591,8 @@ import (
     "context"
     "encoding/json"
     "fmt"
-    "github.com/githubnext/gh-aw-mcpg/internal/difc"
-    "github.com/githubnext/gh-aw-mcpg/internal/guard"
+    "github.com/github/gh-aw-mcpg/internal/difc"
+    "github.com/github/gh-aw-mcpg/internal/guard"
     sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -912,8 +912,8 @@ import (
     "context"
     "fmt"
     "log"
-    "github.com/githubnext/gh-aw-mcpg/internal/difc"
-    "github.com/githubnext/gh-aw-mcpg/internal/guard"
+    "github.com/github/gh-aw-mcpg/internal/difc"
+    "github.com/github/gh-aw-mcpg/internal/guard"
     sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 

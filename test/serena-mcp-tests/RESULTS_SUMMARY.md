@@ -6,7 +6,7 @@
 
 ## Test Execution
 
-The Serena MCP Server comprehensive test suite was executed successfully using the updated `test_serena.sh` script against the container image `ghcr.io/githubnext/serena-mcp-server:latest`.
+The Serena MCP Server comprehensive test suite was executed successfully using the updated `test_serena.sh` script against the container image `ghcr.io/github/serena-mcp-server:latest`.
 
 ## Quick Results
 
