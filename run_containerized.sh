@@ -227,13 +227,13 @@ validate_log_directory_mount() {
 
 # Set DOCKER_API_VERSION based on architecture and Docker daemon requirements
 set_docker_api_version() {
-    # First, check what the Docker daemon requires as minimum API version
-    local min_api=$(docker version --format '{{.Server.MinAPIVersion}}' 2>/dev/null || echo "")
+    # Get the server's current API version (what it actually supports)
+    local server_api=$(docker version --format '{{.Server.APIVersion}}' 2>/dev/null || echo "")
     
-    if [ -n "$min_api" ]; then
-        # Use the daemon's minimum API version to ensure compatibility
-        export DOCKER_API_VERSION="$min_api"
-        log_info "Set DOCKER_API_VERSION=$DOCKER_API_VERSION (daemon minimum)"
+    if [ -n "$server_api" ]; then
+        # Use the server's current API version for full compatibility
+        export DOCKER_API_VERSION="$server_api"
+        log_info "Set DOCKER_API_VERSION=$DOCKER_API_VERSION (server current)"
     else
         # Fallback: set based on architecture
         local arch=$(uname -m)
