@@ -90,15 +90,25 @@ check_optional_env_vars() {
     fi
 }
 
-# Set DOCKER_API_VERSION based on architecture
+# Set DOCKER_API_VERSION based on Docker daemon's current API version
 set_docker_api_version() {
-    local arch=$(uname -m)
-    if [ "$arch" = "arm64" ] || [ "$arch" = "aarch64" ]; then
-        export DOCKER_API_VERSION=1.43
+    # Get the server's current API version (what it actually supports)
+    local server_api=$(docker version --format '{{.Server.APIVersion}}' 2>/dev/null || echo "")
+    
+    if [ -n "$server_api" ]; then
+        # Use the server's current API version for full compatibility
+        export DOCKER_API_VERSION="$server_api"
+        log_info "Set DOCKER_API_VERSION=$DOCKER_API_VERSION (server current)"
     else
-        export DOCKER_API_VERSION=1.44
+        # Fallback: set based on architecture
+        local arch=$(uname -m)
+        if [ "$arch" = "arm64" ] || [ "$arch" = "aarch64" ]; then
+            export DOCKER_API_VERSION=1.44
+        else
+            export DOCKER_API_VERSION=1.44
+        fi
+        log_info "Set DOCKER_API_VERSION=$DOCKER_API_VERSION for $arch (fallback)"
     fi
-    log_info "Set DOCKER_API_VERSION=$DOCKER_API_VERSION for $arch"
 }
 
 # Main execution
