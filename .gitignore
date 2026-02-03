@@ -57,7 +57,3 @@ scripts/rebase-github-difc.sh
 
 # Serena cache directories
 .serena/
-
-# WASM guard build artifacts
-examples/guards/*/guard.wasm
-*.wasm

@@ -24,17 +24,11 @@ type Config struct {
 	// Servers maps server names to their configurations
 	Servers map[string]*ServerConfig `toml:"servers" json:"servers"`
 
-	// Guards holds guard configurations (optional, experimental)
-	Guards map[string]*GuardConfig `toml:"guards" json:"guards,omitempty"`
-
 	// Gateway holds global gateway settings
 	Gateway *GatewayConfig `toml:"gateway" json:"gateway,omitempty"`
 
 	// EnableDIFC enables Decentralized Information Flow Control
 	EnableDIFC bool `toml:"enable_difc" json:"enable_difc,omitempty"`
-
-	// DIFCFilter enables DIFC response filtering (removes content that violates agent labels)
-	DIFCFilter bool `toml:"difc_filter" json:"difc_filter,omitempty"`
 
 	// SequentialLaunch launches servers sequentially instead of in parallel
 	SequentialLaunch bool `toml:"sequential_launch" json:"sequential_launch,omitempty"`
@@ -60,9 +54,6 @@ type GatewayConfig struct {
 
 	// PayloadDir is the directory for storing large payloads
 	PayloadDir string `toml:"payload_dir" json:"payload_dir,omitempty"`
-
-	// Session holds initial DIFC labels for agent sessions
-	Session *SessionConfig `toml:"session" json:"session,omitempty"`
 }
 
 // ServerConfig represents an individual MCP server configuration.
@@ -90,9 +81,6 @@ type ServerConfig struct {
 
 	// Tools is an optional list of tools to filter/expose
 	Tools []string `toml:"tools" json:"tools,omitempty"`
-
-	// Guard is the guard ID to use for this server (references a guard in the guards section)
-	Guard string `toml:"guard" json:"guard,omitempty"`
 }
 
 // LoadFromFile loads configuration from a TOML file.

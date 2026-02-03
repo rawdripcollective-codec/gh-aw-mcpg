@@ -1,4 +1,4 @@
-.PHONY: build lint test test-unit test-integration test-all test-serena test-serena-gateway coverage test-ci format clean install release help agent-finished echo-guard-demo echo-guard-build echo-guard-test echo-guard-codex echo-guard-tmux
+.PHONY: build lint test test-unit test-integration test-all test-serena test-serena-gateway coverage test-ci format clean install release help agent-finished
 
 # Default target
 .DEFAULT_GOAL := help
@@ -21,15 +21,15 @@ build:
 lint:
 	@echo "Running linters..."
 	@go mod tidy
-	@go vet $$(go list ./... | grep -v '/examples/guards/')
+	@go vet ./...
 	@echo "Running gofmt check..."
-	@test -z "$$(gofmt -l $$(find . -name '*.go' -not -path './examples/guards/*'))" || (echo "The following files are not formatted:"; gofmt -l $$(find . -name '*.go' -not -path './examples/guards/*'); exit 1)
+	@test -z "$$(gofmt -l .)" || (echo "The following files are not formatted:"; gofmt -l .; exit 1)
 	@echo "Running golangci-lint..."
 	@GOPATH=$$(go env GOPATH); \
 	if [ -f "$$GOPATH/bin/golangci-lint" ]; then \
-		$$GOPATH/bin/golangci-lint run --timeout=5m --skip-dirs examples/guards || echo "⚠ Warning: golangci-lint failed (compatibility issue with Go 1.25.0). Continuing with other checks..."; \
+		$$GOPATH/bin/golangci-lint run --timeout=5m || echo "⚠ Warning: golangci-lint failed (compatibility issue with Go 1.25.0). Continuing with other checks..."; \
 	elif command -v golangci-lint >/dev/null 2>&1; then \
-		golangci-lint run --timeout=5m --skip-dirs examples/guards || echo "⚠ Warning: golangci-lint failed (compatibility issue with Go 1.25.0). Continuing with other checks..."; \
+		golangci-lint run --timeout=5m || echo "⚠ Warning: golangci-lint failed (compatibility issue with Go 1.25.0). Continuing with other checks..."; \
 	else \
 		echo "⚠ Warning: golangci-lint not found. Run 'make install' to install it."; \
 		echo "  Skipping golangci-lint checks..."; \
@@ -261,43 +261,4 @@ help:
 	@echo "  install         - Install required toolchains and dependencies"
 	@echo "  release         - Create and push a release tag (usage: make release patch|minor|major)"
 	@echo "  agent-finished  - Run format, build, lint, and all tests (for agents before completion)"
-	@echo "  echo-guard-demo - Run quick echo guard test demo (shows guard I/O)"
-	@echo "  echo-guard-codex - Start gateway with echo guard for Codex integration"
-	@echo "  echo-guard-tmux - Interactive tmux demo (gateway + instructions)"
-	@echo "  echo-guard-build - Build the echo guard WASM file"
-	@echo "  echo-guard-test - Run echo guard integration tests"
 	@echo "  help            - Display this help message"
-
-# Echo Guard Demo targets
-echo-guard-demo:
-	@echo ""
-	@echo "╔═══════════════════════════════════════════════════════════════╗"
-	@echo "║              ECHO GUARD DEMO                                  ║"
-	@echo "║  Demonstrates guard I/O for debugging guard implementations   ║"
-	@echo "╚═══════════════════════════════════════════════════════════════╝"
-	@echo ""
-	@./scripts/echo-guard-demo.sh all
-
-echo-guard-codex:
-	@echo ""
-	@echo "╔═══════════════════════════════════════════════════════════════╗"
-	@echo "║        ECHO GUARD END-TO-END DEMO WITH CODEX                  ║"
-	@echo "╚═══════════════════════════════════════════════════════════════╝"
-	@echo ""
-	@./scripts/echo-guard-demo.sh codex
-
-echo-guard-tmux:
-	@echo ""
-	@echo "╔═══════════════════════════════════════════════════════════════╗"
-	@echo "║        ECHO GUARD INTERACTIVE TMUX DEMO                       ║"
-	@echo "╚═══════════════════════════════════════════════════════════════╝"
-	@echo ""
-	@./scripts/echo-guard-demo.sh tmux
-
-echo-guard-build:
-	@echo "Building echo guard WASM..."
-	@./scripts/echo-guard-demo.sh build
-
-echo-guard-test:
-	@echo "Running echo guard tests..."
-	@go test -v -run "TestEchoGuard" ./test/integration/...
