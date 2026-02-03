@@ -478,7 +478,7 @@ func TestSlogHandler_Handle_EdgeCases(t *testing.T) {
 		handler := NewSlogHandler(logger)
 
 		// Enabled should work with nil context (underscore param means it's ignored)
-		enabled := handler.Enabled(nil, slog.LevelInfo)
+		enabled := handler.Enabled(context.TODO(), slog.LevelInfo)
 		assert.Equal(logger.Enabled(), enabled)
 	})
 }
