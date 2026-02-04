@@ -588,7 +588,7 @@ func TestCreateHTTPServerForRoutedMode_OAuth(t *testing.T) {
 		},
 	}
 
-	// Create minimal unified server
+	// Create minimal server for routed mode testing
 	ctx := context.Background()
 	cfg := &config.Config{
 		Servers: map[string]*config.ServerConfig{},
