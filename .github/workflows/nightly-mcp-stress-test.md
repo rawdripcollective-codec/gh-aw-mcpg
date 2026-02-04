@@ -18,17 +18,79 @@ network:
     - defaults
     - go
 
-steps:
-  - name: Set up Go
-    uses: actions/setup-go@v6
-    with:
-      go-version-file: go.mod
-      cache: true
-
 tools:
   github:
     toolsets: [default]
   bash: ["*"]
+
+sandbox:
+  mcp:
+    container: "ghcr.io/github/gh-aw-mcpg:v0.0.94"
+    mcp-servers:
+      github:
+        type: stdio
+        container: "ghcr.io/github/github-mcp-server:v0.30.2"
+        env:
+          GITHUB_PERSONAL_ACCESS_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      filesystem:
+        type: stdio
+        container: "mcp/filesystem"
+        mounts:
+          - "/tmp:/workspace:rw"
+      memory:
+        type: stdio
+        container: "mcp/memory"
+      sqlite:
+        type: stdio
+        container: "mcp/sqlite"
+      postgres:
+        type: stdio
+        container: "mcp/postgres"
+      brave-search:
+        type: stdio
+        container: "mcp/brave-search"
+      fetch:
+        type: stdio
+        container: "mcp/fetch"
+      puppeteer:
+        type: stdio
+        container: "mcp/puppeteer"
+      slack:
+        type: stdio
+        container: "mcp/slack"
+      gdrive:
+        type: stdio
+        container: "mcp/gdrive"
+      google-maps:
+        type: stdio
+        container: "mcp/google-maps"
+      everart:
+        type: stdio
+        container: "mcp/everart"
+      sequential-thinking:
+        type: stdio
+        container: "mcp/sequential-thinking"
+      aws-kb-retrieval:
+        type: stdio
+        container: "mcp/aws-kb-retrieval"
+      linear:
+        type: stdio
+        container: "mcp/linear"
+      sentry:
+        type: stdio
+        container: "mcp/sentry"
+      raygun:
+        type: stdio
+        container: "mcp/raygun"
+      git:
+        type: stdio
+        container: "mcp/git"
+      time:
+        type: stdio
+        container: "mcp/time"
+      axiom:
+        type: stdio
+        container: "mcp/axiom"
 
 safe-outputs:
   create-issue:

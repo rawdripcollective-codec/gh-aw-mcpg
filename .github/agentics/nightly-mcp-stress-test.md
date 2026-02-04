@@ -10,86 +10,50 @@
 
 # Nightly MCP Server Stress Test 🧪
 
-You are an AI agent that performs comprehensive stress testing of the MCP Gateway by loading and testing 20 well-known MCP servers, executing their tools, and reporting the results.
+You are an AI agent that performs comprehensive stress testing of the MCP Gateway by testing 20 well-known MCP servers that are already configured and accessible through the gateway.
 
 ## Mission
 
 Test the MCP Gateway's ability to handle multiple diverse MCP servers simultaneously. For each server, attempt to discover and invoke at least one tool. Track successes, failures, and categorize issues (authentication, protocol, timeout, etc.).
 
-## Step 1: Prepare Test Configuration 📋
+## Important: MCP Gateway is Pre-Configured
 
-Create a comprehensive test configuration that includes 20 well-known MCP servers:
+**The MCP Gateway is already running and configured with 20 MCP servers via the `sandbox.mcp` configuration in the workflow.**
 
-### Server List
+You do NOT need to:
+- ❌ Build the gateway (`make build`)
+- ❌ Start the gateway (`./awmg`)
+- ❌ Create a configuration file
+- ❌ Launch Docker containers
 
-Configure the following MCP servers in the test:
+The gateway is provided by the workflow infrastructure and handles all Docker container launching outside the AWF environment.
 
-1. **GitHub MCP Server** (ghcr.io/github/github-mcp-server:v0.30.2)
-2. **Filesystem MCP Server** (mcp/filesystem)
-3. **Memory MCP Server** (mcp/memory)
-4. **SQLite MCP Server** (mcp/sqlite)
-5. **Postgres MCP Server** (mcp/postgres)
-6. **Brave Search MCP Server** (mcp/brave-search)
-7. **Fetch MCP Server** (mcp/fetch)
-8. **Puppeteer MCP Server** (mcp/puppeteer)
-9. **Slack MCP Server** (mcp/slack)
-10. **Google Drive MCP Server** (mcp/gdrive)
-11. **Google Maps MCP Server** (mcp/google-maps)
-12. **EverArt MCP Server** (mcp/everart)
-13. **Sequential Thinking MCP Server** (mcp/sequential-thinking)
-14. **AWS KB Retrieval MCP Server** (mcp/aws-kb-retrieval)
-15. **Linear MCP Server** (mcp/linear)
-16. **Sentry MCP Server** (mcp/sentry)
-17. **Raygun MCP Server** (mcp/raygun)
-18. **Git MCP Server** (mcp/git)
-19. **Time MCP Server** (mcp/time)
-20. **Axiom MCP Server** (mcp/axiom)
+## Available MCP Servers
 
-### Test Configuration Structure
+The following 20 MCP servers are pre-configured and accessible via the gateway:
 
-Create a test configuration file at `/tmp/mcp-stress-test-config.json`. The agent should generate the actual JSON file dynamically using environment variables:
+1. **github** - GitHub MCP Server (ghcr.io/github/github-mcp-server:v0.30.2)
+2. **filesystem** - Filesystem MCP Server (mcp/filesystem)
+3. **memory** - Memory MCP Server (mcp/memory)
+4. **sqlite** - SQLite MCP Server (mcp/sqlite)
+5. **postgres** - Postgres MCP Server (mcp/postgres)
+6. **brave-search** - Brave Search MCP Server (mcp/brave-search)
+7. **fetch** - Fetch MCP Server (mcp/fetch)
+8. **puppeteer** - Puppeteer MCP Server (mcp/puppeteer)
+9. **slack** - Slack MCP Server (mcp/slack)
+10. **gdrive** - Google Drive MCP Server (mcp/gdrive)
+11. **google-maps** - Google Maps MCP Server (mcp/google-maps)
+12. **everart** - EverArt MCP Server (mcp/everart)
+13. **sequential-thinking** - Sequential Thinking MCP Server (mcp/sequential-thinking)
+14. **aws-kb-retrieval** - AWS KB Retrieval MCP Server (mcp/aws-kb-retrieval)
+15. **linear** - Linear MCP Server (mcp/linear)
+16. **sentry** - Sentry MCP Server (mcp/sentry)
+17. **raygun** - Raygun MCP Server (mcp/raygun)
+18. **git** - Git MCP Server (mcp/git)
+19. **time** - Time MCP Server (mcp/time)
+20. **axiom** - Axiom MCP Server (mcp/axiom)
 
-Example structure (the agent will create the actual file with the API_KEY variable):
-
-```json
-{
-  "mcpServers": {
-    "github": {
-      "type": "stdio",
-      "container": "ghcr.io/github/github-mcp-server:v0.30.2",
-      "env": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
-      }
-    },
-    "filesystem": {
-      "type": "stdio",
-      "container": "mcp/filesystem",
-      "mounts": [
-        {
-          "source": "/tmp",
-          "target": "/workspace",
-          "readOnly": false
-        }
-      ]
-    },
-    "memory": {
-      "type": "stdio",
-      "container": "mcp/memory"
-    }
-    // ... add remaining 17 servers
-  },
-  "gateway": {
-    "port": 3000,
-    "apiKey": "${API_KEY}",
-    "startupTimeout": 60,
-    "toolTimeout": 30
-  }
-}
-```
-
-**Note:** Include placeholders for authentication tokens. Document which servers require authentication.
-
-## Step 2: Start MCP Gateway with Test Configuration 🚀
+## Step 1: Initialize Test Session 📋
 
 1. **Generate a unique test session ID:**
    ```bash
@@ -97,148 +61,91 @@ Example structure (the agent will create the actual file with the API_KEY variab
    echo "Test session: $TEST_SESSION"
    ```
 
-2. **Set up test environment:**
+2. **Set up test directories:**
    ```bash
-   # Create test directories
+   # Create test directories for results
+   mkdir -p /tmp/mcp-stress-results
    mkdir -p /tmp/mcp-stress-test
-   mkdir -p /tmp/mcp-stress-test/logs
+   ```
+
+3. **Verify gateway connectivity:**
    
-   # Export required environment variables
-   # Note: GITHUB_TOKEN is automatically available in the workflow environment
-   export GITHUB_TOKEN="${GITHUB_TOKEN}"
-   
-   # Generate secure API key for this test session (remove problematic characters)
-   # The "stress-test-" prefix helps identify test sessions in logs
-   export API_KEY="stress-test-$(openssl rand -base64 45 | tr -d '/+=')"
-   ```
+   The MCP Gateway is accessible at the MCP tool endpoint. You can test connectivity by attempting to list tools from a server.
 
-3. **Build and start the gateway:**
-   ```bash
-   cd /home/runner/work/gh-aw-mcpg/gh-aw-mcpg
-   make build
-   
-   # Start gateway in background with test config
-   ./awmg --config /tmp/mcp-stress-test-config.json \
-          --log-dir /tmp/mcp-stress-test/logs \
-          2>&1 | tee /tmp/mcp-stress-test/gateway-startup.log &
-   
-   GATEWAY_PID=$!
-   echo "Gateway PID: $GATEWAY_PID"
-   
-   # Wait for gateway to be ready
-   sleep 10
-   ```
+## Step 2: Test Each MCP Server 🔬
 
-4. **Verify gateway is running:**
-   ```bash
-   curl -f http://localhost:3000/health || echo "Gateway health check failed"
-   ```
+The MCP servers are accessible as MCP tools through the gateway. For each server, you should attempt to:
 
-## Step 3: Test Each MCP Server 🔬
+1. **Discover available tools** from the server
+2. **Invoke a simple test tool** (if available)
+3. **Record the result** (success, authentication error, timeout, protocol error, or other failure)
 
-For each configured MCP server, perform the following tests:
+### Testing Approach
 
-### 3.1 Discover Available Tools
+For each of the 20 configured MCP servers:
 
-1. **Call `tools/list` for each server:**
-   ```bash
-   # Note: Per MCP spec 7.1, Authorization header contains API key directly (no "Bearer" prefix)
-   # ${API_KEY} is a shell environment variable (not a placeholder)
-   curl -X POST http://localhost:3000/mcp/{server-name} \
-     -H "Authorization: ${API_KEY}" \
-     -H "Content-Type: application/json" \
-     -d '{
-       "jsonrpc": "2.0",
-       "id": 1,
-       "method": "tools/list",
-       "params": {}
-     }'
-   ```
+1. **Attempt to use a simple, safe tool from that server**
+   - For `github`: Try calling a read-only tool like `search_repositories` or `list_issues`
+   - For `filesystem`: Try listing a directory (if supported)
+   - For `memory`: Try reading or listing (if supported)
+   - For `time`: Try getting current time (if supported)
+   - For other servers: Use the simplest, safest read-only operation available
 
-2. **Parse the response:**
-   - Extract list of available tools
-   - Record tool names and schemas
-   - Note any errors (authentication, timeout, protocol)
+2. **If tool access fails, determine the failure type:**
+   - **Authentication Required**: Error mentions missing token, API key, or authentication
+   - **Protocol Error**: Malformed JSON-RPC or MCP protocol violation
+   - **Timeout**: Request exceeds timeout period
+   - **Container Error**: Docker container failed to start or crashed
+   - **Tool Not Available**: Server has no tools or requested tool doesn't exist
+   - **Other**: Any unexpected error
 
-### 3.2 Invoke Test Tools
+3. **Keep track of results** for each server in a structured format
 
-For each server with available tools:
+### Testing Strategy
 
-1. **Select a simple tool to test:**
-   - Prefer read-only operations (list, get, search)
-   - Avoid destructive operations (create, delete, update)
-   - Choose tools that don't require complex parameters
+**Note**: You may encounter authentication failures for many servers that require API keys or tokens. This is EXPECTED and should be documented, not considered a critical failure.
 
-2. **Invoke the selected tool:**
-   ```bash
-   # Note: Per MCP spec 7.1, Authorization header contains API key directly (no "Bearer" prefix)
-   # ${API_KEY} is a shell environment variable (not a placeholder)
-   curl -X POST http://localhost:3000/mcp/{server-name} \
-     -H "Authorization: ${API_KEY}" \
-     -H "Content-Type: application/json" \
-     -d '{
-       "jsonrpc": "2.0",
-       "id": 2,
-       "method": "tools/call",
-       "params": {
-         "name": "{tool-name}",
-         "arguments": {
-           // minimal required arguments
-         }
-       }
-     }'
-   ```
+- Test servers **sequentially** (one at a time) to avoid overwhelming the gateway
+- Use **simple operations** that don't require complex parameters
+- Prefer **read-only** operations to avoid side effects
+- If a server requires authentication you don't have, **record it and move on**
+- **Continue testing** all 20 servers even if some fail
 
-3. **Record the result:**
-   - Success: Tool executed without error
-   - Authentication Failure: 401 or authentication-related error
-   - Timeout: Request timed out
-   - Protocol Error: JSON-RPC or MCP protocol violation
-   - Other Error: Any other failure type
+### Example Test Pattern
 
-### 3.3 Categorize Failures
+For the GitHub server (which has authentication configured):
+```bash
+# You can directly use MCP tools configured in the workflow
+# The MCP gateway handles the routing automatically
+# Example: Use bash to log your testing approach
+echo "Testing github server..."
+```
 
-For each failure, determine the root cause:
+Then attempt to use a GitHub MCP tool. If it works, record success. If it fails, record the error and category.
 
-**Authentication Required:**
-- Error message contains "authentication", "unauthorized", "token", "API key"
-- HTTP 401 status code
-- Tool invocation fails due to missing credentials
+For servers without authentication:
+- Attempt to use a tool
+- If it fails due to missing authentication, document the required token
+- Move to the next server
 
-**Protocol Error:**
-- Invalid JSON-RPC response
-- MCP protocol violation
-- Malformed request/response
+## Step 3: Categorize Results 📊
 
-**Timeout:**
-- Request exceeds toolTimeout (30 seconds)
-- Server unresponsive
-- Container startup timeout
+After testing all 20 servers, categorize the results:
 
-**Container Error:**
-- Docker container failed to start
-- Container image not found
-- Container crashed during execution
+**Success Categories:**
+- ✅ **Fully Functional**: Server responded and tool executed successfully
+- ✅ **Partially Functional**: Server responded but some tools require auth
 
-**Other:**
-- Unexpected errors
-- Network issues
-- Gateway internal errors
+**Failure Categories:**
+- ❌ **Authentication Required**: Server needs API key/token not provided
+- ❌ **Protocol Error**: JSON-RPC or MCP protocol issues
+- ❌ **Timeout**: Server didn't respond within timeout period
+- ❌ **Container Error**: Docker container failed to start
+- ❌ **Other Error**: Unexpected failures
 
-## Step 4: Collect Gateway Logs 📝
+## Step 4: Generate Test Report 📝
 
-After testing all servers:
-
-1. **Stop the gateway gracefully:**
-   ```bash
-   kill -TERM $GATEWAY_PID
-   wait $GATEWAY_PID
-   ```
-
-2. **Collect log files:**
-   ```bash
-   # Collect all logs
-   cp -r /tmp/mcp-stress-test/logs /tmp/mcp-stress-results/
+Create a comprehensive test report documenting your findings.
    
    # Parse for errors
    grep -i error /tmp/mcp-stress-test/logs/*.log > /tmp/mcp-stress-results/errors.txt
@@ -269,19 +176,19 @@ Create a comprehensive test report with the following sections:
 ### Success Rate
 
 - Overall: X% (X/20 servers)
-- With Authentication: Y% (Y/Z authenticated servers)
-- Without Authentication: Z% (Z/W non-authenticated servers)
+- With Authentication: Y% (Y/Z authenticated servers if applicable)
+- Without Authentication: Z% (Z/W non-authenticated servers if applicable)
 ```
 
 ### Server Results Table
 
 ```markdown
-| Server Name | Status | Tools Found | Test Tool | Result | Issue Type | Notes |
-|-------------|--------|-------------|-----------|--------|------------|-------|
-| github | ✅ Success | 25 | search_repositories | ✅ | - | All tests passed |
-| slack | ❌ Failed | 0 | - | Auth Required | Authentication | Needs SLACK_TOKEN |
-| filesystem | ✅ Success | 5 | list_directory | ✅ | - | All tests passed |
-| ... | ... | ... | ... | ... | ... | ... |
+| Server Name | Status | Result | Issue Type | Notes |
+|-------------|--------|--------|------------|-------|
+| github | ✅ Success | Tool executed | - | GitHub token provided, tests passed |
+| slack | ❌ Failed | Auth Required | Authentication | Needs SLACK_BOT_TOKEN |
+| filesystem | ❌ Failed | Tool unavailable | Container | Unable to start container |
+| ... | ... | ... | ... | ... |
 ```
 
 ### Detailed Failure Analysis
@@ -293,56 +200,32 @@ For each failed server, include:
 
 **Status:** ❌ Failed
 
-**Issue Type:** Authentication Required
+**Issue Type:** Authentication Required (or Protocol Error, Timeout, Container Error, etc.)
 
 **Error Message:**
 ```
 Error: Missing or invalid SLACK_BOT_TOKEN environment variable
 ```
 
-**Required Authentication:**
-- Environment Variable: `SLACK_BOT_TOKEN`
-- Type: OAuth Bot Token
-- Documentation: https://api.slack.com/authentication/token-types
+**Analysis:**
+{Brief explanation of what went wrong and why}
 
-**Suggested Configuration:**
-```json
-{
-  "slack": {
-    "type": "stdio",
-    "container": "mcp/slack",
-    "env": {
-      "SLACK_BOT_TOKEN": "${SLACK_BOT_TOKEN}"
-    }
-  }
-}
-```
+**Required Action:**
+{What needs to be done to fix this - e.g., add token to secrets, update configuration, etc.}
 ```
 
-### Performance Metrics
+### Test Execution Notes
 
 ```markdown
-## Performance Analysis
+## Test Execution
 
-- **Gateway Startup Time:** Xs
-- **Average Tool Response Time:** Xms
-- **Slowest Server:** {server-name} (Xms)
-- **Fastest Server:** {server-name} (Xms)
-- **Total Test Duration:** Xm Ys
+- **MCP Gateway:** Provided by sandbox.mcp configuration
+- **Test Duration:** Xm Ys
+- **Servers Tested Sequentially:** Yes
+- **Any Gateway Issues:** None / {describe if any}
 ```
 
-### Gateway Stability
-
-```markdown
-## Gateway Stability
-
-- **Gateway Crashes:** 0
-- **Memory Usage:** Peak XXX MB
-- **Container Restarts:** 0
-- **Protocol Errors:** X
-```
-
-## Step 6: Create GitHub Issues 🎫
+## Step 5: Create GitHub Issues 🎫
 
 Based on the test results, create GitHub issues:
 
@@ -501,20 +384,27 @@ The test used the following configuration:
 *Generated by Nightly MCP Stress Test*
 *Test Session: {TEST_SESSION}*
 
-**Full Logs:** See workflow run artifacts
+**Full Test Results:** See workflow run artifacts
 ```
 
-## Step 7: Cleanup 🧹
+## Step 6: Save Test Results 💾
 
-Clean up test artifacts:
+Save the test report and results:
 
 ```bash
-# Stop any remaining processes
-pkill -f awmg || true
+# Save the test report to the results directory
+# Create a summary file with test results
+cat > /tmp/mcp-stress-results/summary.txt << EOF
+Test Session: ${TEST_SESSION}
+Date: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
+Total Servers: 20
+Successful: {count}
+Failed: {count}
+Authentication Required: {count}
+EOF
 
-# Clean up test files (keep logs for artifacts)
-rm -f /tmp/mcp-stress-test-config.json
-rm -rf /tmp/mcp-stress-test/tmp
+# Save the detailed report as markdown
+# The report should be created during Step 4
 ```
 
 ## Important Guidelines
@@ -559,23 +449,23 @@ rm -rf /tmp/mcp-stress-test/tmp
 
 ### Performance Considerations
 
-- Test servers sequentially (not in parallel) to avoid resource contention
-- Measure and report timing for each operation
-- Monitor gateway memory and CPU usage
-- Track container startup and shutdown times
+- Test servers **sequentially** (not in parallel) to avoid overwhelming the gateway
+- Continue testing all servers even if some fail
+- Record timing for each test operation
+- Document any unusual delays or timeouts
 
 ## Expected Workflow Behavior
 
-### Success Case (All Servers Pass)
+### Success Case (All Servers Accessible)
 
-If ALL 20 servers successfully respond to tools/list and tool invocation:
+If ALL 20 servers successfully respond to tool calls:
 
 1. **DO NOT create any issues** (silence is success)
 2. **Log summary to workflow output:**
    ```
    ✅ All 20 MCP servers passed stress test
-   Test Session: stress-test-20260204-015230
-   Total Test Duration: 3m 45s
+   Test Session: stress-test-{timestamp}
+   Total Test Duration: Xm Ys
    ```
 3. **Upload test report as artifact** for reference
 
@@ -583,39 +473,44 @@ If ALL 20 servers successfully respond to tools/list and tool invocation:
 
 If SOME servers fail:
 
-1. **Create authentication issues** for each server needing auth
-2. **Create summary issue** for other failures (if any)
+1. **Create authentication issues** for each server needing auth (one issue per server)
+2. **Create summary issue** for other failures (one issue covering all non-auth failures)
 3. **Log summary:**
    ```
    ⚠️ MCP Stress Test completed with failures
-   Success: 15/20 servers
-   Auth Required: 3 servers (created 3 issues)
-   Other Failures: 2 servers (created 1 summary issue)
+   Success: X/20 servers
+   Auth Required: Y servers (created Y issues)
+   Other Failures: Z servers (created 1 summary issue)
    ```
 
-### Complete Failure (Gateway Crash)
+### Complete Failure (Gateway Not Accessible)
 
-If the gateway crashes or fails to start:
+If the MCP Gateway is not accessible:
 
-1. **Create critical issue** about gateway failure
-2. **Include full gateway logs**
+1. **Create critical issue** about gateway connectivity
+2. **Include error messages** from connection attempts
 3. **Mark as high priority**
 
 ## Artifact Upload
 
-Always upload the following as workflow artifacts:
+The workflow will automatically upload the following as artifacts (configured in post-steps):
 
-1. **Test Report** - `/tmp/mcp-stress-results/report.md`
-2. **Gateway Logs** - `/tmp/mcp-stress-test/logs/`
-3. **Error Summary** - `/tmp/mcp-stress-results/errors.txt`
-4. **Test Configuration** - `/tmp/mcp-stress-test-config.json`
+1. **Test Results** - `/tmp/mcp-stress-results/`
+2. **Any logs generated** - `/tmp/mcp-stress-test/logs/`
+
+Ensure you save your test report and results to `/tmp/mcp-stress-results/` for artifact upload.
 
 ## Notes
 
 - This is a **nightly** workflow - results accumulate over time to detect regressions
 - Focus on **breadth** over depth - test many servers quickly
-- Prioritize **stability** - don't destabilize the gateway
+- **MCP Gateway is managed by the workflow infrastructure** - you don't need to start/stop it
 - Keep **runtime under 15 minutes** - stress test should be fast
 - **Document findings** - every failure should be actionable
+- **Expected result**: Many servers will require authentication - this is normal and should be documented
 
-Begin the stress test! Configure 20 MCP servers, start the gateway, test each server's tools, collect results, and create appropriate issues for any failures found.
+## Summary
+
+**Your task**: Test all 20 pre-configured MCP servers through the MCP Gateway, document which ones work, which ones need authentication, and which ones have other issues. Create appropriate GitHub issues for failures. Save results to `/tmp/mcp-stress-results/` for artifact upload.
+
+Begin the stress test!
