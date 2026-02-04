@@ -464,7 +464,7 @@ If ALL 20 servers successfully respond to tool calls:
 2. **Log summary to workflow output:**
    ```
    ✅ All 20 MCP servers passed stress test
-   Test Session: stress-test-{timestamp}
+   Test Session: stress-test-YYYYMMDD-HHMMSS
    Total Test Duration: Xm Ys
    ```
 3. **Upload test report as artifact** for reference
