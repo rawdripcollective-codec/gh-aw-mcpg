@@ -21,7 +21,7 @@
 #
 # Load 20 MCP servers, discover and summarize the tools exported by each server, test tool invocations, and post a comprehensive report as a GitHub issue
 #
-# frontmatter-hash: 67e90c59d605d5683a5f2906a7a16e3d6a7a0c1041e10d2945ddd4e1209dbba5
+# frontmatter-hash: 5c7716937953d0d780cd12fc0bbbbedb6300042980bcce4a2bb2dc74f0ab2f38
 
 name: "Nightly MCP Server Stress Test"
 "on":
@@ -402,16 +402,16 @@ jobs:
           cat << MCPCONFIG_EOF | bash /opt/gh-aw/actions/start_mcp_gateway.sh
           {
             "mcpServers": {
-              "atlassian": {
+              "brave-search": {
                 "type": "stdio",
-                "container": "mcp/hackernews-mcp",
+                "container": "mcp/brave-search",
                 "tools": [
                   "*"
                 ]
               },
-              "brave-search": {
+              "duckduckgo": {
                 "type": "stdio",
-                "container": "mcp/brave-search",
+                "container": "mcp/duckduckgo",
                 "tools": [
                   "*"
                 ]
@@ -464,16 +464,16 @@ jobs:
                   "GITHUB_TOOLSETS": "context,repos,issues,pull_requests"
                 }
               },
-              "gitlab": {
+              "google-maps": {
                 "type": "stdio",
-                "container": "mcp/wikipedia-mcp",
+                "container": "mcp/google-maps",
                 "tools": [
                   "*"
                 ]
               },
-              "google-maps": {
+              "hackernews": {
                 "type": "stdio",
-                "container": "mcp/google-maps",
+                "container": "mcp/hackernews-mcp",
                 "tools": [
                   "*"
                 ]
@@ -488,13 +488,6 @@ jobs:
               "memory": {
                 "type": "stdio",
                 "container": "mcp/memory",
-                "tools": [
-                  "*"
-                ]
-              },
-              "notion": {
-                "type": "stdio",
-                "container": "mcp/duckduckgo",
                 "tools": [
                   "*"
                 ]
@@ -551,6 +544,13 @@ jobs:
               "time": {
                 "type": "stdio",
                 "container": "mcp/time",
+                "tools": [
+                  "*"
+                ]
+              },
+              "wikipedia": {
+                "type": "stdio",
+                "container": "mcp/wikipedia-mcp",
                 "tools": [
                   "*"
                 ]
