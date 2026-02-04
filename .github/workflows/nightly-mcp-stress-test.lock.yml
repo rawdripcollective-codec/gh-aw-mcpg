@@ -19,9 +19,9 @@
 #   gh aw compile
 # For more information: https://github.com/github/gh-aw/blob/main/.github/aw/github-agentic-workflows.md
 #
-# Comprehensive stress test that loads 20 well-known MCP servers, tests their tools, and reports results with automated issue creation for failures
+# Load 20 MCP servers, discover and summarize the tools exported by each server, test tool invocations, and post a comprehensive report as a GitHub issue
 #
-# frontmatter-hash: 93a3e48502857be4dda8201157b0b9e7e3529b7b1c57f2ca809e1549dcf0e660
+# frontmatter-hash: 67e90c59d605d5683a5f2906a7a16e3d6a7a0c1041e10d2945ddd4e1209dbba5
 
 name: "Nightly MCP Server Stress Test"
 "on":
@@ -143,7 +143,7 @@ jobs:
             const determineAutomaticLockdown = require('/opt/gh-aw/actions/determine_automatic_lockdown.cjs');
             await determineAutomaticLockdown(github, context, core);
       - name: Download container images
-        run: bash /opt/gh-aw/actions/download_docker_images.sh ghcr.io/github/gh-aw-mcpg:v0.0.98 ghcr.io/github/github-mcp-server:v0.30.2 ghcr.io/github/github-mcp-server:v0.30.3 mcp/aws-kb-retrieval mcp/axiom mcp/brave-search mcp/everart mcp/fetch mcp/filesystem mcp/gdrive mcp/git mcp/google-maps mcp/linear mcp/memory mcp/postgres mcp/puppeteer mcp/raygun mcp/sentry mcp/sequential-thinking mcp/slack mcp/sqlite mcp/time node:lts-alpine
+        run: bash /opt/gh-aw/actions/download_docker_images.sh ghcr.io/github/gh-aw-mcpg:v0.0.98 ghcr.io/github/github-mcp-server:v0.30.2 ghcr.io/github/github-mcp-server:v0.30.3 mcp/brave-search mcp/duckduckgo mcp/everart mcp/fetch mcp/filesystem mcp/gdrive mcp/git mcp/google-maps mcp/hackernews-mcp mcp/kubernetes mcp/memory mcp/playwright mcp/puppeteer mcp/sentry mcp/sequentialthinking mcp/slack mcp/sqlite mcp/time mcp/wikipedia-mcp mcp/youtube-transcript mcr.microsoft.com/playwright/mcp node:lts-alpine
       - name: Write Safe Outputs Config
         run: |
           mkdir -p /opt/gh-aw/safeoutputs
@@ -402,16 +402,9 @@ jobs:
           cat << MCPCONFIG_EOF | bash /opt/gh-aw/actions/start_mcp_gateway.sh
           {
             "mcpServers": {
-              "aws-kb-retrieval": {
+              "atlassian": {
                 "type": "stdio",
-                "container": "mcp/aws-kb-retrieval",
-                "tools": [
-                  "*"
-                ]
-              },
-              "axiom": {
-                "type": "stdio",
-                "container": "mcp/axiom",
+                "container": "mcp/hackernews-mcp",
                 "tools": [
                   "*"
                 ]
@@ -471,6 +464,13 @@ jobs:
                   "GITHUB_TOOLSETS": "context,repos,issues,pull_requests"
                 }
               },
+              "gitlab": {
+                "type": "stdio",
+                "container": "mcp/wikipedia-mcp",
+                "tools": [
+                  "*"
+                ]
+              },
               "google-maps": {
                 "type": "stdio",
                 "container": "mcp/google-maps",
@@ -478,9 +478,9 @@ jobs:
                   "*"
                 ]
               },
-              "linear": {
+              "kubernetes": {
                 "type": "stdio",
-                "container": "mcp/linear",
+                "container": "mcp/kubernetes",
                 "tools": [
                   "*"
                 ]
@@ -492,23 +492,23 @@ jobs:
                   "*"
                 ]
               },
-              "postgres": {
+              "notion": {
                 "type": "stdio",
-                "container": "mcp/postgres",
+                "container": "mcp/duckduckgo",
                 "tools": [
                   "*"
                 ]
+              },
+              "playwright": {
+                "type": "stdio",
+                "container": "mcr.microsoft.com/playwright/mcp",
+                "args": ["--init", "--network", "host"],
+                "entrypointArgs": ["--output-dir", "/tmp/gh-aw/mcp-logs/playwright", "--allowed-hosts", "localhost,localhost:*,127.0.0.1,127.0.0.1:*", "--allowed-origins", "localhost;localhost:*;127.0.0.1;127.0.0.1:*"],
+                "mounts": ["/tmp/gh-aw/mcp-logs:/tmp/gh-aw/mcp-logs:rw"]
               },
               "puppeteer": {
                 "type": "stdio",
                 "container": "mcp/puppeteer",
-                "tools": [
-                  "*"
-                ]
-              },
-              "raygun": {
-                "type": "stdio",
-                "container": "mcp/raygun",
                 "tools": [
                   "*"
                 ]
@@ -529,7 +529,7 @@ jobs:
               },
               "sequential-thinking": {
                 "type": "stdio",
-                "container": "mcp/sequential-thinking",
+                "container": "mcp/sequentialthinking",
                 "tools": [
                   "*"
                 ]
@@ -551,6 +551,13 @@ jobs:
               "time": {
                 "type": "stdio",
                 "container": "mcp/time",
+                "tools": [
+                  "*"
+                ]
+              },
+              "youtube-transcript": {
+                "type": "stdio",
+                "container": "mcp/youtube-transcript",
                 "tools": [
                   "*"
                 ]
@@ -633,6 +640,7 @@ jobs:
           PROMPT_EOF
           cat "/opt/gh-aw/prompts/temp_folder_prompt.md" >> "$GH_AW_PROMPT"
           cat "/opt/gh-aw/prompts/markdown.md" >> "$GH_AW_PROMPT"
+          cat "/opt/gh-aw/prompts/playwright_prompt.md" >> "$GH_AW_PROMPT"
           cat << 'PROMPT_EOF' >> "$GH_AW_PROMPT"
           <safe-outputs>
           <description>GitHub API Access Instructions</description>
@@ -1031,7 +1039,7 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         env:
           WORKFLOW_NAME: "Nightly MCP Server Stress Test"
-          WORKFLOW_DESCRIPTION: "Comprehensive stress test that loads 20 well-known MCP servers, tests their tools, and reports results with automated issue creation for failures"
+          WORKFLOW_DESCRIPTION: "Load 20 MCP servers, discover and summarize the tools exported by each server, test tool invocations, and post a comprehensive report as a GitHub issue"
           HAS_PATCH: ${{ needs.agent.outputs.has_patch }}
         with:
           script: |
