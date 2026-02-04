@@ -44,6 +44,8 @@ mcp-servers:
   brave-search:
     type: stdio
     container: "mcp/brave-search"
+    env:
+      BRAVE_API_KEY: "${{ secrets.BRAVE_API_KEY }}"
   fetch:
     type: stdio
     container: "mcp/fetch"
