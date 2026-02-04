@@ -18,7 +18,7 @@ Test the MCP Gateway's ability to handle multiple diverse MCP servers simultaneo
 
 ## Important: MCP Gateway is Pre-Configured
 
-**The MCP Gateway is already running and configured with 20 MCP servers via the `sandbox.mcp` configuration in the workflow.**
+**The MCP Gateway is already running and configured with 20 MCP servers via the `mcp-servers` configuration in the workflow.**
 
 You do NOT need to:
 - ❌ Build the gateway (`make build`)
@@ -219,7 +219,7 @@ Error: Missing or invalid SLACK_BOT_TOKEN environment variable
 ```markdown
 ## Test Execution
 
-- **MCP Gateway:** Provided by sandbox.mcp configuration
+- **MCP Gateway:** Provided by sandbox.mcp (gateway container) with mcp-servers configuration
 - **Test Duration:** Xm Ys
 - **Servers Tested Sequentially:** Yes
 - **Any Gateway Issues:** None / {describe if any}
