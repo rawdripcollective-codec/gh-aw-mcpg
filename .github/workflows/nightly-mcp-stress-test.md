@@ -36,7 +36,7 @@ sandbox:
         type: stdio
         container: "mcp/filesystem"
         mounts:
-          - "/tmp:/workspace:rw"
+          - "/tmp/mcp-test-fs:/workspace:rw"
       memory:
         type: stdio
         container: "mcp/memory"
