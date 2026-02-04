@@ -56,9 +56,13 @@ mcp-servers:
   gdrive:
     type: stdio
     container: "mcp/gdrive"
+    env:
+      GOOGLE_APPLICATION_CREDENTIALS: "${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}"
   google-maps:
     type: stdio
     container: "mcp/google-maps"
+    env:
+      GOOGLE_MAPS_API_KEY: "${{ secrets.GOOGLE_MAPS_API_KEY }}"
   everart:
     type: stdio
     container: "mcp/everart"
@@ -70,6 +74,8 @@ mcp-servers:
   sentry:
     type: stdio
     container: "mcp/sentry"
+    env:
+      SENTRY_DSN: "${{ secrets.SENTRY_DSN }}"
   git:
     type: stdio
     container: "mcp/git"
