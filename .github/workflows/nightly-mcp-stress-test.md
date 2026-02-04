@@ -59,6 +59,8 @@ mcp-servers:
   google-maps:
     type: stdio
     container: "mcp/google-maps"
+    env:
+      GOOGLE_MAPS_API_KEY: "${{ secrets.GOOGLE_MAPS_API_KEY }}"
   everart:
     type: stdio
     container: "mcp/everart"
