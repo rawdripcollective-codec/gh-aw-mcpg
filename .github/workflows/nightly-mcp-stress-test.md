@@ -70,6 +70,8 @@ mcp-servers:
   sentry:
     type: stdio
     container: "mcp/sentry"
+    env:
+      SENTRY_DSN: "${{ secrets.SENTRY_DSN }}"
   git:
     type: stdio
     container: "mcp/git"
