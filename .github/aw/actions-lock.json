@@ -50,6 +50,11 @@
       "version": "v5.6.0",
       "sha": "a26af69be951a213d495a4c3e4e4022e16d87065"
     },
+    "actions/upload-artifact@v4": {
+      "repo": "actions/upload-artifact",
+      "version": "v4",
+      "sha": "ea165f8d65b6e75b540449e92b4886f43607fa02"
+    },
     "actions/upload-artifact@v5.0.0": {
       "repo": "actions/upload-artifact",
       "version": "v5.0.0",
@@ -90,20 +95,20 @@
       "version": "v3.7.0",
       "sha": "c7c53464625b32c7a7e944ae62b3e17d2b600130"
     },
-    "github/gh-aw/actions/setup@v0.40.0": {
+    "github/gh-aw/actions/setup@v0.41.0": {
       "repo": "github/gh-aw/actions/setup",
-      "version": "v0.40.0",
-      "sha": "76d37d925abd44fee97379206f105b74b91a285b"
+      "version": "v0.41.0",
+      "sha": "c4c684b542cf39735ac092c09020d06b8f34eb8c"
     },
     "githubnext/gh-aw/actions/setup@v0.38.5": {
       "repo": "githubnext/gh-aw/actions/setup",
       "version": "v0.38.5",
       "sha": "c62cb1aecba894a20fdb4c6bbc39992bc6ce37e2"
     },
-    "githubnext/gh-aw/actions/setup@v0.40.0": {
+    "githubnext/gh-aw/actions/setup@v0.41.0": {
       "repo": "githubnext/gh-aw/actions/setup",
-      "version": "v0.40.0",
-      "sha": "76d37d925abd44fee97379206f105b74b91a285b"
+      "version": "v0.41.0",
+      "sha": "c4c684b542cf39735ac092c09020d06b8f34eb8c"
     }
   }
 }
