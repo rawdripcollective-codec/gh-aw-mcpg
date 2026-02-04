@@ -100,8 +100,8 @@ Example structure (the agent will create the actual file with the API_KEY variab
    # Note: GITHUB_TOKEN is automatically available in the workflow environment
    export GITHUB_TOKEN="${GITHUB_TOKEN}"
    
-   # Generate secure API key for this test session
-   export API_KEY="stress-test-$(openssl rand -base64 45)"
+   # Generate secure API key for this test session (remove problematic characters)
+   export API_KEY="stress-test-$(openssl rand -base64 45 | tr -d '/+=')"
    ```
 
 3. **Build and start the gateway:**
@@ -134,7 +134,7 @@ For each configured MCP server, perform the following tests:
 
 1. **Call `tools/list` for each server:**
    ```bash
-   # Note: Use the API key from the test configuration
+   # Note: Per MCP spec 7.1, Authorization header contains API key directly (no "Bearer" prefix)
    curl -X POST http://localhost:3000/mcp/{server-name} \
      -H "Authorization: ${API_KEY}" \
      -H "Content-Type: application/json" \
@@ -162,7 +162,7 @@ For each server with available tools:
 
 2. **Invoke the selected tool:**
    ```bash
-   # Note: Use the API key from the test configuration
+   # Note: Per MCP spec 7.1, Authorization header contains API key directly (no "Bearer" prefix)
    curl -X POST http://localhost:3000/mcp/{server-name} \
      -H "Authorization: ${API_KEY}" \
      -H "Content-Type: application/json" \
