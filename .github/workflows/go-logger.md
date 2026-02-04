@@ -12,6 +12,11 @@ permissions:
 
 engine: copilot
 
+network:
+  allowed:
+    - defaults
+    - containers
+
 safe-outputs:
   create-pull-request:
     title-prefix: "[log] "

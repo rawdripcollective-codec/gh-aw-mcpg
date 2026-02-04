@@ -17,6 +17,7 @@ network:
   allowed:
     - defaults
     - go
+    - containers
 
 tools:
   github:

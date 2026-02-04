@@ -9,6 +9,10 @@ permissions:
   issues: read
   pull-requests: read
 engine: copilot
+network:
+  allowed:
+    - defaults
+    - containers
 tools:
   serena: ["go"]
 safe-outputs:

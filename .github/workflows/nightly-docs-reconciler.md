@@ -7,6 +7,10 @@ permissions:
   contents: read
   issues: read
   pull-requests: read
+network:
+  allowed:
+    - defaults
+    - containers
 tools:
   github:
     toolsets: [default]

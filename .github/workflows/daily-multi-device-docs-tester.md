@@ -42,6 +42,7 @@ safe-outputs:
 network:
   allowed:
     - node
+    - containers
 
 imports:
   - shared/docs-server-lifecycle.md

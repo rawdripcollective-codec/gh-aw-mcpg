@@ -21,6 +21,7 @@ network:
     - defaults
     - github
     - go
+    - containers
 
 imports:
   - shared/reporting.md

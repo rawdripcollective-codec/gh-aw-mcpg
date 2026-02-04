@@ -12,6 +12,11 @@ permissions:
 
 engine: copilot
 
+network:
+  allowed:
+    - defaults
+    - containers
+
 steps:
   - name: Set up Go
     uses: actions/setup-go@v6
