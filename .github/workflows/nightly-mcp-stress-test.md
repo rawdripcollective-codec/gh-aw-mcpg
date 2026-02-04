@@ -18,7 +18,7 @@ network:
     - defaults
     - go
     - containers
-
+    - "docker.io"
 tools:
   github:
     toolsets: [default]
@@ -92,7 +92,7 @@ mcp-servers:
 
 sandbox:
   mcp:
-    container: "ghcr.io/github/gh-aw-mcpg:v0.0.94"
+    container: "ghcr.io/github/gh-aw-mcpg"
 
 safe-outputs:
   create-issue:
