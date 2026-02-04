@@ -62,6 +62,8 @@ mcp-servers:
   everart:
     type: stdio
     container: "mcp/everart"
+    env:
+      EVERART_API_KEY: "${{ secrets.EVERART_API_KEY }}"
   sequential-thinking:
     type: stdio
     container: "mcp/sequentialthinking"
