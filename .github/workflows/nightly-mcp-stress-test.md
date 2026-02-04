@@ -56,6 +56,8 @@ mcp-servers:
   gdrive:
     type: stdio
     container: "mcp/gdrive"
+    env:
+      GOOGLE_APPLICATION_CREDENTIALS: "${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}"
   google-maps:
     type: stdio
     container: "mcp/google-maps"
