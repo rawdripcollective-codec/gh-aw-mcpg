@@ -77,16 +77,16 @@ mcp-servers:
   playwright:
     type: stdio
     container: "mcp/playwright"
-  gitlab:
+  wikipedia:
     type: stdio
     container: "mcp/wikipedia-mcp"
-  notion:
+  duckduckgo:
     type: stdio
     container: "mcp/duckduckgo"
   youtube-transcript:
     type: stdio
     container: "mcp/youtube-transcript"
-  atlassian:
+  hackernews:
     type: stdio
     container: "mcp/hackernews-mcp"
   kubernetes:
