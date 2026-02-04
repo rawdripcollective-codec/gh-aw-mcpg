@@ -53,6 +53,9 @@ mcp-servers:
   slack:
     type: stdio
     container: "mcp/slack"
+    env:
+      SLACK_BOT_TOKEN: "${{ secrets.SLACK_BOT_TOKEN }}"
+      SLACK_TEAM_ID: "${{ secrets.SLACK_TEAM_ID }}"
   gdrive:
     type: stdio
     container: "mcp/gdrive"
