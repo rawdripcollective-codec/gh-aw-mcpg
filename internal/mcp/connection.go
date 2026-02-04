@@ -1,6 +1,7 @@
 package mcp
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -190,11 +191,25 @@ func NewConnection(ctx context.Context, command string, args []string, env map[s
 		}
 	}
 
-	// Capture stderr to help diagnose container failures
+	// Capture and stream stderr to help diagnose container issues
 	// The SDK's CommandTransport only uses stdin/stdout for MCP protocol,
 	// so we can capture stderr separately for debugging
+	// Use a TeeReader-style approach: write to both a buffer (for error reporting)
+	// and to a pipe that streams to logs in real-time
 	var stderrBuf bytes.Buffer
-	cmd.Stderr = &stderrBuf
+	stderrPipeReader, stderrPipeWriter := io.Pipe()
+	cmd.Stderr = io.MultiWriter(&stderrBuf, stderrPipeWriter)
+
+	// Stream stderr to logs in a goroutine
+	go func() {
+		defer stderrPipeReader.Close()
+		scanner := bufio.NewScanner(stderrPipeReader)
+		for scanner.Scan() {
+			line := scanner.Text()
+			logger.LogInfo("backend", "[%s stderr] %s", command, line)
+			logConn.Printf("[stderr] %s", line)
+		}
+	}()
 
 	logger.LogInfo("backend", "Starting MCP backend server, command=%s, args=%v", command, sanitize.SanitizeArgs(expandedArgs))
 	log.Printf("Starting MCP server command: %s %v", command, sanitize.SanitizeArgs(expandedArgs))
@@ -206,6 +221,7 @@ func NewConnection(ctx context.Context, command string, args []string, env map[s
 	session, err := client.Connect(ctx, transport, nil)
 	if err != nil {
 		cancel()
+		stderrPipeWriter.Close() // Close pipe to stop the stderr streaming goroutine
 
 		// Enhanced error context for debugging
 		logger.LogErrorMd("backend", "MCP backend connection failed, command=%s, args=%v, error=%v", command, sanitize.SanitizeArgs(expandedArgs), err)
