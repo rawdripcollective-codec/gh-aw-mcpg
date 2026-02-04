@@ -1,0 +1,26 @@
+---
+name: Nightly Documentation Reconciler
+description: Nightly workflow that tests and reconciles implementation against documentation to ensure README and quickstarts reflect current main branch
+on:
+  schedule: daily
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+tools:
+  github:
+    toolsets: [default]
+  serena: ["go"]
+safe-outputs:
+  create-issue:
+    title-prefix: "📚 "
+    labels: [documentation, maintenance, automated]
+    max: 1
+    expires: 3d
+  missing-tool:
+    create-issue: true
+timeout-minutes: 20
+---
+
+<!-- Edit the file linked below to modify the agent without recompilation. Feel free to move the entire markdown body to that file. -->
+@./agentics/nightly-docs-reconciler.md
