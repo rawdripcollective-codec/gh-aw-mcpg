@@ -26,7 +26,7 @@
 name: "Nightly MCP Server Stress Test"
 "on":
   schedule:
-  - cron: "32 1 * * *"
+  - cron: "33 2 * * *"
     # Friendly format: daily (scattered)
   workflow_dispatch:
 
