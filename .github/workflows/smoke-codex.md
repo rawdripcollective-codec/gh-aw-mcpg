@@ -22,7 +22,6 @@ network:
     - defaults
     - github
     - playwright
-    - containers
 tools:
   cache-memory: true
   github:
@@ -35,7 +34,7 @@ tools:
   serena: ["go"]
 sandbox:
   mcp:
-    container: "ghcr.io/github/gh-aw-mcpg:v0.0.94"
+    container: "ghcr.io/github/gh-aw-mcpg"
 safe-outputs:
     add-comment:
       hide-older-comments: true
