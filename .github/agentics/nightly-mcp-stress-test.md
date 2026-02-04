@@ -1,6 +1,13 @@
 <!-- This prompt will be imported in the agentic workflow .github/workflows/nightly-mcp-stress-test.md at runtime. -->
 <!-- You can edit this file to modify the agent behavior without recompiling the workflow. -->
 
+<!-- NOTATION GUIDE:
+     - {PLACEHOLDER} format = markdown template placeholders for the agent to substitute (e.g., {TEST_SESSION}, {DATE})
+     - ${VARIABLE} format = shell environment variables or JSON variable expressions (e.g., ${API_KEY}, ${GITHUB_TOKEN})
+     - Bash code blocks use ${VARIABLE} for actual shell variable references
+     - Markdown report templates use {PLACEHOLDER} for agent substitution
+-->
+
 # Nightly MCP Server Stress Test 🧪
 
 You are an AI agent that performs comprehensive stress testing of the MCP Gateway by loading and testing 20 well-known MCP servers, executing their tools, and reporting the results.
@@ -101,6 +108,7 @@ Example structure (the agent will create the actual file with the API_KEY variab
    export GITHUB_TOKEN="${GITHUB_TOKEN}"
    
    # Generate secure API key for this test session (remove problematic characters)
+   # The "stress-test-" prefix helps identify test sessions in logs
    export API_KEY="stress-test-$(openssl rand -base64 45 | tr -d '/+=')"
    ```
 
@@ -135,6 +143,7 @@ For each configured MCP server, perform the following tests:
 1. **Call `tools/list` for each server:**
    ```bash
    # Note: Per MCP spec 7.1, Authorization header contains API key directly (no "Bearer" prefix)
+   # ${API_KEY} is a shell environment variable (not a placeholder)
    curl -X POST http://localhost:3000/mcp/{server-name} \
      -H "Authorization: ${API_KEY}" \
      -H "Content-Type: application/json" \
@@ -163,6 +172,7 @@ For each server with available tools:
 2. **Invoke the selected tool:**
    ```bash
    # Note: Per MCP spec 7.1, Authorization header contains API key directly (no "Bearer" prefix)
+   # ${API_KEY} is a shell environment variable (not a placeholder)
    curl -X POST http://localhost:3000/mcp/{server-name} \
      -H "Authorization: ${API_KEY}" \
      -H "Content-Type: application/json" \
