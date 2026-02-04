@@ -60,7 +60,10 @@ func CreateHTTPServerForMCP(addr string, unifiedServer *UnifiedServer, apiKey st
 	logTransport.Printf("Creating HTTP server for MCP: addr=%s, auth_enabled=%v", addr, apiKey != "")
 	mux := http.NewServeMux()
 
-	// OAuth discovery endpoint - return 404 since we don't use OAuth
+	// OAuth discovery endpoints - return 404 since we don't use OAuth
+	// Standard path for OAuth discovery (per RFC 8414)
+	mux.Handle("/.well-known/oauth-authorization-server", withResponseLogging(handleOAuthDiscovery()))
+	// MCP-prefixed path for backward compatibility
 	mux.Handle("/mcp/.well-known/oauth-authorization-server", withResponseLogging(handleOAuthDiscovery()))
 
 	logTransport.Print("Registering streamable HTTP handler for MCP protocol")

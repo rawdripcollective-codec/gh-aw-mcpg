@@ -82,7 +82,10 @@ func CreateHTTPServerForRoutedMode(addr string, unifiedServer *UnifiedServer, ap
 	logRouted.Printf("Creating HTTP server for routed mode: addr=%s", addr)
 	mux := http.NewServeMux()
 
-	// OAuth discovery endpoint - return 404 since we don't use OAuth
+	// OAuth discovery endpoints - return 404 since we don't use OAuth
+	// Standard path for OAuth discovery (per RFC 8414)
+	mux.Handle("/.well-known/oauth-authorization-server", withResponseLogging(handleOAuthDiscovery()))
+	// MCP-prefixed path for backward compatibility
 	mux.Handle("/mcp/.well-known/oauth-authorization-server", withResponseLogging(handleOAuthDiscovery()))
 
 	// Create routes for all backends, plus sys only if DIFC is enabled

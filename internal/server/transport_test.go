@@ -233,14 +233,26 @@ func TestCreateHTTPServerForMCP_OAuth(t *testing.T) {
 		wantStatusCode int
 	}{
 		{
-			name:           "OAuthDiscovery_GET",
+			name:           "OAuthDiscovery_GET_MCPPath",
 			path:           "/mcp/.well-known/oauth-authorization-server",
 			method:         "GET",
 			wantStatusCode: http.StatusNotFound,
 		},
 		{
-			name:           "OAuthDiscovery_POST",
+			name:           "OAuthDiscovery_POST_MCPPath",
 			path:           "/mcp/.well-known/oauth-authorization-server",
+			method:         "POST",
+			wantStatusCode: http.StatusNotFound,
+		},
+		{
+			name:           "OAuthDiscovery_GET_RootPath",
+			path:           "/.well-known/oauth-authorization-server",
+			method:         "GET",
+			wantStatusCode: http.StatusNotFound,
+		},
+		{
+			name:           "OAuthDiscovery_POST_RootPath",
+			path:           "/.well-known/oauth-authorization-server",
 			method:         "POST",
 			wantStatusCode: http.StatusNotFound,
 		},

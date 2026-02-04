@@ -553,3 +553,61 @@ func TestCreateFilteredServer_EdgeCases(t *testing.T) {
 		assert.Equal(t, "tool2", backend2Tools[0].Name)
 	})
 }
+
+// TestCreateHTTPServerForRoutedMode_OAuth tests OAuth discovery endpoint in routed mode
+func TestCreateHTTPServerForRoutedMode_OAuth(t *testing.T) {
+	tests := []struct {
+		name           string
+		path           string
+		method         string
+		wantStatusCode int
+	}{
+		{
+			name:           "OAuthDiscovery_GET_MCPPath",
+			path:           "/mcp/.well-known/oauth-authorization-server",
+			method:         "GET",
+			wantStatusCode: http.StatusNotFound,
+		},
+		{
+			name:           "OAuthDiscovery_POST_MCPPath",
+			path:           "/mcp/.well-known/oauth-authorization-server",
+			method:         "POST",
+			wantStatusCode: http.StatusNotFound,
+		},
+		{
+			name:           "OAuthDiscovery_GET_RootPath",
+			path:           "/.well-known/oauth-authorization-server",
+			method:         "GET",
+			wantStatusCode: http.StatusNotFound,
+		},
+		{
+			name:           "OAuthDiscovery_POST_RootPath",
+			path:           "/.well-known/oauth-authorization-server",
+			method:         "POST",
+			wantStatusCode: http.StatusNotFound,
+		},
+	}
+
+	// Create minimal server for routed mode testing
+	ctx := context.Background()
+	cfg := &config.Config{
+		Servers: map[string]*config.ServerConfig{},
+	}
+	us, err := NewUnified(ctx, cfg)
+	require.NoError(t, err)
+	defer us.Close()
+
+	// Create HTTP server in routed mode without API key
+	httpServer := CreateHTTPServerForRoutedMode(":0", us, "")
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(tt.method, tt.path, nil)
+			w := httptest.NewRecorder()
+
+			httpServer.Handler.ServeHTTP(w, req)
+
+			assert.Equal(t, tt.wantStatusCode, w.Code, "Should return 404 for OAuth discovery")
+		})
+	}
+}
