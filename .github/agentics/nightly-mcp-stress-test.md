@@ -17,7 +17,7 @@ Create a comprehensive test configuration that includes 20 well-known MCP server
 
 Configure the following MCP servers in the test:
 
-1. **GitHub MCP Server** (ghcr.io/github/github-mcp-server:latest)
+1. **GitHub MCP Server** (ghcr.io/github/github-mcp-server:v0.30.2)
 2. **Filesystem MCP Server** (mcp/filesystem)
 3. **Memory MCP Server** (mcp/memory)
 4. **SQLite MCP Server** (mcp/sqlite)
@@ -40,14 +40,16 @@ Configure the following MCP servers in the test:
 
 ### Test Configuration Structure
 
-Create a test configuration file at `/tmp/mcp-stress-test-config.json`:
+Create a test configuration file at `/tmp/mcp-stress-test-config.json`. The agent should generate the actual JSON file dynamically using environment variables:
+
+Example structure (the agent will create the actual file with the API_KEY variable):
 
 ```json
 {
   "mcpServers": {
     "github": {
       "type": "stdio",
-      "container": "ghcr.io/github/github-mcp-server:latest",
+      "container": "ghcr.io/github/github-mcp-server:v0.30.2",
       "env": {
         "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
       }
@@ -67,11 +69,11 @@ Create a test configuration file at `/tmp/mcp-stress-test-config.json`:
       "type": "stdio",
       "container": "mcp/memory"
     }
-    // ... add remaining servers
+    // ... add remaining 17 servers
   },
   "gateway": {
     "port": 3000,
-    "apiKey": "test-stress-key-${RANDOM_ID}",
+    "apiKey": "${API_KEY}",
     "startupTimeout": 60,
     "toolTimeout": 30
   }
@@ -95,8 +97,11 @@ Create a test configuration file at `/tmp/mcp-stress-test-config.json`:
    mkdir -p /tmp/mcp-stress-test/logs
    
    # Export required environment variables
-   export GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}"
-   export RANDOM_ID=$(openssl rand -hex 8)
+   # Note: GITHUB_TOKEN is automatically available in the workflow environment
+   export GITHUB_TOKEN="${GITHUB_TOKEN}"
+   
+   # Generate secure API key for this test session
+   export API_KEY="stress-test-$(openssl rand -base64 45)"
    ```
 
 3. **Build and start the gateway:**
@@ -129,8 +134,9 @@ For each configured MCP server, perform the following tests:
 
 1. **Call `tools/list` for each server:**
    ```bash
+   # Note: Use the API key from the test configuration
    curl -X POST http://localhost:3000/mcp/{server-name} \
-     -H "Authorization: test-stress-key-${RANDOM_ID}" \
+     -H "Authorization: ${API_KEY}" \
      -H "Content-Type: application/json" \
      -d '{
        "jsonrpc": "2.0",
@@ -156,8 +162,9 @@ For each server with available tools:
 
 2. **Invoke the selected tool:**
    ```bash
+   # Note: Use the API key from the test configuration
    curl -X POST http://localhost:3000/mcp/{server-name} \
-     -H "Authorization: test-stress-key-${RANDOM_ID}" \
+     -H "Authorization: ${API_KEY}" \
      -H "Content-Type: application/json" \
      -d '{
        "jsonrpc": "2.0",
