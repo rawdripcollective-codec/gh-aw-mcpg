@@ -260,7 +260,7 @@ Create a comprehensive test report with the following sections:
 ## Test Summary
 
 - **Test Session:** {TEST_SESSION}
-- **Date:** {CURRENT_DATE_UTC}
+- **Date:** {DATE}
 - **Total Servers Tested:** 20
 - **Successful Servers:** X
 - **Failed Servers:** Y
