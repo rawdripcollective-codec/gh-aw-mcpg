@@ -33,6 +33,8 @@ mcp-servers:
   filesystem:
     type: stdio
     container: "mcp/filesystem"
+    env:
+      ALLOWED_PATHS: "/workspace"
     mounts:
       - "/tmp/mcp-test-fs:/workspace:rw"
   memory:
@@ -52,6 +54,8 @@ mcp-servers:
   puppeteer:
     type: stdio
     container: "mcp/puppeteer"
+    env:
+      PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: "false"
   slack:
     type: stdio
     container: "mcp/slack"
@@ -89,7 +93,9 @@ mcp-servers:
     container: "mcp/time"
   playwright:
     type: stdio
-    container: "mcp/playwright"
+    container: "mcr.microsoft.com/playwright:v1.49.1-noble"
+    env:
+      PLAYWRIGHT_BROWSERS_PATH: "/ms-playwright"
   wikipedia:
     type: stdio
     container: "mcp/wikipedia-mcp"
@@ -105,6 +111,9 @@ mcp-servers:
   kubernetes:
     type: stdio
     container: "mcp/kubernetes"
+    env:
+      KUBECONFIG: "${{ secrets.KUBECONFIG || '/dev/null' }}"
+      KUBERNETES_CLUSTER_URL: "${{ secrets.KUBERNETES_CLUSTER_URL || '' }}"
 
 sandbox:
   mcp:

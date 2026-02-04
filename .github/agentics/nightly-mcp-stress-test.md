@@ -32,13 +32,13 @@ The gateway is provided by the workflow infrastructure and handles all Docker co
 
 The following 21 MCP servers are pre-configured and accessible via the gateway:
 
-1. **github** - GitHub MCP Server (ghcr.io/github/github-mcp-server:v0.30.2)
-2. **filesystem** - Filesystem MCP Server (mcp/filesystem)
+1. **github** - GitHub MCP Server (ghcr.io/github/github-mcp-server:v0.30.2) - Configured with authentication
+2. **filesystem** - Filesystem MCP Server (mcp/filesystem) - Configured with ALLOWED_PATHS
 3. **memory** - Memory MCP Server (mcp/memory)
 4. **sqlite** - SQLite MCP Server (mcp/sqlite)
 5. **brave-search** - Brave Search MCP Server (mcp/brave-search)
 6. **fetch** - Fetch MCP Server (mcp/fetch)
-7. **puppeteer** - Puppeteer MCP Server (mcp/puppeteer)
+7. **puppeteer** - Puppeteer MCP Server (mcp/puppeteer) - Configured with browser environment
 8. **slack** - Slack MCP Server (mcp/slack)
 9. **gdrive** - Google Drive MCP Server (mcp/gdrive)
 10. **google-maps** - Google Maps MCP Server (mcp/google-maps)
@@ -47,12 +47,12 @@ The following 21 MCP servers are pre-configured and accessible via the gateway:
 13. **sentry** - Sentry MCP Server (mcp/sentry)
 14. **git** - Git MCP Server (mcp/git)
 15. **time** - Time MCP Server (mcp/time)
-16. **playwright** - Playwright MCP Server (mcp/playwright)
+16. **playwright** - Playwright MCP Server (mcr.microsoft.com/playwright:v1.49.1-noble) - Configured with browser environment
 17. **wikipedia** - Wikipedia MCP Server (mcp/wikipedia-mcp)
 18. **duckduckgo** - DuckDuckGo MCP Server (mcp/duckduckgo)
 19. **youtube-transcript** - YouTube Transcript MCP Server (mcp/youtube-transcript)
 20. **hackernews** - Hacker News MCP Server (mcp/hackernews-mcp)
-21. **kubernetes** - Kubernetes MCP Server (mcp/kubernetes)
+21. **kubernetes** - Kubernetes MCP Server (mcp/kubernetes) - Configured with cluster access
 
 ## Step 1: Initialize Test Session 📋
 
