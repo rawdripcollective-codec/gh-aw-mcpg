@@ -249,8 +249,8 @@ Create a comprehensive test report with the following sections:
 ```markdown
 ## Test Summary
 
-- **Test Session:** $TEST_SESSION
-- **Date:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+- **Test Session:** {TEST_SESSION}
+- **Date:** {CURRENT_DATE_UTC}
 - **Total Servers Tested:** 20
 - **Successful Servers:** X
 - **Failed Servers:** Y
