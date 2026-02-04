@@ -20,7 +20,6 @@ network:
     - node
     - github
     - playwright
-    - containers
 tools:
   agentic-workflows:
   cache-memory: true
@@ -37,7 +36,7 @@ tools:
   web-fetch:
 sandbox:
   mcp:
-    container: "ghcr.io/github/gh-aw-mcpg:v0.0.94"
+    container: "ghcr.io/github/gh-aw-mcpg"
 safe-outputs:
     add-comment:
       hide-older-comments: true
