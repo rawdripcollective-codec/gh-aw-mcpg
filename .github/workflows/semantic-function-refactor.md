@@ -10,6 +10,11 @@ permissions:
   issues: read
   pull-requests: read
 
+network:
+  allowed:
+    - defaults
+    - containers
+
 imports:
   - shared/reporting.md
 

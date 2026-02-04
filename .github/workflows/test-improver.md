@@ -10,6 +10,11 @@ permissions:
   issues: read
   pull-requests: read
 
+network:
+  allowed:
+    - defaults
+    - containers
+
 steps:
   - name: Set up Go
     uses: actions/setup-go@v6

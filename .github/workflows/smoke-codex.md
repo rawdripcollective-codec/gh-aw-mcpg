@@ -22,6 +22,7 @@ network:
     - defaults
     - github
     - playwright
+    - containers
 tools:
   cache-memory: true
   github:

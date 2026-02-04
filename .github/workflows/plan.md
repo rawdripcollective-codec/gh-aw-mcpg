@@ -11,6 +11,10 @@ permissions:
   issues: read
   pull-requests: read
 engine: copilot
+network:
+  allowed:
+    - defaults
+    - containers
 tools:
   github:
     toolsets: [default, discussions]

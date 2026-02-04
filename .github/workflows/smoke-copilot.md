@@ -20,6 +20,7 @@ network:
     - node
     - github
     - playwright
+    - containers
 tools:
   agentic-workflows:
   cache-memory: true

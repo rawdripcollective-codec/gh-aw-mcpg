@@ -17,6 +17,11 @@ permissions:
 engine: copilot
 timeout-minutes: 30
 
+network:
+  allowed:
+    - defaults
+    - containers
+
 tools:
   github:
     toolsets: [default, pull_requests]

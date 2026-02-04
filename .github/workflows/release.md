@@ -29,7 +29,7 @@ network:
   allowed:
     - defaults
     - node
-    - "ghcr.io"
+    - containers
 sandbox:
   agent: awf  # Firewall enabled (migrated from network.firewall)
 tools:

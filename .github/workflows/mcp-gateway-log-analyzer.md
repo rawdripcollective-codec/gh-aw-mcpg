@@ -13,6 +13,11 @@ permissions:
 
 engine: copilot
 
+network:
+  allowed:
+    - defaults
+    - containers
+
 safe-outputs:
   create-issue:
     title-prefix: "[mcp-gateway-logs] "
