@@ -30,28 +30,29 @@ The gateway is provided by the workflow infrastructure and handles all Docker co
 
 ## Available MCP Servers
 
-The following 20 MCP servers are pre-configured and accessible via the gateway:
+The following 21 MCP servers are pre-configured and accessible via the gateway:
 
 1. **github** - GitHub MCP Server (ghcr.io/github/github-mcp-server:v0.30.2)
 2. **filesystem** - Filesystem MCP Server (mcp/filesystem)
 3. **memory** - Memory MCP Server (mcp/memory)
 4. **sqlite** - SQLite MCP Server (mcp/sqlite)
-5. **postgres** - Postgres MCP Server (mcp/postgres)
-6. **brave-search** - Brave Search MCP Server (mcp/brave-search)
-7. **fetch** - Fetch MCP Server (mcp/fetch)
-8. **puppeteer** - Puppeteer MCP Server (mcp/puppeteer)
-9. **slack** - Slack MCP Server (mcp/slack)
-10. **gdrive** - Google Drive MCP Server (mcp/gdrive)
-11. **google-maps** - Google Maps MCP Server (mcp/google-maps)
-12. **everart** - EverArt MCP Server (mcp/everart)
-13. **sequential-thinking** - Sequential Thinking MCP Server (mcp/sequential-thinking)
-14. **aws-kb-retrieval** - AWS KB Retrieval MCP Server (mcp/aws-kb-retrieval)
-15. **linear** - Linear MCP Server (mcp/linear)
-16. **sentry** - Sentry MCP Server (mcp/sentry)
-17. **raygun** - Raygun MCP Server (mcp/raygun)
-18. **git** - Git MCP Server (mcp/git)
-19. **time** - Time MCP Server (mcp/time)
-20. **axiom** - Axiom MCP Server (mcp/axiom)
+5. **brave-search** - Brave Search MCP Server (mcp/brave-search)
+6. **fetch** - Fetch MCP Server (mcp/fetch)
+7. **puppeteer** - Puppeteer MCP Server (mcp/puppeteer)
+8. **slack** - Slack MCP Server (mcp/slack)
+9. **gdrive** - Google Drive MCP Server (mcp/gdrive)
+10. **google-maps** - Google Maps MCP Server (mcp/google-maps)
+11. **everart** - EverArt MCP Server (mcp/everart)
+12. **sequential-thinking** - Sequential Thinking MCP Server (mcp/sequentialthinking)
+13. **sentry** - Sentry MCP Server (mcp/sentry)
+14. **git** - Git MCP Server (mcp/git)
+15. **time** - Time MCP Server (mcp/time)
+16. **playwright** - Playwright MCP Server (mcp/playwright)
+17. **wikipedia** - Wikipedia MCP Server (mcp/wikipedia-mcp)
+18. **duckduckgo** - DuckDuckGo MCP Server (mcp/duckduckgo)
+19. **youtube-transcript** - YouTube Transcript MCP Server (mcp/youtube-transcript)
+20. **hackernews** - Hacker News MCP Server (mcp/hackernews-mcp)
+21. **kubernetes** - Kubernetes MCP Server (mcp/kubernetes)
 
 ## Step 1: Initialize Test Session 📋
 
