@@ -29,6 +29,11 @@ startup_timeout = 60
 # How long to wait for a tool call to complete before timing out
 tool_timeout = 120
 
+# Directory for storing large payload files (default: /tmp/jq-payloads)
+# Payloads are segmented by session ID: {payload_dir}/{sessionID}/{queryID}/payload.json
+# Can also be set via MCP_GATEWAY_PAYLOAD_DIR environment variable or --payload-dir flag
+# payload_dir = "/tmp/jq-payloads"
+
 # ============================================================================
 # MCP Server Configurations
 # ============================================================================

@@ -218,6 +218,7 @@ Flags:
   -h, --help                help for awmg
   -l, --listen string       HTTP server listen address (default "127.0.0.1:3000")
       --log-dir string      Directory for log files (falls back to stdout if directory cannot be created) (default "/tmp/gh-aw/mcp-logs")
+      --payload-dir string  Directory for storing large payload files (segmented by session ID) (default "/tmp/jq-payloads")
       --routed              Run in routed mode (each backend at /mcp/<server>)
       --sequential-launch   Launch MCP servers sequentially during startup (parallel launch is default)
       --unified             Run in unified mode (all backends at /mcp)
@@ -254,6 +255,7 @@ When running locally (`run.sh`), these variables are optional (warnings shown if
 | `HOST` | Gateway bind address | `0.0.0.0` |
 | `MODE` | Gateway mode flag | `--routed` |
 | `MCP_GATEWAY_LOG_DIR` | Log file directory (sets default for `--log-dir` flag) | `/tmp/gh-aw/mcp-logs` |
+| `MCP_GATEWAY_PAYLOAD_DIR` | Large payload storage directory (sets default for `--payload-dir` flag) | `/tmp/jq-payloads` |
 
 ### Docker Configuration
 
