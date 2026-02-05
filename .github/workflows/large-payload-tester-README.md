@@ -36,10 +36,10 @@ The workflow uses a **secret-based verification** approach:
 1. **Setup Phase** (bash step):
    - Generate a unique UUID secret
    - Create `/tmp/mcp-test-fs/test-secret.txt` containing just the secret
-   - Create `/tmp/mcp-test-fs/large-test-file.json` (>1KB) with:
+   - Create `/tmp/mcp-test-fs/large-test-file.json` (~500KB) with:
      - The secret embedded in JSON data
-     - Array of 100 items each referencing the secret
-     - 2KB of padding to ensure size >1KB
+     - Array of 2000 items each referencing the secret
+     - 400KB of padding to ensure size ~500KB
 
 2. **Test Phase** (agent):
    - **Step 1**: Read `/workspace/test-data/test-secret.txt` to get the expected secret

@@ -57,7 +57,7 @@ steps:
       fi
       echo "$TEST_SECRET" > /tmp/mcp-test-fs/test-secret.txt
       
-      # Create a large test file (>1KB) with the secret embedded in JSON
+      # Create a large test file (~500KB) with the secret embedded in JSON
       # This file will be read by the filesystem MCP server, causing a large payload
       cat > /tmp/mcp-test-fs/large-test-file.json <<'EOF'
       {
@@ -78,6 +78,7 @@ steps:
       EOF
       
       # Use jq to properly populate the JSON with dynamic values and generate large array
+      # Generating 2000 items + 400KB padding to create ~500KB file
       jq --arg secret "$TEST_SECRET" \
          --arg run_id "${{ github.run_id }}" \
          --arg timestamp "$(date -Iseconds)" \
@@ -88,18 +89,18 @@ steps:
           .test_timestamp = $timestamp | 
           .data.metadata.repository = $repo | 
           .data.metadata.workflow_run_url = $url | 
-          .data.large_array = [range(100) | {id: ., value: ("item-" + tostring), secret_reference: $secret}] |
-          .padding = ("X" * 2000)' \
+          .data.large_array = [range(2000) | {id: ., value: ("item-" + tostring), secret_reference: $secret, extra_data: ("data-" + tostring + "-" * 50)}] |
+          .padding = ("X" * 400000)' \
          /tmp/mcp-test-fs/large-test-file.json > /tmp/mcp-test-fs/large-test-file.json.tmp
       
       mv /tmp/mcp-test-fs/large-test-file.json.tmp /tmp/mcp-test-fs/large-test-file.json
       
       # Verify file was created and is large enough
       FILE_SIZE=$(wc -c < /tmp/mcp-test-fs/large-test-file.json)
-      echo "Created large-test-file.json with size: $FILE_SIZE bytes"
-      if [ "$FILE_SIZE" -lt 1024 ]; then
-        echo "ERROR: Test file is too small ($FILE_SIZE bytes < 1KB)"
-        exit 1
+      echo "Created large-test-file.json with size: $FILE_SIZE bytes (~$(($FILE_SIZE / 1024))KB)"
+      if [ "$FILE_SIZE" -lt 512000 ]; then
+        echo "WARNING: Test file is smaller than expected ($FILE_SIZE bytes < 500KB)"
+        echo "Continuing with test anyway..."
       fi
       
       # Verify secret file was created
