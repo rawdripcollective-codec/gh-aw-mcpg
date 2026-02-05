@@ -21,7 +21,7 @@
 #
 # Test the MCP Gateway's ability to handle large payloads and provide agent access to stored payload files
 #
-# frontmatter-hash: 4e8a710472816eed1956040ae4aa230ec725603109deb0e6c059cfff0add4fff
+# frontmatter-hash: f61cd842c0feb4154f34d7b2895c4e7bbcd3c88b6a1fddedb1fa5cb6cb887cb8
 
 name: "Large Payload Tester"
 "on":
@@ -101,7 +101,7 @@ jobs:
       - name: Create gh-aw temp directory
         run: bash /opt/gh-aw/actions/create_gh_aw_tmp_dir.sh
       - name: Setup Test Environment
-        run: "# Create test directories\nmkdir -p /tmp/mcp-test-fs\nmkdir -p /tmp/jq-payloads\n\n# Generate a unique secret for this test run\nTEST_SECRET=\"test-secret-$(uuidgen || echo $RANDOM-$RANDOM-$RANDOM)\"\necho \"$TEST_SECRET\" > /tmp/mcp-test-fs/test-secret.txt\n\n# Create a large test file (>1KB) with the secret embedded in JSON\n# This file will be read by the filesystem MCP server, causing a large payload\ncat > /tmp/mcp-test-fs/large-test-file.json <<EOF\n{\n  \"test_run_id\": \"${{ github.run_id }}\",\n  \"test_secret\": \"$TEST_SECRET\",\n  \"test_timestamp\": \"$(date -Iseconds)\",\n  \"purpose\": \"Testing large MCP payload storage and retrieval\",\n  \"data\": {\n    \"large_array\": [\n      $(for i in {1..100}; do echo \"{\\\"id\\\": $i, \\\"value\\\": \\\"item-$i\\\", \\\"secret_reference\\\": \\\"$TEST_SECRET\\\"}\"; done | paste -sd,)\n    ],\n    \"metadata\": {\n      \"generated_by\": \"large-payload-tester workflow\",\n      \"repository\": \"${{ github.repository }}\",\n      \"workflow_run_url\": \"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"\n    }\n  },\n  \"padding\": \"$(head -c 2000 /dev/zero | tr '\\0' 'X')\"\n}\nEOF\n\n# Verify file was created and is large enough\nFILE_SIZE=$(wc -c < /tmp/mcp-test-fs/large-test-file.json)\necho \"Created large-test-file.json with size: $FILE_SIZE bytes\"\nif [ \"$FILE_SIZE\" -lt 1024 ]; then\n  echo \"ERROR: Test file is too small ($FILE_SIZE bytes < 1KB)\"\n  exit 1\nfi\n\n# Verify secret file was created\nif [ ! -f /tmp/mcp-test-fs/test-secret.txt ]; then\n  echo \"ERROR: Secret file was not created\"\n  exit 1\nfi\n\necho \"Test environment setup complete\"\necho \"Secret stored in: /tmp/mcp-test-fs/test-secret.txt\"\necho \"Large file stored in: /tmp/mcp-test-fs/large-test-file.json\"\n"
+        run: "# Create test directories\nmkdir -p /tmp/mcp-test-fs\nmkdir -p /tmp/jq-payloads\n\n# Generate a unique secret for this test run\n# Use uuidgen if available, otherwise use timestamp with nanoseconds for better entropy\nif command -v uuidgen >/dev/null 2>&1; then\n  TEST_SECRET=\"test-secret-$(uuidgen)\"\nelse\n  TEST_SECRET=\"test-secret-$(date +%s%N)-$$\"\nfi\necho \"$TEST_SECRET\" > /tmp/mcp-test-fs/test-secret.txt\n\n# Create a large test file (>1KB) with the secret embedded in JSON\n# This file will be read by the filesystem MCP server, causing a large payload\ncat > /tmp/mcp-test-fs/large-test-file.json <<EOF\n{\n  \"test_run_id\": \"${{ github.run_id }}\",\n  \"test_secret\": \"$TEST_SECRET\",\n  \"test_timestamp\": \"$(date -Iseconds)\",\n  \"purpose\": \"Testing large MCP payload storage and retrieval\",\n  \"data\": {\n    \"large_array\": [\n      $(for i in {1..100}; do echo \"{\\\"id\\\": $i, \\\"value\\\": \\\"item-$i\\\", \\\"secret_reference\\\": \\\"$TEST_SECRET\\\"}\"; done | paste -sd,)\n    ],\n    \"metadata\": {\n      \"generated_by\": \"large-payload-tester workflow\",\n      \"repository\": \"${{ github.repository }}\",\n      \"workflow_run_url\": \"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"\n    }\n  },\n  \"padding\": \"$(head -c 2000 /dev/zero | tr '\\0' 'X')\"\n}\nEOF\n\n# Verify file was created and is large enough\nFILE_SIZE=$(wc -c < /tmp/mcp-test-fs/large-test-file.json)\necho \"Created large-test-file.json with size: $FILE_SIZE bytes\"\nif [ \"$FILE_SIZE\" -lt 1024 ]; then\n  echo \"ERROR: Test file is too small ($FILE_SIZE bytes < 1KB)\"\n  exit 1\nfi\n\n# Verify secret file was created\nif [ ! -f /tmp/mcp-test-fs/test-secret.txt ]; then\n  echo \"ERROR: Secret file was not created\"\n  exit 1\nfi\n\necho \"Test environment setup complete\"\necho \"Secret stored in: /tmp/mcp-test-fs/test-secret.txt\"\necho \"Large file stored in: /tmp/mcp-test-fs/large-test-file.json\"\n"
 
       - name: Configure Git credentials
         env:
@@ -418,7 +418,7 @@ jobs:
                   "*"
                 ],
                 "env": {
-                  "ALLOWED_PATHS": "/workspace,/tmp"
+                  "ALLOWED_PATHS": "/workspace"
                 }
               },
               "github": {

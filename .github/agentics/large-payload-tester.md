@@ -24,12 +24,12 @@ This test uses a **secret-based verification approach**:
 ## Test Steps
 
 ### Step 1: Read the Test Secret
-- Read `/tmp/mcp-test-fs/test-secret.txt` to get the secret UUID that was generated for this test run
+- Read `/workspace/test-data/test-secret.txt` to get the secret UUID that was generated for this test run
 - This file contains ONLY the secret UUID (e.g., `abc123-def456-ghi789`)
 - Store this secret - you'll need it to verify payload retrieval later
 
 ### Step 2: Trigger a Large Payload Response
-- Use the filesystem MCP server's `read_file` tool to read `/tmp/mcp-test-fs/large-test-file.json`
+- Use the filesystem MCP server's `read_file` tool to read `/workspace/test-data/large-test-file.json`
 - This file is >1KB and contains the secret embedded in JSON data
 - The gateway should intercept this response and store it to disk
 
@@ -55,7 +55,8 @@ The payload path will be in the format: `/tmp/jq-payloads/{sessionID}/{queryID}/
 - The gateway reports path as: `/tmp/jq-payloads/{sessionID}/{queryID}/payload.json`
 - In the agent container, the entire `/tmp/jq-payloads` directory is mounted at: `/workspace/mcp-payloads`
 - So translate the path by replacing `/tmp/jq-payloads` with `/workspace/mcp-payloads`
-- Use the filesystem MCP server to read: `/workspace/mcp-payloads/{sessionID}/{queryID}/payload.json`
+- Example: If gateway returns `/tmp/jq-payloads/session-abc123/query-def456/payload.json`, use `/workspace/mcp-payloads/session-abc123/query-def456/payload.json`
+- Use the filesystem MCP server to read the translated path
 
 Use the filesystem MCP server's `read_file` tool to read the payload file at the translated path.
 

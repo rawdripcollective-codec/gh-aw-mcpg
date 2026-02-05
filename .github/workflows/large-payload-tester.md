@@ -23,7 +23,7 @@ mcp-servers:
     type: stdio
     container: "mcp/filesystem"
     env:
-      ALLOWED_PATHS: "/workspace,/tmp"
+      ALLOWED_PATHS: "/workspace"
     mounts:
       - "/tmp/mcp-test-fs:/workspace/test-data:ro"
       - "/tmp/jq-payloads:/workspace/mcp-payloads:ro"
@@ -49,7 +49,12 @@ steps:
       mkdir -p /tmp/jq-payloads
       
       # Generate a unique secret for this test run
-      TEST_SECRET="test-secret-$(uuidgen || echo $RANDOM-$RANDOM-$RANDOM)"
+      # Use uuidgen if available, otherwise use timestamp with nanoseconds for better entropy
+      if command -v uuidgen >/dev/null 2>&1; then
+        TEST_SECRET="test-secret-$(uuidgen)"
+      else
+        TEST_SECRET="test-secret-$(date +%s%N)-$$"
+      fi
       echo "$TEST_SECRET" > /tmp/mcp-test-fs/test-secret.txt
       
       # Create a large test file (>1KB) with the secret embedded in JSON
