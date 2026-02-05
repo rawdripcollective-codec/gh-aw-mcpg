@@ -24,7 +24,8 @@
             "env": {
                 "ALLOWED_PATHS": "/workspace",
                 "NO_COLOR": "1",
-                "TERM": "dumb"
+                "TERM": "dumb",
+                "PYTHONUNBUFFERED": "1"
             }
         },
         "serena": {
