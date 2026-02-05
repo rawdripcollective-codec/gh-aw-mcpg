@@ -17,7 +17,6 @@ permissions:
 name: Smoke Copilot
 engine:
   id: copilot
-  max-turns: 15
 strict: true
 imports:
   - shared/mcp-pagination.md
