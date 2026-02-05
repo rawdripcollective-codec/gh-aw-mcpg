@@ -47,8 +47,6 @@ var (
 	schemaErr    error
 )
 
-
-
 // fetchAndFixSchema fetches the JSON schema from the remote URL and applies
 // workarounds for JSON Schema Draft 7 limitations.
 //
