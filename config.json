@@ -15,19 +15,6 @@
             "type": "local",
             "container": "mcp/memory"
         },
-        "filesystem": {
-            "type": "stdio",
-            "container": "mcp/filesystem",
-            "mounts": [
-                "/tmp:/workspace:rw"
-            ],
-            "env": {
-                "ALLOWED_PATHS": "/workspace",
-                "NO_COLOR": "1",
-                "TERM": "dumb",
-                "PYTHONUNBUFFERED": "1"
-            }
-        },
         "serena": {
             "type": "stdio",
             "container": "ghcr.io/github/serena-mcp-server:latest",
