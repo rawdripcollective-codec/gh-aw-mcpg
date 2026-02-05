@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/github/gh-aw-mcpg/internal/logger"
+	"github.com/github/gh-aw-mcpg/internal/version"
 )
 
 var logHealth = logger.New("server:health")
@@ -40,7 +41,7 @@ func BuildHealthResponse(unifiedServer *UnifiedServer) HealthResponse {
 	return HealthResponse{
 		Status:         overallStatus,
 		SpecVersion:    MCPGatewaySpecVersion,
-		GatewayVersion: gatewayVersion,
+		GatewayVersion: version.Get(),
 		Servers:        serverStatus,
 	}
 }

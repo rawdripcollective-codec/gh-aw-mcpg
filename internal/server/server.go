@@ -12,6 +12,7 @@ import (
 	"github.com/github/gh-aw-mcpg/internal/logger"
 	"github.com/github/gh-aw-mcpg/internal/mcp"
 	"github.com/github/gh-aw-mcpg/internal/sys"
+	"github.com/github/gh-aw-mcpg/internal/version"
 )
 
 var logServer = logger.New("server:server")
@@ -61,7 +62,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{
 		"status":          "ok",
 		"protocolVersion": MCPProtocolVersion,
-		"version":         gatewayVersion,
+		"version":         version.Get(),
 	})
 }
 
