@@ -96,6 +96,7 @@ mcp-servers:
     container: "mcr.microsoft.com/playwright:v1.49.1-noble"
     env:
       PLAYWRIGHT_BROWSERS_PATH: "/ms-playwright"
+      PLAYWRIGHT_LAUNCH_OPTIONS: '{"args": ["--disable-blink-features=AutomationControlled", "--disable-web-security", "--disable-features=IsolateOrigins,site-per-process"]}'
   wikipedia:
     type: stdio
     container: "mcp/wikipedia-mcp"
