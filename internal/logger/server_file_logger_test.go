@@ -207,3 +207,60 @@ func TestServerFileLoggerMultipleInit(t *testing.T) {
 	assert.Contains(t, string(content), "Message 1")
 	assert.Contains(t, string(content), "Message 2")
 }
+
+func TestServerFileLoggerPreservesUnifiedView(t *testing.T) {
+	// Create temporary directories for testing
+	tmpDir := t.TempDir()
+	logDir := filepath.Join(tmpDir, "logs")
+
+	// Initialize both the unified file logger and the server file logger
+	err := InitFileLogger(logDir, "mcp-gateway.log")
+	require.NoError(t, err, "InitFileLogger failed")
+	defer CloseGlobalLogger()
+
+	err = InitServerFileLogger(logDir)
+	require.NoError(t, err, "InitServerFileLogger failed")
+	defer CloseServerFileLogger()
+
+	// Log messages using per-serverID logging
+	LogInfoWithServer("github", "backend", "GitHub server started")
+	LogWarnWithServer("slack", "backend", "Slack connection timeout")
+	LogErrorWithServer("github", "backend", "GitHub authentication failed")
+
+	// Close loggers to flush
+	err = CloseServerFileLogger()
+	require.NoError(t, err)
+	err = CloseGlobalLogger()
+	require.NoError(t, err)
+
+	// Verify per-serverID log files exist and contain correct messages
+	githubLog := filepath.Join(logDir, "github.log")
+	githubContent, err := os.ReadFile(githubLog)
+	require.NoError(t, err, "github.log should exist")
+	assert.Contains(t, string(githubContent), "GitHub server started")
+	assert.Contains(t, string(githubContent), "GitHub authentication failed")
+	assert.NotContains(t, string(githubContent), "Slack connection timeout", "github.log should not contain Slack messages")
+
+	slackLog := filepath.Join(logDir, "slack.log")
+	slackContent, err := os.ReadFile(slackLog)
+	require.NoError(t, err, "slack.log should exist")
+	assert.Contains(t, string(slackContent), "Slack connection timeout")
+	assert.NotContains(t, string(slackContent), "GitHub", "slack.log should not contain GitHub messages")
+
+	// CRITICAL: Verify unified log file contains ALL messages from all servers
+	unifiedLog := filepath.Join(logDir, "mcp-gateway.log")
+	unifiedContent, err := os.ReadFile(unifiedLog)
+	require.NoError(t, err, "mcp-gateway.log should exist")
+
+	// All messages should be in the unified log with serverID prefix
+	assert.Contains(t, string(unifiedContent), "[github]", "unified log should have github prefix")
+	assert.Contains(t, string(unifiedContent), "GitHub server started", "unified log should contain GitHub message")
+	assert.Contains(t, string(unifiedContent), "[slack]", "unified log should have slack prefix")
+	assert.Contains(t, string(unifiedContent), "Slack connection timeout", "unified log should contain Slack message")
+	assert.Contains(t, string(unifiedContent), "GitHub authentication failed", "unified log should contain GitHub error")
+
+	// Verify unified log has all three messages
+	lines := strings.Split(strings.TrimSpace(string(unifiedContent)), "\n")
+	assert.GreaterOrEqual(t, len(lines), 3, "unified log should have at least 3 messages")
+}
+
