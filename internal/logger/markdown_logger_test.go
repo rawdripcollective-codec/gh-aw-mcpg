@@ -306,11 +306,11 @@ func TestMarkdownLoggerRPCFormatting(t *testing.T) {
 	// Check that RPC messages with JSON blocks are properly formatted
 	// The title should be on one line, followed by the JSON block INDENTED with 2 spaces
 	assert.True(t, strings.Contains(logContent, "- 🔍 rpc **safeoutputs**→`tools/call`"), "RPC message with JSON should have title on single line")
-	
+
 	// Verify that JSON code block lines are properly indented under the bullet point
 	// The empty line after the first line should be indented
 	assert.True(t, strings.Contains(logContent, "- 🔍 rpc **safeoutputs**→`tools/call`\n  \n  ```json"), "JSON code block should be indented with 2 spaces")
-	
+
 	// Verify the closing code fence is also indented
 	assert.True(t, strings.Contains(logContent, "  ```"), "Closing code fence should be indented")
 
