@@ -14,12 +14,17 @@ Test that when the MCP Gateway receives large responses from backend MCP servers
 
 ## Test Protocol
 
-This test uses a **secret-based verification approach**:
-1. A secret UUID is embedded in a large test file (~500KB) before the test runs
-2. You will use the filesystem MCP server to read a large file containing this secret
-3. The gateway will intercept the large response, store it to disk, and return metadata with a `payloadPath`
-4. You must then read the payload file from the path provided and extract the secret
-5. Finally, report whether you successfully retrieved the secret from the payload
+This test uses a **secret-based verification approach** to ensure end-to-end correctness:
+
+1. A secret UUID is embedded in a large test file (~500KB) BEFORE the test runs
+2. The large test file is stored in `/tmp/mcp-test-fs` on the runner (NOT accessible to gateway)
+3. The payload directory `/tmp/jq-payloads` starts EMPTY (created on-demand by gateway)
+4. You will use the filesystem MCP server to read the large file containing the secret
+5. The gateway will intercept the large response, store it to `/tmp/jq-payloads`, and return metadata
+6. You must then read the payload file from the stored location and extract the secret
+7. Finally, report whether you successfully retrieved the secret from the payload
+
+**Key Architecture**: The test file is isolated from the gateway. The gateway can only access it by querying the filesystem MCP server through the MCP protocol, which properly tests the payload storage feature.
 
 ## Test Steps
 

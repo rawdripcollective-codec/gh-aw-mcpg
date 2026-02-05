@@ -15,19 +15,30 @@ This agentic workflow tests the MCP Gateway's large payload handling feature, sp
 ```
 ┌─────────────────┐          ┌──────────────────┐          ┌────────────────┐
 │  Agent          │          │  MCP Gateway      │          │  Filesystem    │
-│  Container      │◄────────►│  Container        │◄────────►│  MCP Server    │
+│  (via Copilot)  │◄────────►│  Container        │◄────────►│  MCP Server    │
 └─────────────────┘          └──────────────────┘          └────────────────┘
         │                            │                             │
         │                            │                             │
-   Reads payload              Stores payload              Reads large file
-   from mounted dir           to /tmp/jq-payloads         from /tmp/mcp-test-fs
+   Reads via                   Stores payload              Reads test file
+   filesystem MCP              to /tmp/jq-payloads         from /tmp/mcp-test-fs
         │                            │                             │
         ▼                            ▼                             ▼
-   /workspace/                /tmp/jq-payloads/           /tmp/mcp-test-fs/
-   mcp-payloads/              {sessionID}/                large-test-file.json
-                              {queryID}/                  (contains secret)
-                              payload.json
+   /workspace/mcp-payloads/   /tmp/jq-payloads/           /workspace/test-data/
+   (mounted from runner)      (gateway writes)            (mounted from runner)
+                              {sessionID}/{queryID}/       large-test-file.json
+                              payload.json                 (contains secret)
+
+Runner Filesystem:
+/tmp/mcp-test-fs/          →  Only accessible to filesystem MCP server
+/tmp/jq-payloads/          →  Shared between gateway (writes) and filesystem server (reads)
 ```
+
+**Flow**:
+1. Agent requests file via gateway → filesystem MCP server
+2. Filesystem server reads from its `/workspace/test-data/` (mounted from `/tmp/mcp-test-fs`)
+3. Gateway intercepts large response
+4. Gateway stores to `/tmp/jq-payloads/{sessionID}/{queryID}/payload.json`
+5. Agent reads payload via filesystem server's `/workspace/mcp-payloads/` mount
 
 ### Test Protocol
 
@@ -56,23 +67,28 @@ The workflow uses a **secret-based verification** approach:
 
 ### Volume Mounts
 
-The workflow uses three volume mounts to enable the test:
+### Volume Mounts
 
-1. **Test Data Mount** (filesystem MCP server):
+The workflow uses a carefully structured mount configuration to ensure proper isolation:
+
+1. **Test Data Mount** (filesystem MCP server ONLY):
    ```yaml
    /tmp/mcp-test-fs:/workspace/test-data:ro
    ```
-   - Contains the control secret file and large test file
+   - Contains the control secret file and large test file on the actions runner
+   - Mounted ONLY to the filesystem MCP server container (NOT to the gateway)
    - Read-only access for safety
-   - Accessible to agent via `/workspace/test-data/`
+   - Accessible to agent via filesystem MCP server at `/workspace/test-data/`
+   - Gateway does NOT have direct access to test files
 
 2. **Payload Mount** (filesystem MCP server):
    ```yaml
    /tmp/jq-payloads:/workspace/mcp-payloads:ro
    ```
-   - Allows agent to read stored payloads
+   - Allows agent to read stored payloads through filesystem MCP server
    - Read-only to prevent accidental corruption
    - Accessible to agent via `/workspace/mcp-payloads/`
+   - Initially empty/non-existent until gateway stores first payload
 
 3. **Gateway Payload Mount** (MCP gateway container):
    ```yaml
@@ -80,6 +96,10 @@ The workflow uses three volume mounts to enable the test:
    ```
    - Allows gateway to write payload files
    - Read-write for payload storage
+   - Gateway creates directory structure on-demand
+   - This is the ONLY directory the gateway container has mounted
+
+**Key Design Principle**: The test data directory (`/tmp/mcp-test-fs`) is isolated from the gateway. The gateway only has access to the payload directory (`/tmp/jq-payloads`). This ensures that the gateway cannot directly access test files and must retrieve them through the filesystem MCP server, properly testing the MCP protocol flow.
 
 ### Path Translation
 
