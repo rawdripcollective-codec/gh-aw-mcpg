@@ -19,6 +19,14 @@ func NewLabel() *Label {
 	return &Label{tags: make(map[Tag]struct{})}
 }
 
+// newLabelWithTags is a helper function that creates a label with the given tags.
+// This helper reduces duplication in NewSecrecyLabelWithTags and NewIntegrityLabelWithTags.
+func newLabelWithTags(tags []Tag) *Label {
+	label := NewLabel()
+	label.AddAll(tags)
+	return label
+}
+
 // Add adds a tag to this label
 func (l *Label) Add(tag Tag) {
 	l.mu.Lock()
@@ -100,9 +108,7 @@ func NewSecrecyLabel() *SecrecyLabel {
 
 // NewSecrecyLabelWithTags creates a secrecy label with the given tags
 func NewSecrecyLabelWithTags(tags []Tag) *SecrecyLabel {
-	label := NewSecrecyLabel()
-	label.Label.AddAll(tags)
-	return label
+	return &SecrecyLabel{Label: newLabelWithTags(tags)}
 }
 
 // CanFlowTo checks if this secrecy label can flow to target
@@ -180,9 +186,7 @@ func NewIntegrityLabel() *IntegrityLabel {
 
 // NewIntegrityLabelWithTags creates an integrity label with the given tags
 func NewIntegrityLabelWithTags(tags []Tag) *IntegrityLabel {
-	label := NewIntegrityLabel()
-	label.Label.AddAll(tags)
-	return label
+	return &IntegrityLabel{Label: newLabelWithTags(tags)}
 }
 
 // CanFlowTo checks if this integrity label can flow to target
