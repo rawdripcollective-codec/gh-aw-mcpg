@@ -32,6 +32,7 @@ sandbox:
   mcp:
     container: "ghcr.io/github/gh-aw-mcpg"
     mounts:
+      - "/tmp/mcp-test-fs:/tmp/mcp-test-fs:ro"
       - "/tmp/jq-payloads:/tmp/jq-payloads:rw"
 
 safe-outputs:
