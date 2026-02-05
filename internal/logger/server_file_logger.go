@@ -104,7 +104,7 @@ func (sfl *ServerFileLogger) Log(serverID string, level LogLevel, category, form
 	if err != nil {
 		// If we can't create a logger, fall back to the global logger
 		// but include the serverID in the message
-		LogDebug(category, "[%s] %s", serverID, fmt.Sprintf(format, args...))
+		LogDebug(category, "[%s] "+format, append([]interface{}{serverID}, args...)...)
 		return
 	}
 
