@@ -21,7 +21,7 @@
 #
 # Load 20 MCP servers, discover and summarize the tools exported by each server, test tool invocations, and post a comprehensive report as a GitHub issue
 #
-# frontmatter-hash: 9274899348ad9372151983dd31d8fcbcc891c344169870bce19f07ca370bb3af
+# frontmatter-hash: 3c5f8c2f8a590b992b360dd6d989a7b29eb1684e0a5ae6002b51e5361ab8832c
 
 name: "Nightly MCP Server Stress Test"
 "on":
@@ -524,7 +524,7 @@ jobs:
                 "type": "stdio",
                 "container": "mcr.microsoft.com/playwright/mcp",
                 "args": ["--init", "--network", "host"],
-                "entrypointArgs": ["--output-dir", "/tmp/gh-aw/mcp-logs/playwright", "--allowed-hosts", "localhost,localhost:*,127.0.0.1,127.0.0.1:*", "--allowed-origins", "localhost;localhost:*;127.0.0.1;127.0.0.1:*"],
+                "entrypointArgs": ["--output-dir", "/tmp/gh-aw/mcp-logs/playwright", "--allowed-hosts", "localhost,localhost:*,127.0.0.1,127.0.0.1:*", "--allowed-origins", "localhost;localhost:*;127.0.0.1;127.0.0.1:*", "--init", "--network", "host"],
                 "mounts": ["/tmp/gh-aw/mcp-logs:/tmp/gh-aw/mcp-logs:rw"]
               },
               "puppeteer": {
