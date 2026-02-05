@@ -29,16 +29,21 @@ var (
 	// Schema URL configuration
 	// This URL points to the source of truth for the MCP Gateway configuration schema.
 	//
-	// Build Reproducibility:
-	// For production builds, consider pinning to a specific commit SHA or version tag:
-	//   - Commit SHA: "https://raw.githubusercontent.com/github/gh-aw/<commit-sha>/docs/public/schemas/mcp-gateway-config.schema.json"
-	//   - Version tag: "https://raw.githubusercontent.com/github/gh-aw/v1.0.0/docs/public/schemas/mcp-gateway-config.schema.json"
+	// Schema Version Pinning:
+	// The schema is pinned to a specific gh-aw version (v0.41.1) for build reproducibility.
+	// This ensures predictable builds and prevents unexpected breaking changes from upstream
+	// schema updates.
 	//
-	// Using 'main' branch ensures we always use the latest schema but may introduce
-	// changes that break builds. For stable releases, pin to a specific version.
+	// To update the schema version:
+	//   1. Check the latest gh-aw release: https://github.com/github/gh-aw/releases
+	//   2. Update the version tag in the URL below
+	//   3. Run tests to ensure compatibility: make test
+	//   4. Update this comment with the new version number
+	//
+	// Current schema version: v0.41.1 (February 2026)
 	//
 	// Alternative: Embed the schema using go:embed directive for zero network dependency.
-	schemaURL = "https://raw.githubusercontent.com/github/gh-aw/main/docs/public/schemas/mcp-gateway-config.schema.json"
+	schemaURL = "https://raw.githubusercontent.com/github/gh-aw/v0.41.1/docs/public/schemas/mcp-gateway-config.schema.json"
 
 	// Schema caching to avoid recompiling the JSON schema on every validation
 	// This improves performance by compiling the schema once and reusing it
@@ -76,32 +81,36 @@ var (
 // (newer spec) eliminate this workaround. The jsonschema/v6 Go library may handle
 // these patterns natively, potentially allowing removal of this function entirely.
 func fetchAndFixSchema(url string) ([]byte, error) {
+	startTime := time.Now()
 	logSchema.Printf("Fetching schema from URL: %s", url)
 
 	client := &http.Client{
 		Timeout: 10 * time.Second,
 	}
 
+	fetchStart := time.Now()
 	resp, err := client.Get(url)
 	if err != nil {
-		logSchema.Printf("Schema fetch failed: %v", err)
+		logSchema.Printf("Schema fetch failed after %v: %v", time.Since(fetchStart), err)
 		return nil, fmt.Errorf("failed to fetch schema from %s: %w", url, err)
 	}
 	defer resp.Body.Close()
+	logSchema.Printf("HTTP request completed in %v", time.Since(fetchStart))
 
 	if resp.StatusCode != http.StatusOK {
 		logSchema.Printf("Schema fetch returned non-OK status: %d", resp.StatusCode)
 		return nil, fmt.Errorf("failed to fetch schema: HTTP %d", resp.StatusCode)
 	}
 
-	logSchema.Print("Schema fetched successfully, applying fixes")
-
+	readStart := time.Now()
 	schemaBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read schema response: %w", err)
 	}
+	logSchema.Printf("Schema read completed in %v (size: %d bytes)", time.Since(readStart), len(schemaBytes))
 
 	// Fix regex patterns that use negative lookahead
+	fixStart := time.Now()
 	var schema map[string]interface{}
 	if err := json.Unmarshal(schemaBytes, &schema); err != nil {
 		return nil, fmt.Errorf("failed to parse schema: %w", err)
@@ -152,7 +161,9 @@ func fetchAndFixSchema(url string) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal fixed schema: %w", err)
 	}
+	logSchema.Printf("Schema fixes applied in %v", time.Since(fixStart))
 
+	logSchema.Printf("Total schema fetch and fix completed in %v", time.Since(startTime))
 	return fixedBytes, nil
 }
 
@@ -223,27 +234,34 @@ func getOrCompileSchema() (*jsonschema.Schema, error) {
 
 // validateJSONSchema validates the raw JSON configuration against the JSON schema
 func validateJSONSchema(data []byte) error {
+	startTime := time.Now()
 	logSchema.Printf("Starting JSON schema validation: data_size=%d bytes", len(data))
 
 	// Get the cached compiled schema (or compile it on first use)
+	schemaStart := time.Now()
 	schema, err := getOrCompileSchema()
 	if err != nil {
 		return err
 	}
+	logSchema.Printf("Schema compilation/retrieval took: %v", time.Since(schemaStart))
 
 	// Parse the configuration
+	parseStart := time.Now()
 	var configObj interface{}
 	if err := json.Unmarshal(data, &configObj); err != nil {
 		return fmt.Errorf("failed to parse configuration JSON: %w", err)
 	}
+	logSchema.Printf("JSON parsing took: %v", time.Since(parseStart))
 
 	// Validate the configuration
+	validationStart := time.Now()
 	if err := schema.Validate(configObj); err != nil {
-		logSchema.Printf("Schema validation failed: %v", err)
+		logSchema.Printf("Schema validation failed after %v: %v", time.Since(validationStart), err)
 		return formatSchemaError(err)
 	}
+	logSchema.Printf("Schema validation took: %v", time.Since(validationStart))
 
-	logSchema.Print("Schema validation completed successfully")
+	logSchema.Printf("Total validation completed successfully in %v", time.Since(startTime))
 	return nil
 }
 
