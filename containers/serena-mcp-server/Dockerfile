@@ -24,11 +24,13 @@ WORKDIR /app
 # - git: required for some Serena operations
 # - nodejs/npm: for TypeScript language server
 # - ca-certificates: for HTTPS
+# - golang-go: Go runtime for Go code analysis
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     nodejs \
     npm \
     ca-certificates \
+    golang-go \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 

@@ -10,6 +10,14 @@ The Serena MCP server container Dockerfile has been created with support for:
 
 ## Recent Fixes
 
+### Go Runtime Re-added (2026-02-05)
+Re-added Go runtime to the container to support Go code analysis:
+- **Problem**: The Dockerfile only installed `gopls` (Go LSP) but not the Go runtime itself
+- **Solution**: Added `golang-go` package back to apt-get install with proper cleanup
+- **Impact**: Container now includes both Go runtime and gopls for complete Go support
+- **Testing**: The `go version` command now works, and Go code can be compiled/executed
+- **Image Size**: Cleanup steps ensure minimal impact on image size
+
 ### PATH Configuration Fix (2026-01-18)
 Fixed an issue where the `go` command was not found in the container's PATH during runtime:
 - **Problem**: Line 40 of the Dockerfile explicitly set `/usr/bin` in the PATH, which was redundant and potentially caused PATH resolution issues
