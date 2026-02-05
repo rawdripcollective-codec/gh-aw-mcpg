@@ -1,6 +1,6 @@
 ---
 name: Language Support Tester
-description: Daily workflow that tests Go and JavaScript language support using the Serena MCP server
+description: Daily workflow that tests Go, JavaScript, and Python language support using the Serena MCP server
 on:
   schedule: daily
 permissions:
@@ -12,7 +12,7 @@ network:
     - defaults
     - containers
 tools:
-  serena: ["go", "typescript"]
+  serena: ["go", "typescript", "python"]
   github:
     toolsets: [default]
 safe-outputs:
