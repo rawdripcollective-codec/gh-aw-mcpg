@@ -106,7 +106,7 @@ func GetOrLaunch(l *Launcher, serverID string) (*mcp.Connection, error) {
 		logLauncher.Printf("HTTP backend: serverID=%s, url=%s", serverID, serverCfg.URL)
 
 		// Create an HTTP connection
-		conn, err := mcp.NewHTTPConnection(l.ctx, serverCfg.URL, serverCfg.Headers)
+		conn, err := mcp.NewHTTPConnection(l.ctx, serverID, serverCfg.URL, serverCfg.Headers)
 		if err != nil {
 			logger.LogError("backend", "Failed to create HTTP connection: %s, error=%v", serverID, err)
 			log.Printf("[LAUNCHER] ❌ FAILED to create HTTP connection for '%s'", serverID)
@@ -149,7 +149,7 @@ func GetOrLaunch(l *Launcher, serverID string) (*mcp.Connection, error) {
 	logLauncher.Printf("Starting connection goroutine: serverID=%s", serverID)
 	// Launch connection in a goroutine
 	go func() {
-		conn, err := mcp.NewConnection(l.ctx, serverCfg.Command, serverCfg.Args, serverCfg.Env)
+		conn, err := mcp.NewConnection(l.ctx, serverID, serverCfg.Command, serverCfg.Args, serverCfg.Env)
 		resultChan <- connectionResult{conn, err}
 	}()
 
@@ -244,7 +244,7 @@ func GetOrLaunchForSession(l *Launcher, serverID, sessionID string) (*mcp.Connec
 
 	// Launch connection in a goroutine
 	go func() {
-		conn, err := mcp.NewConnection(l.ctx, serverCfg.Command, serverCfg.Args, serverCfg.Env)
+		conn, err := mcp.NewConnection(l.ctx, serverID, serverCfg.Command, serverCfg.Args, serverCfg.Env)
 		resultChan <- connectionResult{conn, err}
 	}()
 
