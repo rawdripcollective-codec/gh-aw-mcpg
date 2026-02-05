@@ -134,10 +134,13 @@ Key configuration in frontmatter:
 
 ## Related Features
 
-This workflow tests the jqschema middleware feature implemented in:
+This workflow tests the jqschema middleware feature. The related implementation files are:
 - `internal/middleware/jqschema.go` - Middleware that intercepts large responses
+- `internal/middleware/README.md` - Documentation of the jqschema middleware
 - `internal/config/config_payload.go` - Payload directory configuration
 - `test/integration/large_payload_test.go` - Unit/integration tests for payload handling
+
+These files already exist in the repository and implement the feature being tested by this workflow.
 
 ## Security Considerations
 

@@ -56,6 +56,7 @@ The payload path will be in the format: `/tmp/jq-payloads/{sessionID}/{queryID}/
 - In the agent container, the entire `/tmp/jq-payloads` directory is mounted at: `/workspace/mcp-payloads`
 - So translate the path by replacing `/tmp/jq-payloads` with `/workspace/mcp-payloads`
 - Example: If gateway returns `/tmp/jq-payloads/session-abc123/query-def456/payload.json`, use `/workspace/mcp-payloads/session-abc123/query-def456/payload.json`
+- The `{sessionID}` is the actual session identifier, not the literal word "session"
 - Use the filesystem MCP server to read the translated path
 
 Use the filesystem MCP server's `read_file` tool to read the payload file at the translated path.

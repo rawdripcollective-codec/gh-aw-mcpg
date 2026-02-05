@@ -59,25 +59,40 @@ steps:
       
       # Create a large test file (>1KB) with the secret embedded in JSON
       # This file will be read by the filesystem MCP server, causing a large payload
-      cat > /tmp/mcp-test-fs/large-test-file.json <<EOF
+      cat > /tmp/mcp-test-fs/large-test-file.json <<'EOF'
       {
-        "test_run_id": "${{ github.run_id }}",
-        "test_secret": "$TEST_SECRET",
-        "test_timestamp": "$(date -Iseconds)",
+        "test_run_id": "PLACEHOLDER_RUN_ID",
+        "test_secret": "PLACEHOLDER_SECRET",
+        "test_timestamp": "PLACEHOLDER_TIMESTAMP",
         "purpose": "Testing large MCP payload storage and retrieval",
         "data": {
-          "large_array": [
-            $(for i in {1..100}; do echo "{\"id\": $i, \"value\": \"item-$i\", \"secret_reference\": \"$TEST_SECRET\"}"; done | paste -sd,)
-          ],
+          "large_array": [],
           "metadata": {
             "generated_by": "large-payload-tester workflow",
-            "repository": "${{ github.repository }}",
-            "workflow_run_url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            "repository": "PLACEHOLDER_REPO",
+            "workflow_run_url": "PLACEHOLDER_URL"
           }
         },
-        "padding": "$(head -c 2000 /dev/zero | tr '\0' 'X')"
+        "padding": ""
       }
       EOF
+      
+      # Use jq to properly populate the JSON with dynamic values and generate large array
+      jq --arg secret "$TEST_SECRET" \
+         --arg run_id "${{ github.run_id }}" \
+         --arg timestamp "$(date -Iseconds)" \
+         --arg repo "${{ github.repository }}" \
+         --arg url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+         '.test_secret = $secret | 
+          .test_run_id = $run_id | 
+          .test_timestamp = $timestamp | 
+          .data.metadata.repository = $repo | 
+          .data.metadata.workflow_run_url = $url | 
+          .data.large_array = [range(100) | {id: ., value: ("item-" + tostring), secret_reference: $secret}] |
+          .padding = ("X" * 2000)' \
+         /tmp/mcp-test-fs/large-test-file.json > /tmp/mcp-test-fs/large-test-file.json.tmp
+      
+      mv /tmp/mcp-test-fs/large-test-file.json.tmp /tmp/mcp-test-fs/large-test-file.json
       
       # Verify file was created and is large enough
       FILE_SIZE=$(wc -c < /tmp/mcp-test-fs/large-test-file.json)
