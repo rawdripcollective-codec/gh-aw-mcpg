@@ -45,9 +45,8 @@ safe-outputs:
 steps:
   - name: Setup Test Environment
     run: |
-      # Create test directories
+      # Create test data directory (payload directory will be created by gateway on-demand)
       mkdir -p /tmp/mcp-test-fs
-      mkdir -p /tmp/jq-payloads
       
       # Generate a unique secret for this test run
       # Use uuidgen if available, otherwise use timestamp with nanoseconds for better entropy
