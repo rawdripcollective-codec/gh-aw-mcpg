@@ -34,7 +34,7 @@ mcp-servers:
     type: stdio
     container: "mcp/filesystem"
     env:
-      ALLOWED_PATHS: "/workspace"
+      ALLOWED_PATHS: "/tmp,/workspace"
     mounts:
       - "/tmp/mcp-test-fs:/workspace:rw"
   memory:
