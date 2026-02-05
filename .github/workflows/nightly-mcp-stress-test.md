@@ -98,7 +98,8 @@ mcp-servers:
       PLAYWRIGHT_BROWSERS_PATH: "/ms-playwright"
       # Launch options to prevent ERR_BLOCKED_BY_CLIENT errors in CI testing
       # Security note: These flags disable web security features for testing purposes only
-      PLAYWRIGHT_LAUNCH_OPTIONS: '{"args": ["--disable-blink-features=AutomationControlled", "--disable-web-security", "--disable-features=IsolateOrigins,site-per-process"]}'
+      # Reference: https://playwright.dev/docs/docker
+      PLAYWRIGHT_LAUNCH_OPTIONS: '{"args": ["--no-sandbox", "--disable-setuid-sandbox", "--disable-gpu", "--disable-blink-features=AutomationControlled", "--disable-web-security", "--disable-features=IsolateOrigins,site-per-process"]}'
   wikipedia:
     type: stdio
     container: "mcp/wikipedia-mcp"
