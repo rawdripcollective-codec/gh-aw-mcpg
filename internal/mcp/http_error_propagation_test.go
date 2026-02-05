@@ -117,7 +117,7 @@ func TestHTTPErrorPropagation_Non200Status(t *testing.T) {
 			defer testServer.Close()
 
 			// Create connection with custom headers to use plain JSON transport
-			conn, err := NewHTTPConnection(context.Background(), testServer.URL, map[string]string{
+			conn, err := NewHTTPConnection(context.Background(), "test-server", testServer.URL, map[string]string{
 				"Authorization": "test-token",
 			})
 			require.NoError(t, err, "Failed to create connection")
@@ -190,7 +190,7 @@ func TestHTTPErrorPropagation_JSONRPCError(t *testing.T) {
 	}))
 	defer testServer.Close()
 
-	conn, err := NewHTTPConnection(context.Background(), testServer.URL, map[string]string{
+	conn, err := NewHTTPConnection(context.Background(), "test-server", testServer.URL, map[string]string{
 		"Authorization": "test-token",
 	})
 	require.NoError(t, err, "Failed to create connection")
@@ -273,7 +273,7 @@ func TestHTTPErrorPropagation_MixedContent(t *testing.T) {
 			}))
 			defer testServer.Close()
 
-			conn, err := NewHTTPConnection(context.Background(), testServer.URL, map[string]string{
+			conn, err := NewHTTPConnection(context.Background(), "test-server", testServer.URL, map[string]string{
 				"Authorization": "test-token",
 			})
 			require.NoError(t, err, "Failed to create connection")
@@ -342,7 +342,7 @@ func TestHTTPErrorPropagation_PreservesDetails(t *testing.T) {
 	}))
 	defer testServer.Close()
 
-	conn, err := NewHTTPConnection(context.Background(), testServer.URL, map[string]string{
+	conn, err := NewHTTPConnection(context.Background(), "test-server", testServer.URL, map[string]string{
 		"Authorization": "test-token",
 	})
 	require.NoError(t, err, "Failed to create connection")

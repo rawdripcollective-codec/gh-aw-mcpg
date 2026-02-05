@@ -61,10 +61,11 @@ const (
 
 // Connection represents a connection to an MCP server using the official SDK
 type Connection struct {
-	client  *sdk.Client
-	session *sdk.ClientSession
-	ctx     context.Context
-	cancel  context.CancelFunc
+	client   *sdk.Client
+	session  *sdk.ClientSession
+	ctx      context.Context
+	cancel   context.CancelFunc
+	serverID string // Server ID from config for logging
 	// HTTP-specific fields
 	isHTTP            bool
 	httpURL           string
@@ -83,7 +84,7 @@ func newMCPClient() *sdk.Client {
 }
 
 // newHTTPConnection creates a new HTTP Connection struct with common fields
-func newHTTPConnection(ctx context.Context, cancel context.CancelFunc, client *sdk.Client, session *sdk.ClientSession, url string, headers map[string]string, httpClient *http.Client, transportType HTTPTransportType) *Connection {
+func newHTTPConnection(ctx context.Context, cancel context.CancelFunc, client *sdk.Client, session *sdk.ClientSession, url string, headers map[string]string, httpClient *http.Client, transportType HTTPTransportType, serverID string) *Connection {
 	// Extract session ID from SDK session if available
 	var sessionID string
 	if session != nil {
@@ -94,6 +95,7 @@ func newHTTPConnection(ctx context.Context, cancel context.CancelFunc, client *s
 		session:           session,
 		ctx:               ctx,
 		cancel:            cancel,
+		serverID:          serverID,
 		isHTTP:            true,
 		httpURL:           url,
 		headers:           headers,
@@ -155,7 +157,7 @@ func setupHTTPRequest(ctx context.Context, url string, requestBody []byte, heade
 }
 
 // NewConnection creates a new MCP connection using the official SDK
-func NewConnection(ctx context.Context, command string, args []string, env map[string]string) (*Connection, error) {
+func NewConnection(ctx context.Context, serverID, command string, args []string, env map[string]string) (*Connection, error) {
 	logger.LogInfo("backend", "Creating new MCP backend connection, command=%s, args=%v", command, sanitize.SanitizeArgs(args))
 	logConn.Printf("Creating new MCP connection: command=%s, args=%v", command, sanitize.SanitizeArgs(args))
 	ctx, cancel := context.WithCancel(ctx)
@@ -196,8 +198,8 @@ func NewConnection(ctx context.Context, command string, args []string, env map[s
 		scanner := bufio.NewScanner(stderrPipeReader)
 		for scanner.Scan() {
 			line := scanner.Text()
-			logger.LogInfo("backend", "[%s stderr] %s", command, line)
-			logConn.Printf("[stderr] %s", line)
+			logger.LogInfo("backend", "[%s stderr] %s", serverID, line)
+			logConn.Printf("[%s stderr] %s", serverID, line)
 		}
 	}()
 
@@ -253,11 +255,12 @@ func NewConnection(ctx context.Context, command string, args []string, env map[s
 	logConn.Printf("Successfully connected to MCP server: command=%s", command)
 
 	conn := &Connection{
-		client:  client,
-		session: session,
-		ctx:     ctx,
-		cancel:  cancel,
-		isHTTP:  false,
+		client:   client,
+		session:  session,
+		ctx:      ctx,
+		cancel:   cancel,
+		serverID: serverID,
+		isHTTP:   false,
 	}
 
 	log.Printf("Started MCP server: %s %v", command, args)
@@ -276,7 +279,7 @@ func NewConnection(ctx context.Context, command string, args []string, env map[s
 //     c. Plain JSON-RPC 2.0 over HTTP POST as final fallback
 //
 // This ensures compatibility with all types of HTTP MCP servers.
-func NewHTTPConnection(ctx context.Context, url string, headers map[string]string) (*Connection, error) {
+func NewHTTPConnection(ctx context.Context, serverID, url string, headers map[string]string) (*Connection, error) {
 	logger.LogInfo("backend", "Creating HTTP MCP connection with transport fallback, url=%s", url)
 	logConn.Printf("Creating HTTP MCP connection: url=%s", url)
 	ctx, cancel := context.WithCancel(ctx)
@@ -295,7 +298,7 @@ func NewHTTPConnection(ctx context.Context, url string, headers map[string]strin
 	// This is typical for backends like safeinputs that require authentication
 	if len(headers) > 0 {
 		logConn.Printf("Custom headers detected, using plain JSON-RPC transport for %s", url)
-		conn, err := tryPlainJSONTransport(ctx, cancel, url, headers, httpClient)
+		conn, err := tryPlainJSONTransport(ctx, cancel, serverID, url, headers, httpClient)
 		if err == nil {
 			logger.LogInfo("backend", "Successfully connected using plain JSON-RPC transport, url=%s", url)
 			log.Printf("Configured HTTP MCP server with plain JSON-RPC transport: %s", url)
@@ -310,7 +313,7 @@ func NewHTTPConnection(ctx context.Context, url string, headers map[string]strin
 
 	// Try 1: Streamable HTTP (2025-03-26 spec)
 	logConn.Printf("Attempting streamable HTTP transport for %s", url)
-	conn, err := tryStreamableHTTPTransport(ctx, cancel, url, headers, httpClient)
+	conn, err := tryStreamableHTTPTransport(ctx, cancel, serverID, url, headers, httpClient)
 	if err == nil {
 		logger.LogInfo("backend", "Successfully connected using streamable HTTP transport, url=%s", url)
 		log.Printf("Configured HTTP MCP server with streamable transport: %s", url)
@@ -320,7 +323,7 @@ func NewHTTPConnection(ctx context.Context, url string, headers map[string]strin
 
 	// Try 2: SSE (2024-11-05 spec)
 	logConn.Printf("Attempting SSE transport for %s", url)
-	conn, err = trySSETransport(ctx, cancel, url, headers, httpClient)
+	conn, err = trySSETransport(ctx, cancel, serverID, url, headers, httpClient)
 	if err == nil {
 		logger.LogWarn("backend", "⚠️  MCP over SSE has been deprecated. Connected using SSE transport for url=%s. Please migrate to streamable HTTP transport (2025-03-26 spec).", url)
 		log.Printf("⚠️  WARNING: MCP over SSE (2024-11-05 spec) has been DEPRECATED")
@@ -333,7 +336,7 @@ func NewHTTPConnection(ctx context.Context, url string, headers map[string]strin
 
 	// Try 3: Plain JSON-RPC over HTTP (non-standard, for fallback)
 	logConn.Printf("Attempting plain JSON-RPC transport for %s", url)
-	conn, err = tryPlainJSONTransport(ctx, cancel, url, headers, httpClient)
+	conn, err = tryPlainJSONTransport(ctx, cancel, serverID, url, headers, httpClient)
 	if err == nil {
 		logger.LogInfo("backend", "Successfully connected using plain JSON-RPC transport, url=%s", url)
 		log.Printf("Configured HTTP MCP server with plain JSON-RPC transport: %s", url)
@@ -355,6 +358,7 @@ type transportConnector func(url string, httpClient *http.Client) sdk.Transport
 func trySDKTransport(
 	ctx context.Context,
 	cancel context.CancelFunc,
+	serverID string,
 	url string,
 	headers map[string]string,
 	httpClient *http.Client,
@@ -378,7 +382,7 @@ func trySDKTransport(
 		return nil, fmt.Errorf("%s transport connect failed: %w", transportName, err)
 	}
 
-	conn := newHTTPConnection(ctx, cancel, client, session, url, headers, httpClient, transportType)
+	conn := newHTTPConnection(ctx, cancel, client, session, url, headers, httpClient, transportType, serverID)
 
 	logger.LogInfo("backend", "%s transport connected successfully", transportName)
 	logConn.Printf("Connected with %s transport", transportName)
@@ -386,9 +390,9 @@ func trySDKTransport(
 }
 
 // tryStreamableHTTPTransport attempts to connect using the streamable HTTP transport (2025-03-26 spec)
-func tryStreamableHTTPTransport(ctx context.Context, cancel context.CancelFunc, url string, headers map[string]string, httpClient *http.Client) (*Connection, error) {
+func tryStreamableHTTPTransport(ctx context.Context, cancel context.CancelFunc, serverID, url string, headers map[string]string, httpClient *http.Client) (*Connection, error) {
 	return trySDKTransport(
-		ctx, cancel, url, headers, httpClient,
+		ctx, cancel, serverID, url, headers, httpClient,
 		HTTPTransportStreamable,
 		"streamable HTTP",
 		func(url string, httpClient *http.Client) sdk.Transport {
@@ -402,9 +406,9 @@ func tryStreamableHTTPTransport(ctx context.Context, cancel context.CancelFunc, 
 }
 
 // trySSETransport attempts to connect using the SSE transport (2024-11-05 spec)
-func trySSETransport(ctx context.Context, cancel context.CancelFunc, url string, headers map[string]string, httpClient *http.Client) (*Connection, error) {
+func trySSETransport(ctx context.Context, cancel context.CancelFunc, serverID, url string, headers map[string]string, httpClient *http.Client) (*Connection, error) {
 	return trySDKTransport(
-		ctx, cancel, url, headers, httpClient,
+		ctx, cancel, serverID, url, headers, httpClient,
 		HTTPTransportSSE,
 		"SSE",
 		func(url string, httpClient *http.Client) sdk.Transport {
@@ -418,10 +422,11 @@ func trySSETransport(ctx context.Context, cancel context.CancelFunc, url string,
 
 // tryPlainJSONTransport attempts to connect using plain JSON-RPC 2.0 over HTTP POST (non-standard)
 // This is used for compatibility with servers like safeinputs that don't implement standard MCP HTTP transports
-func tryPlainJSONTransport(ctx context.Context, cancel context.CancelFunc, url string, headers map[string]string, httpClient *http.Client) (*Connection, error) {
+func tryPlainJSONTransport(ctx context.Context, cancel context.CancelFunc, serverID, url string, headers map[string]string, httpClient *http.Client) (*Connection, error) {
 	conn := &Connection{
 		ctx:               ctx,
 		cancel:            cancel,
+		serverID:          serverID,
 		isHTTP:            true,
 		httpURL:           url,
 		headers:           headers,

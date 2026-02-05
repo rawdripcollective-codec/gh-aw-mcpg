@@ -36,7 +36,7 @@ func TestHTTPRequest_SessionIDHeader(t *testing.T) {
 	defer testServer.Close()
 
 	// Create an HTTP connection
-	conn, err := NewHTTPConnection(context.Background(), testServer.URL, map[string]string{
+	conn, err := NewHTTPConnection(context.Background(), "test-server", testServer.URL, map[string]string{
 		"Authorization": "test-auth-token",
 	})
 	require.NoError(t, err, "Failed to create HTTP connection")
@@ -73,7 +73,7 @@ func TestHTTPRequest_NoSessionID(t *testing.T) {
 	defer testServer.Close()
 
 	// Create an HTTP connection
-	conn, err := NewHTTPConnection(context.Background(), testServer.URL, map[string]string{
+	conn, err := NewHTTPConnection(context.Background(), "test-server", testServer.URL, map[string]string{
 		"Authorization": "test-auth-token",
 	})
 	require.NoError(t, err, "Failed to create HTTP connection")
@@ -111,7 +111,7 @@ func TestHTTPRequest_ConfiguredHeaders(t *testing.T) {
 
 	// Create an HTTP connection with configured headers
 	authToken := "configured-auth-token"
-	conn, err := NewHTTPConnection(context.Background(), testServer.URL, map[string]string{
+	conn, err := NewHTTPConnection(context.Background(), "test-server", testServer.URL, map[string]string{
 		"Authorization": authToken,
 	})
 	require.NoError(t, err, "Failed to create HTTP connection")
@@ -319,7 +319,7 @@ func TestHTTPRequest_ErrorResponses(t *testing.T) {
 			defer testServer.Close()
 
 			// Create connection with custom headers to use plain JSON transport
-			conn, err := NewHTTPConnection(context.Background(), testServer.URL, map[string]string{
+			conn, err := NewHTTPConnection(context.Background(), "test-server", testServer.URL, map[string]string{
 				"Authorization": "test-token",
 			})
 			if err != nil && tt.expectError {
@@ -373,7 +373,7 @@ func TestConnection_IsHTTP(t *testing.T) {
 		"X-Custom":      "custom-value",
 	}
 
-	conn, err := NewHTTPConnection(context.Background(), testServer.URL, headers)
+	conn, err := NewHTTPConnection(context.Background(), "test-server", testServer.URL, headers)
 	require.NoError(t, err, "Failed to create HTTP connection")
 	defer conn.Close()
 
@@ -420,7 +420,7 @@ func TestHTTPConnection_InvalidURL(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := NewHTTPConnection(context.Background(), tt.url, tt.headers)
+			_, err := NewHTTPConnection(context.Background(), "test-server", tt.url, tt.headers)
 
 			if tt.expectError {
 				if err == nil {
@@ -551,7 +551,7 @@ data: {"jsonrpc":"2.0","id":` + idStr + `,"result":{"tools":[]}}
 	defer testServer.Close()
 
 	// Create connection with custom headers (forcing plain JSON transport)
-	conn, err := NewHTTPConnection(context.Background(), testServer.URL, map[string]string{
+	conn, err := NewHTTPConnection(context.Background(), "test-server", testServer.URL, map[string]string{
 		"Authorization": "test-token",
 	})
 	require.NoError(t, err, "Failed to create HTTP connection")
@@ -691,7 +691,7 @@ func TestNewHTTPConnection(t *testing.T) {
 	headers := map[string]string{"Authorization": "test"}
 	httpClient := &http.Client{}
 
-	conn := newHTTPConnection(ctx, cancel, client, nil, url, headers, httpClient, HTTPTransportStreamable)
+	conn := newHTTPConnection(ctx, cancel, client, nil, url, headers, httpClient, HTTPTransportStreamable, "test-server")
 
 	require.NotNil(t, conn, "Connection should not be nil")
 	assert.Equal(t, client, conn.client, "Client should match")
