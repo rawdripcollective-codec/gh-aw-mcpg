@@ -96,6 +96,8 @@ mcp-servers:
     container: "mcr.microsoft.com/playwright:v1.49.1-noble"
     env:
       PLAYWRIGHT_BROWSERS_PATH: "/ms-playwright"
+      # Launch options to prevent ERR_BLOCKED_BY_CLIENT errors in CI testing
+      # Security note: These flags disable web security features for testing purposes only
       PLAYWRIGHT_LAUNCH_OPTIONS: '{"args": ["--disable-blink-features=AutomationControlled", "--disable-web-security", "--disable-features=IsolateOrigins,site-per-process"]}'
   wikipedia:
     type: stdio
