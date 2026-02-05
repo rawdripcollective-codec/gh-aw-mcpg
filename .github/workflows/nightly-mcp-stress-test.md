@@ -54,6 +54,7 @@ mcp-servers:
   puppeteer:
     type: stdio
     container: "mcp/puppeteer"
+    user: "pptruser"
     env:
       PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: "false"
   slack:
