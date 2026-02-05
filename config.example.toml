@@ -76,7 +76,22 @@ args = [
     "mcp/memory"
 ]
 
-# Example 3: Custom MCP Server with Volume Mounts
+# Example 3: Filesystem MCP Server (stdio via Docker with volume mount)
+[servers.filesystem]
+command = "docker"
+args = [
+    "run",
+    "--rm",
+    "-i",
+    "-v", "/tmp:/workspace:rw",                          # Mount /tmp to /workspace (read-write)
+    "-e", "ALLOWED_PATHS=/workspace",                    # Required: whitelist allowed paths
+    "-e", "NO_COLOR=1",
+    "-e", "TERM=dumb",
+    "-e", "PYTHONUNBUFFERED=1",
+    "mcp/filesystem"
+]
+
+# Example 4: Custom MCP Server with Volume Mounts
 [servers.custom]
 command = "docker"
 args = [
