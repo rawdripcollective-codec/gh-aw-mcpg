@@ -263,4 +263,3 @@ func TestServerFileLoggerPreservesUnifiedView(t *testing.T) {
 	lines := strings.Split(strings.TrimSpace(string(unifiedContent)), "\n")
 	assert.GreaterOrEqual(t, len(lines), 3, "unified log should have at least 3 messages")
 }
-
