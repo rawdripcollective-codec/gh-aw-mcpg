@@ -366,10 +366,22 @@ DEBUG_COLORS=0 DEBUG=* ./awmg --config config.toml
 - `MCP_GATEWAY_PAYLOAD_DIR` - Large payload storage directory (sets default for `--payload-dir` flag, default: `/tmp/jq-payloads`)
 
 **File Logging:**
-- Operational logs are always written to `mcp-gateway.log` in the configured log directory
+- Operational logs are always written to log files in the configured log directory
 - Default log directory: `/tmp/gh-aw/mcp-logs` (configurable via `--log-dir` flag or `MCP_GATEWAY_LOG_DIR` env var)
 - Falls back to stdout if log directory cannot be created
+- **Log Files Created:**
+  - `mcp-gateway.log` - Unified log with all messages
+  - `{serverID}.log` - Per-server logs (e.g., `github.log`, `slack.log`) for easier troubleshooting
+  - `gateway.md` - Markdown-formatted logs for GitHub workflow previews
+  - `rpc-messages.jsonl` - Machine-readable JSONL format for RPC message analysis
 - Logs include: startup, client interactions, backend operations, auth events, errors
+
+**Per-ServerID Logging:**
+- Each backend MCP server gets its own log file for easier troubleshooting
+- Use `LogInfoWithServer`, `LogWarnWithServer`, `LogErrorWithServer`, `LogDebugWithServer` functions
+- Example: `logger.LogInfoWithServer("github", "backend", "Server started successfully")`
+- Logs are written to both the server-specific file and the unified `mcp-gateway.log`
+- Thread-safe concurrent logging with automatic fallback
 
 **Large Payload Handling:**
 - Large tool response payloads are stored in the configured payload directory

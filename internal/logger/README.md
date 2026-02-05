@@ -11,6 +11,61 @@ A simple, debug-style logging framework for Go that follows the pattern matching
 - **Automatic color coding**: Each namespace gets a unique color when stderr is a TTY
 - **Zero overhead**: Logger enabled state is computed once at construction time
 - **Thread-safe**: Safe for concurrent use
+- **Per-ServerID Logs**: Separate log files for each backend MCP server for easier troubleshooting
+
+## Per-ServerID Logging
+
+The logger package supports creating separate log files for each backend MCP server (identified by serverID). This makes it much easier to troubleshoot specific servers without sifting through unified logs.
+
+### How It Works
+
+- Each serverID gets its own log file: `{serverID}.log` in the log directory
+- Logs are also written to the main `mcp-gateway.log` for a unified view
+- Concurrent writes to different serverID logs are handled safely
+- Fallback to unified logging if per-serverID logging cannot be initialized
+
+### Usage
+
+```go
+import "github.com/github/gh-aw-mcpg/internal/logger"
+
+// Log to both the unified log and the server-specific log
+logger.LogInfoWithServer("github", "backend", "Server started successfully")
+logger.LogWarnWithServer("slack", "backend", "Connection timeout")
+logger.LogErrorWithServer("github", "backend", "Failed to authenticate: %v", err)
+logger.LogDebugWithServer("notion", "backend", "Processing request: %v", req)
+```
+
+### Log File Structure
+
+When per-serverID logging is enabled, the log directory contains:
+```
+/tmp/gh-aw/mcp-logs/
+├── mcp-gateway.log    # Unified log with all messages
+├── github.log          # Only logs for the "github" server
+├── slack.log           # Only logs for the "slack" server
+└── notion.log          # Only logs for the "notion" server
+```
+
+Each server-specific log file contains only the messages related to that serverID, making it easier to debug issues with individual backend servers.
+
+### Initialization
+
+Per-serverID logging is automatically initialized when the gateway starts:
+
+```go
+// In internal/cmd/root.go
+logger.InitServerFileLogger(logDir)
+defer logger.CloseServerFileLogger()
+```
+
+### Benefits
+
+- **Easier Debugging**: View all logs for a specific server in isolation
+- **Reduced Noise**: No need to filter through logs from other servers
+- **Better Troubleshooting**: Quickly identify which server is having issues
+- **Concurrent Access**: Safe to log to multiple servers simultaneously
+- **Backward Compatible**: Falls back gracefully if initialization fails
 
 ## Usage
 

@@ -23,6 +23,7 @@ This gateway is used with [GitHub Agentic Workflows](https://github.com/github/g
 - **Stdio Transport**: JSON-RPC 2.0 over stdin/stdout for MCP communication
 - **Container Detection**: Automatic detection of containerized environments with security warnings
 - **Enhanced Debugging**: Detailed error context and troubleshooting suggestions for command failures
+- **Per-ServerID Logs**: Separate log files for each backend MCP server (`{serverID}.log`) for easier troubleshooting
 
 ## Getting Started
 
@@ -67,6 +68,10 @@ For detailed setup instructions, building from source, and local development, se
 - `-e MCP_GATEWAY_*`: Required environment variables
 - `-v /var/run/docker.sock`: Required for spawning backend MCP servers
 - `-v /path/to/logs:/tmp/gh-aw/mcp-logs`: Mount for persistent gateway logs (or use `-e MCP_GATEWAY_LOG_DIR=/custom/path` with matching volume mount)
+  - `mcp-gateway.log`: Unified log with all messages
+  - `{serverID}.log`: Per-server logs for easier troubleshooting
+  - `gateway.md`: Markdown-formatted logs for GitHub workflow previews
+  - `rpc-messages.jsonl`: Machine-readable RPC message logs
 - `-p 8000:8000`: Port mapping must match `MCP_GATEWAY_PORT`
 
 MCPG will start in routed mode on `http://0.0.0.0:8000` (using `MCP_GATEWAY_PORT`), proxying MCP requests to your configured backend servers.
@@ -329,14 +334,43 @@ MCP_GATEWAY_PORT=3000 ./run.sh
 
 MCPG provides comprehensive logging of all gateway operations to help diagnose issues and monitor activity.
 
+### Log Files
+
+The gateway creates multiple log files for different purposes:
+
+1. **`mcp-gateway.log`** - Unified log with all gateway messages
+2. **`{serverID}.log`** - Per-server logs (e.g., `github.log`, `slack.log`) for easier troubleshooting of specific backend servers
+3. **`gateway.md`** - Markdown-formatted logs for GitHub workflow previews
+4. **`rpc-messages.jsonl`** - Machine-readable JSONL format for RPC message analysis
+
 ### Log File Location
 
-By default, logs are written to `/tmp/gh-aw/mcp-logs/mcp-gateway.log`. This location can be configured using either:
+By default, logs are written to `/tmp/gh-aw/mcp-logs/`. This location can be configured using either:
 
 1. **`MCP_GATEWAY_LOG_DIR` environment variable** - Sets the default log directory
 2. **`--log-dir` flag** - Overrides the environment variable and default
 
 The precedence order is: `--log-dir` flag → `MCP_GATEWAY_LOG_DIR` env var → default (`/tmp/gh-aw/mcp-logs`)
+
+### Per-ServerID Logs
+
+Each backend MCP server gets its own log file (e.g., `github.log`, `slack.log`) in addition to the unified `mcp-gateway.log`. This makes it much easier to:
+
+- Debug issues with a specific backend server
+- View all activity for one server without filtering
+- Identify which server is causing problems
+- Troubleshoot server-specific configuration issues
+
+Example log directory structure:
+```
+/tmp/gh-aw/mcp-logs/
+├── mcp-gateway.log    # All messages
+├── github.log         # Only GitHub server logs
+├── slack.log          # Only Slack server logs
+├── notion.log         # Only Notion server logs
+├── gateway.md         # Markdown format
+└── rpc-messages.jsonl # RPC messages
+```
 
 **Using the environment variable:**
 ```bash

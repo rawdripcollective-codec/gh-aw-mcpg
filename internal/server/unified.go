@@ -228,11 +228,11 @@ func (us *UnifiedServer) registerAllToolsParallel(serverIDs []string) error {
 	for result := range results {
 		if result.err != nil {
 			log.Printf("Warning: failed to register tools from %s (took %v): %v", result.serverID, result.duration, result.err)
-			logger.LogWarn("backend", "Failed to register tools from %s (took %v): %v", result.serverID, result.duration, result.err)
+			logger.LogWarnWithServer(result.serverID, "backend", "Failed to register tools from %s (took %v): %v", result.serverID, result.duration, result.err)
 			failureCount++
 		} else {
 			logUnified.Printf("Successfully registered tools from %s (took %v)", result.serverID, result.duration)
-			logger.LogInfo("backend", "Successfully registered tools from %s (took %v)", result.serverID, result.duration)
+			logger.LogInfoWithServer(result.serverID, "backend", "Successfully registered tools from %s (took %v)", result.serverID, result.duration)
 			successCount++
 		}
 	}

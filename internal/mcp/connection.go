@@ -198,7 +198,7 @@ func NewConnection(ctx context.Context, serverID, command string, args []string,
 		scanner := bufio.NewScanner(stderrPipeReader)
 		for scanner.Scan() {
 			line := scanner.Text()
-			logger.LogInfo("backend", "[%s stderr] %s", serverID, line)
+			logger.LogInfoWithServer(serverID, "backend", "[stderr] %s", line)
 			logConn.Printf("[%s stderr] %s", serverID, line)
 		}
 	}()
