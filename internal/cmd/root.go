@@ -31,7 +31,11 @@ const (
 
 // Package-level variables that don't belong to a specific feature
 var (
-	debugLog   = logger.New("cmd:root")
+	debugLog = logger.New("cmd:root")
+	// cliVersion stores the version string for Cobra's CLI version display.
+	// This is kept separate from version.Get() because rootCmd.Version must be
+	// set at initialization time (before SetVersion is called). We sync both
+	// values in SetVersion() to maintain a single source of truth.
 	cliVersion = "dev" // Default version, overridden by SetVersion
 )
 
