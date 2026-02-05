@@ -21,7 +21,7 @@
 #
 # Load 20 MCP servers, discover and summarize the tools exported by each server, test tool invocations, and post a comprehensive report as a GitHub issue
 #
-# frontmatter-hash: a7e674ab406e676d6cf5834db6c4aa1f2001269ef3ee6de2239da1310c58d81e
+# frontmatter-hash: 511dec6161a8c92570255da7e7bd1453e3d47fe8a74b28e5395b0a86599ace73
 
 name: "Nightly MCP Server Stress Test"
 "on":
@@ -534,7 +534,7 @@ jobs:
                   "*"
                 ],
                 "env": {
-                  "PUPPETEER_SKIP_CHROMIUM_DOWNLOAD": "false"
+                  "DOCKER_CONTAINER": "true"
                 }
               },
               "safeoutputs": {
