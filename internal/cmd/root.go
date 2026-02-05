@@ -138,6 +138,12 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 	defer logger.CloseGlobalLogger()
 
+	// Initialize per-serverID logger
+	if err := logger.InitServerFileLogger(logDir); err != nil {
+		log.Printf("Warning: Failed to initialize server file logger: %v", err)
+	}
+	defer logger.CloseServerFileLogger()
+
 	// Initialize markdown logger for GitHub workflow preview
 	if err := logger.InitMarkdownLogger(logDir, "gateway.md"); err != nil {
 		log.Printf("Warning: Failed to initialize markdown logger: %v", err)

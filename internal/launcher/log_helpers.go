@@ -21,7 +21,7 @@ func sessionSuffix(sessionID string) string {
 
 // logSecurityWarning logs container security warnings
 func (l *Launcher) logSecurityWarning(serverID string, serverCfg *config.ServerConfig) {
-	logger.LogWarn("backend", "Server '%s' uses direct command execution inside a container (command: %s)", serverID, serverCfg.Command)
+	logger.LogWarnWithServer(serverID, "backend", "Server '%s' uses direct command execution inside a container (command: %s)", serverID, serverCfg.Command)
 	log.Printf("[LAUNCHER] ⚠️  WARNING: Server '%s' uses direct command execution inside a container", serverID)
 	log.Printf("[LAUNCHER] ⚠️  Security Notice: Command '%s' will execute with the same privileges as the gateway", serverCfg.Command)
 	log.Printf("[LAUNCHER] ⚠️  Consider using 'container' field instead for better isolation")
@@ -30,11 +30,11 @@ func (l *Launcher) logSecurityWarning(serverID string, serverCfg *config.ServerC
 // logLaunchStart logs server launch initiation
 func (l *Launcher) logLaunchStart(serverID, sessionID string, serverCfg *config.ServerConfig, isDirectCommand bool) {
 	if sessionID != "" {
-		logger.LogInfo("backend", "Launching MCP backend server for session: server=%s, session=%s, command=%s, args=%v", serverID, sessionID, serverCfg.Command, sanitize.SanitizeArgs(serverCfg.Args))
+		logger.LogInfoWithServer(serverID, "backend", "Launching MCP backend server for session: server=%s, session=%s, command=%s, args=%v", serverID, sessionID, serverCfg.Command, sanitize.SanitizeArgs(serverCfg.Args))
 		log.Printf("[LAUNCHER] Starting MCP server for session: %s (session: %s)", serverID, sessionID)
 		logLauncher.Printf("Launching new session server: serverID=%s, sessionID=%s, command=%s", serverID, sessionID, serverCfg.Command)
 	} else {
-		logger.LogInfo("backend", "Launching MCP backend server: %s, command=%s, args=%v", serverID, serverCfg.Command, sanitize.SanitizeArgs(serverCfg.Args))
+		logger.LogInfoWithServer(serverID, "backend", "Launching MCP backend server: %s, command=%s, args=%v", serverID, serverCfg.Command, sanitize.SanitizeArgs(serverCfg.Args))
 		log.Printf("[LAUNCHER] Starting MCP server: %s", serverID)
 		logLauncher.Printf("Launching new server: serverID=%s, command=%s, inContainer=%v, isDirectCommand=%v",
 			serverID, serverCfg.Command, l.runningInContainer, isDirectCommand)
@@ -70,7 +70,7 @@ func (l *Launcher) logEnvPassthrough(args []string) {
 
 // logLaunchError logs detailed launch failure diagnostics
 func (l *Launcher) logLaunchError(serverID, sessionID string, err error, serverCfg *config.ServerConfig, isDirectCommand bool) {
-	logger.LogError("backend", "Failed to launch MCP backend server%s: server=%s%s, error=%v",
+	logger.LogErrorWithServer(serverID, "backend", "Failed to launch MCP backend server%s: server=%s%s, error=%v",
 		sessionSuffix(sessionID), serverID, sessionSuffix(sessionID), err)
 	log.Printf("[LAUNCHER] ❌ FAILED to launch server '%s'%s", serverID, sessionSuffix(sessionID))
 	log.Printf("[LAUNCHER] Error: %v", err)
@@ -97,7 +97,7 @@ func (l *Launcher) logLaunchError(serverID, sessionID string, err error, serverC
 
 // logTimeoutError logs startup timeout diagnostics
 func (l *Launcher) logTimeoutError(serverID, sessionID string) {
-	logger.LogError("backend", "MCP backend server startup timeout%s: server=%s%s, timeout=%v",
+	logger.LogErrorWithServer(serverID, "backend", "MCP backend server startup timeout%s: server=%s%s, timeout=%v",
 		sessionSuffix(sessionID), serverID, sessionSuffix(sessionID), l.startupTimeout)
 	log.Printf("[LAUNCHER] ❌ Server startup timed out after %v", l.startupTimeout)
 	log.Printf("[LAUNCHER] ⚠️  The server may be hanging or taking too long to initialize")
@@ -112,11 +112,11 @@ func (l *Launcher) logTimeoutError(serverID, sessionID string) {
 // logLaunchSuccess logs successful server launch
 func (l *Launcher) logLaunchSuccess(serverID, sessionID string) {
 	if sessionID != "" {
-		logger.LogInfo("backend", "Successfully launched MCP backend server for session: server=%s, session=%s", serverID, sessionID)
+		logger.LogInfoWithServer(serverID, "backend", "Successfully launched MCP backend server for session: server=%s, session=%s", serverID, sessionID)
 		log.Printf("[LAUNCHER] Successfully launched: %s (session: %s)", serverID, sessionID)
 		logLauncher.Printf("Session connection established: serverID=%s, sessionID=%s", serverID, sessionID)
 	} else {
-		logger.LogInfo("backend", "Successfully launched MCP backend server: %s", serverID)
+		logger.LogInfoWithServer(serverID, "backend", "Successfully launched MCP backend server: %s", serverID)
 		log.Printf("[LAUNCHER] Successfully launched: %s", serverID)
 		logLauncher.Printf("Connection established: serverID=%s", serverID)
 	}
