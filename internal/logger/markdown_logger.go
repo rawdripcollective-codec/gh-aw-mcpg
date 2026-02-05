@@ -134,8 +134,22 @@ func (ml *MarkdownLogger) Log(level LogLevel, category, format string, args ...i
 	isPreformatted := strings.HasPrefix(message, "**") && (strings.Contains(message, "→") || strings.Contains(message, "←"))
 
 	if isPreformatted {
-		// Pre-formatted content (like RPC messages) - just add bullet and emoji
-		logLine = fmt.Sprintf("- %s %s %s\n", emoji, category, message)
+		// Pre-formatted content (like RPC messages) - add bullet and emoji
+		// If the message contains newlines (e.g., JSON code blocks), indent them properly
+		if strings.Contains(message, "\n") {
+			// Split the message into lines and indent continuation lines with 2 spaces
+			lines := strings.Split(message, "\n")
+			firstLine := lines[0]
+			// Start with the first line
+			logLine = fmt.Sprintf("- %s %s %s\n", emoji, category, firstLine)
+			// Add remaining lines with proper indentation (2 spaces to nest under bullet)
+			for i := 1; i < len(lines); i++ {
+				logLine += "  " + lines[i] + "\n"
+			}
+		} else {
+			// Single-line pre-formatted message
+			logLine = fmt.Sprintf("- %s %s %s\n", emoji, category, message)
+		}
 	} else if strings.Contains(message, "\n") || strings.Contains(message, "command=") || strings.Contains(message, "args=") {
 		// Multi-line or technical content - use code block
 		logLine = fmt.Sprintf("- %s **%s**\n  ```\n  %s\n  ```\n", emoji, category, message)
