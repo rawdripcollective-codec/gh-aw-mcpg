@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/github/gh-aw-mcpg/internal/version"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -528,7 +529,7 @@ func TestValidateStringPatterns(t *testing.T) {
 // TestEnhancedErrorMessages verifies that validation errors include version and detailed context
 func TestEnhancedErrorMessages(t *testing.T) {
 	// Set a test version
-	SetGatewayVersion("v1.2.3-test")
+	version.Set("v1.2.3-test")
 
 	tests := []struct {
 		name          string

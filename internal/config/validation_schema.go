@@ -12,6 +12,7 @@ import (
 
 	"github.com/github/gh-aw-mcpg/internal/config/rules"
 	"github.com/github/gh-aw-mcpg/internal/logger"
+	"github.com/github/gh-aw-mcpg/internal/version"
 	"github.com/santhosh-tekuri/jsonschema/v5"
 )
 
@@ -21,9 +22,6 @@ var (
 	urlPattern       = regexp.MustCompile(`^https?://.+`)
 	mountPattern     = regexp.MustCompile(`^[^:]+:[^:]+(:(ro|rw))?$`)
 	domainVarPattern = regexp.MustCompile(`^\$\{[A-Z_][A-Z0-9_]*\}$`)
-
-	// gatewayVersion stores the version string to include in error messages
-	gatewayVersion = "dev"
 
 	// logSchema is the debug logger for schema validation
 	logSchema = logger.New("config:validation_schema")
@@ -48,13 +46,6 @@ var (
 	cachedSchema *jsonschema.Schema
 	schemaErr    error
 )
-
-// SetGatewayVersion sets the gateway version for error reporting
-func SetGatewayVersion(version string) {
-	if version != "" {
-		gatewayVersion = version
-	}
-}
 
 // fetchAndFixSchema fetches the JSON schema from the remote URL and applies
 // workarounds for JSON Schema Draft 7 limitations.
@@ -265,7 +256,7 @@ func formatSchemaError(err error) error {
 	// The jsonschema library returns a ValidationError type with detailed info
 	if ve, ok := err.(*jsonschema.ValidationError); ok {
 		var sb strings.Builder
-		sb.WriteString(fmt.Sprintf("Configuration validation error (MCP Gateway version: %s):\n\n", gatewayVersion))
+		sb.WriteString(fmt.Sprintf("Configuration validation error (MCP Gateway version: %s):\n\n", version.Get()))
 
 		// Recursively format all errors
 		formatValidationErrorRecursive(ve, &sb, 0)
@@ -275,7 +266,7 @@ func formatSchemaError(err error) error {
 		return fmt.Errorf("%s", sb.String())
 	}
 
-	return fmt.Errorf("configuration validation error (version: %s): %s", gatewayVersion, err.Error())
+	return fmt.Errorf("configuration validation error (version: %s): %s", version.Get(), err.Error())
 }
 
 // formatValidationErrorRecursive recursively formats validation errors with proper indentation

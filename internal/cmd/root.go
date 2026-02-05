@@ -16,8 +16,8 @@ import (
 
 	"github.com/github/gh-aw-mcpg/internal/config"
 	"github.com/github/gh-aw-mcpg/internal/logger"
-	"github.com/github/gh-aw-mcpg/internal/mcp"
 	"github.com/github/gh-aw-mcpg/internal/server"
+	"github.com/github/gh-aw-mcpg/internal/version"
 	"github.com/spf13/cobra"
 )
 
@@ -32,13 +32,17 @@ const (
 // Package-level variables that don't belong to a specific feature
 var (
 	debugLog = logger.New("cmd:root")
-	version  = "dev" // Default version, overridden by SetVersion
+	// cliVersion stores the version string for Cobra's CLI version display.
+	// This is kept separate from version.Get() because rootCmd.Version must be
+	// set at initialization time (before SetVersion is called). We sync both
+	// values in SetVersion() to maintain a single source of truth.
+	cliVersion = "dev" // Default version, overridden by SetVersion
 )
 
 var rootCmd = &cobra.Command{
 	Use:     "awmg",
 	Short:   "MCPG MCP proxy server",
-	Version: version,
+	Version: cliVersion,
 	Long: `MCPG is a proxy server for Model Context Protocol (MCP) servers.
 It provides routing, aggregation, and management of multiple MCP backend servers.`,
 	SilenceUsage:      true, // Don't show help on runtime errors
@@ -146,7 +150,7 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 	defer logger.CloseJSONLLogger()
 
-	logger.LogInfoMd("startup", "MCPG Gateway version: %s", version)
+	logger.LogInfoMd("startup", "MCPG Gateway version: %s", cliVersion)
 
 	// Log config source based on what was provided
 	configSource := configFile
@@ -231,9 +235,6 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 
 	debugLog.Printf("Server mode: %s, DIFC enabled: %v", mode, cfg.EnableDIFC)
-
-	// Set gateway version for health endpoint reporting
-	server.SetGatewayVersion(version)
 
 	// Create unified MCP server (backend for both modes)
 	unifiedServer, err := server.NewUnified(ctx, cfg)
@@ -449,8 +450,7 @@ func Execute() {
 
 // SetVersion sets the version string for the CLI
 func SetVersion(v string) {
-	version = v
+	cliVersion = v
 	rootCmd.Version = v
-	config.SetGatewayVersion(v)
-	mcp.SetClientGatewayVersion(v)
+	version.Set(v)
 }

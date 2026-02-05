@@ -17,21 +17,11 @@ import (
 
 	"github.com/github/gh-aw-mcpg/internal/logger"
 	"github.com/github/gh-aw-mcpg/internal/logger/sanitize"
+	"github.com/github/gh-aw-mcpg/internal/version"
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 var logConn = logger.New("mcp:connection")
-
-// gatewayVersion stores the gateway version used in MCP client implementation
-// It defaults to "dev" and is set at startup via SetClientGatewayVersion
-var gatewayVersion = "dev"
-
-// SetClientGatewayVersion sets the gateway version for MCP client implementation reporting
-func SetClientGatewayVersion(version string) {
-	if strings.TrimSpace(version) != "" {
-		gatewayVersion = version
-	}
-}
 
 // parseSSEResponse extracts JSON data from SSE-formatted response
 // SSE format: "event: message\ndata: {json}\n\n"
@@ -88,7 +78,7 @@ type Connection struct {
 func newMCPClient() *sdk.Client {
 	return sdk.NewClient(&sdk.Implementation{
 		Name:    "awmg",
-		Version: gatewayVersion,
+		Version: version.Get(),
 	}, nil)
 }
 
