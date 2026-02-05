@@ -10,6 +10,8 @@ import (
 )
 
 func TestTruncateSecret(t *testing.T) {
+	assert := assert.New(t)
+
 	tests := []struct {
 		name  string
 		input string
@@ -65,12 +67,15 @@ func TestTruncateSecret(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := sanitize.TruncateSecret(tt.input)
-			assert.Equal(t, tt.want, got)
+			assert.Equal(tt.want, got)
 		})
 	}
 }
 
 func TestParseAuthHeader(t *testing.T) {
+	assert := assert.New(t)
+	require := require.New(t)
+
 	tests := []struct {
 		name        string
 		authHeader  string
@@ -162,18 +167,20 @@ func TestParseAuthHeader(t *testing.T) {
 			gotAPIKey, gotAgentID, gotErr := ParseAuthHeader(tt.authHeader)
 
 			if tt.wantErr != nil {
-				require.ErrorIs(t, gotErr, tt.wantErr)
+				require.ErrorIs(gotErr, tt.wantErr)
 			} else {
-				require.NoError(t, gotErr)
+				require.NoError(gotErr)
 			}
 
-			assert.Equal(t, tt.wantAPIKey, gotAPIKey)
-			assert.Equal(t, tt.wantAgentID, gotAgentID)
+			assert.Equal(tt.wantAPIKey, gotAPIKey)
+			assert.Equal(tt.wantAgentID, gotAgentID)
 		})
 	}
 }
 
 func TestValidateAPIKey(t *testing.T) {
+	assert := assert.New(t)
+
 	tests := []struct {
 		name     string
 		provided string
@@ -233,12 +240,14 @@ func TestValidateAPIKey(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := ValidateAPIKey(tt.provided, tt.expected)
-			assert.Equal(t, tt.want, got)
+			assert.Equal(tt.want, got)
 		})
 	}
 }
 
 func TestExtractAgentID(t *testing.T) {
+	assert := assert.New(t)
+
 	tests := []struct {
 		name       string
 		authHeader string
@@ -279,12 +288,14 @@ func TestExtractAgentID(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := ExtractAgentID(tt.authHeader)
-			assert.Equal(t, tt.want, got)
+			assert.Equal(tt.want, got)
 		})
 	}
 }
 
 func TestExtractSessionID(t *testing.T) {
+	assert := assert.New(t)
+
 	tests := []struct {
 		name       string
 		authHeader string
@@ -335,12 +346,100 @@ func TestExtractSessionID(t *testing.T) {
 			authHeader: "   ",
 			want:       "   ",
 		},
+		{
+			name:       "Agent format with multiple spaces (trimmed)",
+			authHeader: "Agent  agent-123  ",
+			want:       " agent-123  ",
+		},
+		{
+			name:       "Bearer with tab character",
+			authHeader: "Bearer\tmy-token",
+			want:       "Bearer\tmy-token",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := ExtractSessionID(tt.authHeader)
-			assert.Equal(t, tt.want, got)
+			assert.Equal(tt.want, got)
+		})
+	}
+}
+
+func TestTruncateSessionID(t *testing.T) {
+	assert := assert.New(t)
+
+	tests := []struct {
+		name      string
+		sessionID string
+		want      string
+	}{
+		{
+			name:      "Empty session ID returns (none)",
+			sessionID: "",
+			want:      "(none)",
+		},
+		{
+			name:      "Single character",
+			sessionID: "a",
+			want:      "a",
+		},
+		{
+			name:      "Short session ID (5 chars)",
+			sessionID: "abc12",
+			want:      "abc12",
+		},
+		{
+			name:      "Exactly 8 characters - not truncated",
+			sessionID: "abcd1234",
+			want:      "abcd1234",
+		},
+		{
+			name:      "Exactly 9 characters - truncated",
+			sessionID: "abcd12345",
+			want:      "abcd1234...",
+		},
+		{
+			name:      "Long session ID (>8 chars)",
+			sessionID: "my-session-id-12345",
+			want:      "my-sessi...",
+		},
+		{
+			name:      "Very long session ID",
+			sessionID: "my-super-long-session-id-with-many-characters-12345678901234567890",
+			want:      "my-super...",
+		},
+		{
+			name:      "Session ID with special characters",
+			sessionID: "key!@#$%^&*()",
+			want:      "key!@#$%...",
+		},
+		{
+			name:      "Session ID with unicode",
+			sessionID: "session-émojis-🔑",
+			want:      "session-...",
+		},
+		{
+			name:      "UUID format",
+			sessionID: "550e8400-e29b-41d4-a716-446655440000",
+			want:      "550e8400...",
+		},
+		{
+			name:      "Whitespace only (under 8 chars)",
+			sessionID: "   ",
+			want:      "   ",
+		},
+		{
+			name:      "Whitespace only (over 8 chars)",
+			sessionID: "         ",
+			want:      "        ...",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := TruncateSessionID(tt.sessionID)
+			assert.Equal(tt.want, got)
 		})
 	}
 }
