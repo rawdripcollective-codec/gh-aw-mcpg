@@ -140,25 +140,39 @@ func TestWrapToolHandler(t *testing.T) {
 	require.NotNil(t, result, "Result should not be nil")
 	assert.False(t, result.IsError, "Result should not be an error")
 
-	// Verify rewritten response structure
-	dataMap, ok := data.(map[string]interface{})
-	require.True(t, ok, "Data should be a map")
+	// Verify the result Content field contains the transformed response
+	require.NotEmpty(t, result.Content, "Result should have Content")
+	textContent, ok := result.Content[0].(*sdk.TextContent)
+	require.True(t, ok, "Content should be TextContent")
+	require.NotEmpty(t, textContent.Text, "TextContent should have text")
 
-	assert.Contains(t, dataMap, "queryID", "Response should contain queryID")
-	assert.Contains(t, dataMap, "payloadPath", "Response should contain payloadPath")
-	assert.Contains(t, dataMap, "preview", "Response should contain preview")
-	assert.Contains(t, dataMap, "schema", "Response should contain schema")
-	assert.Contains(t, dataMap, "originalSize", "Response should contain originalSize")
-	assert.Contains(t, dataMap, "truncated", "Response should contain truncated")
+	// Parse the JSON from Content
+	var contentMap map[string]interface{}
+	err = json.Unmarshal([]byte(textContent.Text), &contentMap)
+	require.NoError(t, err, "Content should be valid JSON")
+
+	// Verify transformed response in Content field
+	assert.Contains(t, contentMap, "queryID", "Content should contain queryID")
+	assert.Contains(t, contentMap, "payloadPath", "Content should contain payloadPath")
+	assert.Contains(t, contentMap, "preview", "Content should contain preview")
+	assert.Contains(t, contentMap, "schema", "Content should contain schema")
+	assert.Contains(t, contentMap, "originalSize", "Content should contain originalSize")
+	assert.Contains(t, contentMap, "truncated", "Content should contain truncated")
 
 	// Verify queryID is a valid hex string
-	queryID, ok := dataMap["queryID"].(string)
+	queryID, ok := contentMap["queryID"].(string)
 	require.True(t, ok, "queryID should be a string")
 	assert.NotEmpty(t, queryID, "queryID should not be empty")
 
 	// Verify schema is present
-	schema := dataMap["schema"]
+	schema := contentMap["schema"]
 	assert.NotNil(t, schema, "Schema should not be nil")
+
+	// Also verify rewritten response in data return value (for internal use)
+	dataMap, ok := data.(map[string]interface{})
+	require.True(t, ok, "Data should be a map")
+	assert.Contains(t, dataMap, "queryID", "Data should contain queryID")
+	assert.Contains(t, dataMap, "payloadPath", "Data should contain payloadPath")
 
 	// Clean up test directory
 	defer os.RemoveAll(filepath.Join("/tmp", "gh-awmg"))
@@ -216,15 +230,26 @@ func TestWrapToolHandler_LongPayload(t *testing.T) {
 	require.NoError(t, err, "Should not return error")
 	require.NotNil(t, result, "Result should not be nil")
 
-	dataMap, ok := data.(map[string]interface{})
-	require.True(t, ok, "Data should be a map")
+	// Verify Content field contains the transformed response
+	require.NotEmpty(t, result.Content, "Result should have Content")
+	textContent, ok := result.Content[0].(*sdk.TextContent)
+	require.True(t, ok, "Content should be TextContent")
 
-	// Verify truncation
-	assert.True(t, dataMap["truncated"].(bool), "Should indicate truncation")
-	preview := dataMap["preview"].(string)
+	// Parse the JSON from Content
+	var contentMap map[string]interface{}
+	err = json.Unmarshal([]byte(textContent.Text), &contentMap)
+	require.NoError(t, err, "Content should be valid JSON")
+
+	// Verify truncation in Content field
+	assert.True(t, contentMap["truncated"].(bool), "Should indicate truncation in Content")
+	preview := contentMap["preview"].(string)
 	assert.LessOrEqual(t, len(preview), 503, "Preview should be truncated to ~500 chars + '...'")
 	assert.True(t, strings.HasSuffix(preview, "..."), "Preview should end with '...'")
-}
+
+	// Also verify in data return value
+	dataMap, ok := data.(map[string]interface{})
+	require.True(t, ok, "Data should be a map")
+	assert.True(t, dataMap["truncated"].(bool), "Should indicate truncation in data")}
 
 // TestPayloadStorage_SessionIsolation verifies that payloads are stored in session-specific directories
 func TestPayloadStorage_SessionIsolation(t *testing.T) {

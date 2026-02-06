@@ -228,7 +228,29 @@ func WrapToolHandler(
 			rewrittenResponse["schema"] = schemaObj
 		}
 
-		return result, rewrittenResponse, nil
+		// Marshal the rewritten response to JSON for the Content field
+		rewrittenJSON, marshalErr := json.Marshal(rewrittenResponse)
+		if marshalErr != nil {
+			logMiddleware.Printf("Failed to marshal rewritten response: tool=%s, queryID=%s, error=%v", toolName, queryID, marshalErr)
+			// Fall back to original result if we can't marshal
+			return result, rewrittenResponse, nil
+		}
+
+		// Create a new CallToolResult with the transformed content
+		// Replace the original content with our rewritten response
+		transformedResult := &sdk.CallToolResult{
+			Content: []sdk.Content{
+				&sdk.TextContent{
+					Text: string(rewrittenJSON),
+				},
+			},
+			IsError: result.IsError,
+			Meta:    result.Meta,
+		}
+
+		logMiddleware.Printf("Transformed result with metadata: tool=%s, queryID=%s, sessionID=%s", toolName, queryID, sessionID)
+
+		return transformedResult, rewrittenResponse, nil
 	}
 }
 
