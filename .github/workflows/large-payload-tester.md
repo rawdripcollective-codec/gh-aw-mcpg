@@ -28,7 +28,6 @@ mcp-servers:
   filesystem:
     type: stdio
     container: "mcp/filesystem"
-    entrypoint: "mcp-server-filesystem"
     entrypointArgs: ["/workspace"]
     env:
       ALLOWED_PATHS: "/workspace"
