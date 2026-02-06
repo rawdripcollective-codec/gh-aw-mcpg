@@ -3,7 +3,7 @@
 
 # Large MCP Payload Access Test
 
-You are an AI agent trying verify a secret in a file hosted by the filesystem MCP server.
+You are an AI agent trying to verify a secret in a file hosted by the filesystem MCP server.
 
 ## Your Task
 
@@ -21,9 +21,9 @@ Use the filesystem MCP server to access a file called `large-test-file.json`, wh
 1. Agent requests file `large-test-file.json` from filesystem MCP server.
 2. MCP server response includes path to full payload.
 3. Agent reads full payload from subdirectory of: `/tmp/gh-aw/mcp-payloads`
-5. Agent extracts secret from full payload.
-6. Agent requests file `secret.txt` from filesystem MCP server.
-7. Secrets in `large-test-file.json` and `secret.txt` match.
+4. Agent extracts secret from full payload.
+5. Agent requests file `secret.txt` from filesystem MCP server.
+6. Secrets in `large-test-file.json` and `secret.txt` match.
 
 **Failure scenarios to detect:**
 - Agent can't read payload file (permission/mount issues)
