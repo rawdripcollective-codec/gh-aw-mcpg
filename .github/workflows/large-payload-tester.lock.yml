@@ -21,7 +21,7 @@
 #
 # Test the MCP Gateway's ability to handle large payloads
 #
-# frontmatter-hash: a9096679d3f99de8333b42e08a8aa2032a347812ce757c868c24a58802a4af81
+# frontmatter-hash: 36f5d15c9400a5198fc2c2b4d63e8fd8660a28b220f67975b1947ac6c452cbf4
 
 name: "Large Payload Tester"
 "on":
@@ -407,6 +407,10 @@ jobs:
               "filesystem": {
                 "type": "stdio",
                 "container": "mcp/filesystem",
+                "entrypoint": "mcp-server-filesystem",
+                "entrypointArgs": [
+                  "/workspace"
+                ],
                 "mounts": [
                   "/tmp/mcp-test-fs:/workspace:ro"
                 ],

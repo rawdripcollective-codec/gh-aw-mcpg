@@ -28,10 +28,13 @@ mcp-servers:
   filesystem:
     type: stdio
     container: "mcp/filesystem"
+    entrypoint: "mcp-server-filesystem"
+    entrypointArgs: ["/workspace"]
     env:
       ALLOWED_PATHS: "/workspace"
     mounts:
       - "/tmp/mcp-test-fs:/workspace:ro"
+
   github:
     type: stdio
     container: "ghcr.io/github/github-mcp-server:v0.30.2"
