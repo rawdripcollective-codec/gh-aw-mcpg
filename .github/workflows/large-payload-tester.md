@@ -9,12 +9,13 @@ permissions:
   contents: read
   issues: read
   pull-requests: read
-  
+
 roles: [admin, maintainer, write]
 
 network:
   allowed:
     - defaults
+    - containers
 
 tools:
   bash: ["*"]
@@ -102,7 +103,9 @@ steps:
       
       echo "Test environment setup complete"
       echo "Large file stored in: $TEST_FS/$LARGE_PAYLOAD_FILE"
+      grep -H $TEST_SECRET $TEST_FS/$LARGE_PAYLOAD_FILE
       echo "Secret stored in $TEST_FS/$SECRET_FILE"
+      grep -H $TEST_SECRET $TEST_FS/$SECRET_FILE
 
 timeout-minutes: 10
 strict: true
