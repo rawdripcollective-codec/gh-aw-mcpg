@@ -26,14 +26,10 @@ mcp-servers:
       ALLOWED_PATHS: "/workspace"
     mounts:
       - "/tmp/mcp-test-fs:/workspace/test-data:ro"
-      - "/tmp/jq-payloads:/workspace/mcp-payloads:ro"
 
 sandbox:
   mcp:
     container: "ghcr.io/github/gh-aw-mcpg"
-    mounts:
-      - "/tmp/mcp-test-fs:/tmp/mcp-test-fs:ro"
-      - "/tmp/jq-payloads:/tmp/jq-payloads:rw"
 
 safe-outputs:
   create-issue:
