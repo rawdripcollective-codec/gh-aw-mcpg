@@ -2,9 +2,9 @@
 # Optimized for Python, Go, and TypeScript support with minimal image size
 
 # Stage 1: Build gopls
-FROM golang:1.24-alpine AS gopls-builder
-# Pin to gopls v0.17.1 which is compatible with Go 1.24
-RUN go install golang.org/x/tools/gopls@v0.17.1
+FROM golang:1.25-alpine AS gopls-builder
+# Pin to gopls v0.21.0 which is compatible with Go 1.25
+RUN go install golang.org/x/tools/gopls@v0.21.0
 
 # Stage 2: Final image
 FROM python:3.11-slim
