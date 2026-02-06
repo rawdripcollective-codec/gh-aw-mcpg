@@ -1,6 +1,6 @@
 ---
 name: Large Payload Tester
-description: Test the MCP Gateway's ability to handle large payloads and provide agent access to stored payload files
+description: Test the MCP Gateway's ability to handle large payloads
 on:
   workflow_dispatch:
   schedule: daily
@@ -8,7 +8,8 @@ on:
 permissions:
   contents: read
   issues: read
-
+  pull-requests: read
+  
 roles: [admin, maintainer, write]
 
 network:
@@ -25,7 +26,7 @@ mcp-servers:
     env:
       ALLOWED_PATHS: "/workspace"
     mounts:
-      - "/tmp/mcp-test-fs:/workspace/test-data:ro"
+      - "/tmp/mcp-test-fs:/workspace:ro"
 
 sandbox:
   mcp:
@@ -41,8 +42,11 @@ safe-outputs:
 steps:
   - name: Setup Test Environment
     run: |
+      TEST_FS="/tmp/mcp-test-fs"
+      SECRET_FILE="secret.txt"
+      LARGE_PAYLOAD_FILE="large-test-file.json"
       # Create test data directory (payload directory will be created by gateway on-demand)
-      mkdir -p /tmp/mcp-test-fs
+      mkdir -p $TEST_FS
       
       # Generate a unique secret for this test run
       # Use uuidgen if available, otherwise use timestamp with nanoseconds for better entropy
@@ -51,14 +55,12 @@ steps:
       else
         TEST_SECRET="test-secret-$(date +%s%N)-$$"
       fi
-      echo "$TEST_SECRET" > /tmp/mcp-test-fs/test-secret.txt
-      
+      echo $TEST_SECRET > $TEST_FS/$SECRET_FILE
       # Create a large test file (~500KB) with the secret embedded in JSON
       # This file will be read by the filesystem MCP server, causing a large payload
-      cat > /tmp/mcp-test-fs/large-test-file.json <<'EOF'
+      cat > $TEST_FS/$LARGE_PAYLOAD_FILE <<'EOF'
       {
         "test_run_id": "PLACEHOLDER_RUN_ID",
-        "test_secret": "PLACEHOLDER_SECRET",
         "test_timestamp": "PLACEHOLDER_TIMESTAMP",
         "purpose": "Testing large MCP payload storage and retrieval",
         "data": {
@@ -80,34 +82,27 @@ steps:
          --arg timestamp "$(date -Iseconds)" \
          --arg repo "${{ github.repository }}" \
          --arg url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
-         '.test_secret = $secret | 
-          .test_run_id = $run_id | 
+         '.test_run_id = $run_id | 
           .test_timestamp = $timestamp | 
           .data.metadata.repository = $repo | 
           .data.metadata.workflow_run_url = $url | 
           .data.large_array = [range(2000) | {id: ., value: ("item-" + tostring), secret_reference: $secret, extra_data: ("data-" + tostring + "-" * 50)}] |
           .padding = ("X" * 400000)' \
-         /tmp/mcp-test-fs/large-test-file.json > /tmp/mcp-test-fs/large-test-file.json.tmp
+         $TEST_FS/$LARGE_PAYLOAD_FILE > $TEST_FS/$LARGE_PAYLOAD_FILE.tmp
       
-      mv /tmp/mcp-test-fs/large-test-file.json.tmp /tmp/mcp-test-fs/large-test-file.json
+      mv $TEST_FS/$LARGE_PAYLOAD_FILE.tmp $TEST_FS/$LARGE_PAYLOAD_FILE
       
       # Verify file was created and is large enough
-      FILE_SIZE=$(wc -c < /tmp/mcp-test-fs/large-test-file.json)
-      echo "Created large-test-file.json with size: $FILE_SIZE bytes (~$(($FILE_SIZE / 1024))KB)"
+      FILE_SIZE=$(wc -c < $TEST_FS/$LARGE_PAYLOAD_FILE)
+      echo "Created $LARGE_PAYLOAD_FILE with size: $FILE_SIZE bytes (~$(($FILE_SIZE / 1024))KB)"
       if [ "$FILE_SIZE" -lt 512000 ]; then
         echo "WARNING: Test file is smaller than expected ($FILE_SIZE bytes < 500KB)"
         echo "Continuing with test anyway..."
       fi
       
-      # Verify secret file was created
-      if [ ! -f /tmp/mcp-test-fs/test-secret.txt ]; then
-        echo "ERROR: Secret file was not created"
-        exit 1
-      fi
-      
       echo "Test environment setup complete"
-      echo "Secret stored in: /tmp/mcp-test-fs/test-secret.txt"
-      echo "Large file stored in: /tmp/mcp-test-fs/large-test-file.json"
+      echo "Large file stored in: $TEST_FS/$LARGE_PAYLOAD_FILE"
+      echo "Secret stored in $TEST_FS/$SECRET_FILE"
 
 timeout-minutes: 10
 strict: true
