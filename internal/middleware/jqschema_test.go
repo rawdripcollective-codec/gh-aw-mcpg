@@ -249,7 +249,8 @@ func TestWrapToolHandler_LongPayload(t *testing.T) {
 	// Also verify in data return value
 	dataMap, ok := data.(map[string]interface{})
 	require.True(t, ok, "Data should be a map")
-	assert.True(t, dataMap["truncated"].(bool), "Should indicate truncation in data")}
+	assert.True(t, dataMap["truncated"].(bool), "Should indicate truncation in data")
+}
 
 // TestPayloadStorage_SessionIsolation verifies that payloads are stored in session-specific directories
 func TestPayloadStorage_SessionIsolation(t *testing.T) {
