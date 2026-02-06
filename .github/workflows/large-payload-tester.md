@@ -2,8 +2,8 @@
 name: Large Payload Tester
 description: Test the MCP Gateway's ability to handle large payloads
 on:
-  workflow_dispatch:
   schedule: daily
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -15,9 +15,13 @@ roles: [admin, maintainer, write]
 network:
   allowed:
     - defaults
+    - go
     - containers
+    - "docker.io"
 
 tools:
+  github:
+    toolsets: [default]
   bash: ["*"]
 
 mcp-servers:
@@ -28,6 +32,11 @@ mcp-servers:
       ALLOWED_PATHS: "/workspace"
     mounts:
       - "/tmp/mcp-test-fs:/workspace:ro"
+  github:
+    type: stdio
+    container: "ghcr.io/github/github-mcp-server:v0.30.2"
+    env:
+      GITHUB_PERSONAL_ACCESS_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 
 sandbox:
   mcp:
@@ -78,6 +87,7 @@ steps:
       
       # Use jq to properly populate the JSON with dynamic values and generate large array
       # Generating 2000 items + 400KB padding to create ~500KB file
+      # Secret is only included once in the middle item (index 1000)
       jq --arg secret "$TEST_SECRET" \
          --arg run_id "${{ github.run_id }}" \
          --arg timestamp "$(date -Iseconds)" \
@@ -87,7 +97,7 @@ steps:
           .test_timestamp = $timestamp | 
           .data.metadata.repository = $repo | 
           .data.metadata.workflow_run_url = $url | 
-          .data.large_array = [range(2000) | {id: ., value: ("item-" + tostring), secret_reference: $secret, extra_data: ("data-" + tostring + "-" * 50)}] |
+          .data.large_array = [range(2000) | . as $i | if $i == 1000 then {id: $i, value: ("item-" + tostring), secret_reference: $secret, extra_data: ("data-" + tostring + "-" * 50)} else {id: $i, value: ("item-" + tostring), random_data: ("rand-" + ($i * 17 % 9973 | tostring) + "-" + ($i * 31 % 8191 | tostring)), extra_data: ("data-" + tostring + "-" * 50)} end] |
           .padding = ("X" * 400000)' \
          $TEST_FS/$LARGE_PAYLOAD_FILE > $TEST_FS/$LARGE_PAYLOAD_FILE.tmp
       
@@ -106,6 +116,18 @@ steps:
       grep -H $TEST_SECRET $TEST_FS/$LARGE_PAYLOAD_FILE
       echo "Secret stored in $TEST_FS/$SECRET_FILE"
       grep -H $TEST_SECRET $TEST_FS/$SECRET_FILE
+
+post-steps:
+  - name: Upload Test Results
+    if: always()
+    uses: actions/upload-artifact@v4
+    with:
+      name: mcp-stress-test-results
+      path: |
+        /tmp/mcp-stress-results/
+        /tmp/mcp-stress-test/logs/
+      retention-days: 30
+
 
 timeout-minutes: 10
 strict: true
