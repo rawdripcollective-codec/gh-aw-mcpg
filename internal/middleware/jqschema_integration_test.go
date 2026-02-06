@@ -64,7 +64,30 @@ func TestMiddlewareIntegration(t *testing.T) {
 	require.NotNil(t, result, "Result should not be nil")
 	assert.False(t, result.IsError, "Result should not indicate error")
 
-	// Verify response structure
+	// Verify the result Content field contains the transformed response
+	require.NotEmpty(t, result.Content, "Result should have Content")
+	textContent, ok := result.Content[0].(*sdk.TextContent)
+	require.True(t, ok, "Content should be TextContent")
+	require.NotEmpty(t, textContent.Text, "TextContent should have text")
+
+	// Parse the JSON from Content
+	var contentMap map[string]interface{}
+	err = json.Unmarshal([]byte(textContent.Text), &contentMap)
+	require.NoError(t, err, "Content should be valid JSON")
+
+	// Verify all required fields exist in Content
+	assert.Contains(t, contentMap, "queryID", "Content should contain queryID")
+	assert.Contains(t, contentMap, "payloadPath", "Content should contain payloadPath")
+	assert.Contains(t, contentMap, "preview", "Content should contain preview")
+	assert.Contains(t, contentMap, "schema", "Content should contain schema")
+	assert.Contains(t, contentMap, "originalSize", "Content should contain originalSize")
+	assert.Contains(t, contentMap, "truncated", "Content should contain truncated")
+
+	// Verify queryID format in Content
+	queryIDFromContent := contentMap["queryID"].(string)
+	assert.Len(t, queryIDFromContent, 32, "QueryID should be 32 hex characters")
+
+	// Verify response structure in data return value (for internal use)
 	dataMap, ok := data.(map[string]interface{})
 	require.True(t, ok, "Response should be a map")
 
@@ -180,6 +203,25 @@ func TestMiddlewareWithLargePayload(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, result)
 
+	// Verify Content field has transformed response
+	require.NotEmpty(t, result.Content, "Result should have Content")
+	textContent, ok := result.Content[0].(*sdk.TextContent)
+	require.True(t, ok, "Content should be TextContent")
+
+	var contentMap map[string]interface{}
+	err = json.Unmarshal([]byte(textContent.Text), &contentMap)
+	require.NoError(t, err, "Content should be valid JSON")
+
+	// Verify truncation in Content field
+	truncatedInContent := contentMap["truncated"].(bool)
+	previewInContent := contentMap["preview"].(string)
+
+	if truncatedInContent {
+		assert.True(t, len(previewInContent) <= 503, "Preview in Content should be truncated")
+		assert.Contains(t, previewInContent, "...", "Truncated preview in Content should end with ...")
+	}
+
+	// Also check data return value
 	dataMap := data.(map[string]interface{})
 
 	// Verify truncation occurred
@@ -223,8 +265,23 @@ func TestMiddlewareDirectoryCreation(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, result)
 
+	// Verify Content field
+	require.NotEmpty(t, result.Content, "Result should have Content")
+	textContent, ok := result.Content[0].(*sdk.TextContent)
+	require.True(t, ok, "Content should be TextContent")
+
+	var contentMap map[string]interface{}
+	err = json.Unmarshal([]byte(textContent.Text), &contentMap)
+	require.NoError(t, err, "Content should be valid JSON")
+
+	queryIDFromContent := contentMap["queryID"].(string)
+
+	// Also check data return value
 	dataMap := data.(map[string]interface{})
 	queryID := dataMap["queryID"].(string)
+
+	// Both should match
+	assert.Equal(t, queryID, queryIDFromContent, "QueryID should match in both data and Content")
 
 	// Verify directory structure with session ID
 	expectedDir := filepath.Join(baseDir, sessionID, queryID)
