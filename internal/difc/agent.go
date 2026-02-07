@@ -142,7 +142,7 @@ func NewAgentRegistryWithDefaults(defaultSecrecy []Tag, defaultIntegrity []Tag) 
 // GetOrCreate gets an existing agent or creates a new one with default labels
 func (r *AgentRegistry) GetOrCreate(agentID string) *AgentLabels {
 	logAgent.Printf("GetOrCreate called for agentID=%s", agentID)
-	
+
 	// Try to get existing agent first (read lock)
 	r.mu.RLock()
 	if labels, ok := r.agents[agentID]; ok {

@@ -1,0 +1,53 @@
+# Example MCP Gateway Configuration with Payload Size Threshold
+# This demonstrates the configurable payload size threshold feature
+
+[gateway]
+port = 3000
+api_key = "your-api-key-here"
+
+# Payload directory for storing large tool responses
+# Default: /tmp/jq-payloads
+payload_dir = "/tmp/jq-payloads"
+
+# Payload size threshold (in bytes) for storing responses to disk
+# Payloads LARGER than this threshold are stored to disk and return metadata
+# Payloads SMALLER than or equal to this threshold are returned inline
+# Default: 1024 bytes (1KB)
+#
+# Examples:
+#   payload_size_threshold = 1024   # 1KB - default, good for most use cases
+#   payload_size_threshold = 512    # 512 bytes - more aggressive file storage
+#   payload_size_threshold = 2048   # 2KB - fewer files, more inline responses
+#   payload_size_threshold = 10240  # 10KB - minimal file storage
+payload_size_threshold = 1024
+
+[servers.github]
+command = "docker"
+args = ["run", "--rm", "-e", "GITHUB_PERSONAL_ACCESS_TOKEN", "-i", "ghcr.io/github/github-mcp-server:latest"]
+
+[servers.filesystem]
+command = "docker"
+args = ["run", "--rm", "-i", "ghcr.io/github/filesystem-mcp-server:latest"]
+
+# How it works:
+# 
+# 1. Tool returns response data
+# 2. Middleware marshals data to JSON
+# 3. If JSON size <= payload_size_threshold:
+#    - Return response inline (no file storage)
+#    - Original data preserved
+# 4. If JSON size > payload_size_threshold:
+#    - Save full payload to {payload_dir}/{sessionID}/{queryID}/payload.json
+#    - Return metadata response with:
+#      * queryID: unique query identifier
+#      * payloadPath: full path to saved file
+#      * preview: first 500 characters
+#      * schema: jq-inferred schema of the data
+#      * originalSize: size in bytes
+#      * truncated: whether preview was truncated
+#
+# Benefits:
+# - Small responses (errors, status messages, simple data) are fast and inline
+# - Large responses (file contents, lists, search results) are saved to disk
+# - Clients can access full payloads via filesystem when needed
+# - Reduces memory pressure and network overhead
