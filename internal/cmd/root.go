@@ -222,6 +222,27 @@ func run(cmd *cobra.Command, args []string) error {
 	cfg.EnableDIFC = enableDIFC
 	cfg.SequentialLaunch = sequentialLaunch
 
+	// Override gateway config with command-line flags
+	if cfg.Gateway == nil {
+		cfg.Gateway = &config.GatewayConfig{}
+	}
+
+	// Apply payload directory flag (if different from default, it was explicitly set)
+	if cmd.Flags().Changed("payload-dir") {
+		cfg.Gateway.PayloadDir = payloadDir
+	} else if payloadDir != "" && payloadDir != defaultPayloadDir {
+		// Environment variable was set
+		cfg.Gateway.PayloadDir = payloadDir
+	}
+
+	// Apply payload size threshold flag (if different from default, it was explicitly set)
+	if cmd.Flags().Changed("payload-size-threshold") {
+		cfg.Gateway.PayloadSizeThreshold = payloadSizeThreshold
+	} else if payloadSizeThreshold != defaultPayloadSizeThreshold {
+		// Environment variable was set
+		cfg.Gateway.PayloadSizeThreshold = payloadSizeThreshold
+	}
+
 	if enableDIFC {
 		log.Println("DIFC enforcement and session requirement enabled")
 	} else {

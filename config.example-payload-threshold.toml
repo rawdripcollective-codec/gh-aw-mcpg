@@ -1,22 +1,35 @@
 # Example MCP Gateway Configuration with Payload Size Threshold
 # This demonstrates the configurable payload size threshold feature
+#
+# Configuration Priority (highest to lowest):
+# 1. Command-line flag: --payload-size-threshold 2048
+# 2. Environment variable: MCP_GATEWAY_PAYLOAD_SIZE_THRESHOLD=2048
+# 3. Config file: payload_size_threshold = 2048
+# 4. Default: 1024 bytes
 
 [gateway]
 port = 3000
 api_key = "your-api-key-here"
 
 # Payload directory for storing large tool responses
+# Can also be set via:
+# - Flag: --payload-dir /custom/path
+# - Env:  MCP_GATEWAY_PAYLOAD_DIR=/custom/path
 # Default: /tmp/jq-payloads
 payload_dir = "/tmp/jq-payloads"
 
 # Payload size threshold (in bytes) for storing responses to disk
 # Payloads LARGER than this threshold are stored to disk and return metadata
 # Payloads SMALLER than or equal to this threshold are returned inline
+#
+# Can also be set via:
+# - Flag: --payload-size-threshold 2048
+# - Env:  MCP_GATEWAY_PAYLOAD_SIZE_THRESHOLD=2048
 # Default: 1024 bytes (1KB)
 #
 # Examples:
-#   payload_size_threshold = 1024   # 1KB - default, good for most use cases
 #   payload_size_threshold = 512    # 512 bytes - more aggressive file storage
+#   payload_size_threshold = 1024   # 1KB - default, good for most use cases
 #   payload_size_threshold = 2048   # 2KB - fewer files, more inline responses
 #   payload_size_threshold = 10240  # 10KB - minimal file storage
 payload_size_threshold = 1024
