@@ -3,9 +3,7 @@ package cmd
 // DIFC (Decentralized Information Flow Control) related flags
 
 import (
-	"os"
-	"strings"
-
+	"github.com/github/gh-aw-mcpg/internal/envutil"
 	"github.com/spf13/cobra"
 )
 
@@ -28,11 +26,5 @@ func init() {
 // getDefaultEnableDIFC returns the default DIFC setting, checking MCP_GATEWAY_ENABLE_DIFC
 // environment variable first, then falling back to the hardcoded default (false)
 func getDefaultEnableDIFC() bool {
-	if envDIFC := os.Getenv("MCP_GATEWAY_ENABLE_DIFC"); envDIFC != "" {
-		switch strings.ToLower(envDIFC) {
-		case "1", "true", "yes", "on":
-			return true
-		}
-	}
-	return defaultEnableDIFC
+	return envutil.GetEnvBool("MCP_GATEWAY_ENABLE_DIFC", defaultEnableDIFC)
 }

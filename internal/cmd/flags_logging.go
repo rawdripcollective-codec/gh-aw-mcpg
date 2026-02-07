@@ -3,9 +3,7 @@ package cmd
 // Logging-related flags
 
 import (
-	"fmt"
-	"os"
-
+	"github.com/github/gh-aw-mcpg/internal/envutil"
 	"github.com/spf13/cobra"
 )
 
@@ -34,31 +32,17 @@ func init() {
 // getDefaultLogDir returns the default log directory, checking MCP_GATEWAY_LOG_DIR
 // environment variable first, then falling back to the hardcoded default
 func getDefaultLogDir() string {
-	if envLogDir := os.Getenv("MCP_GATEWAY_LOG_DIR"); envLogDir != "" {
-		return envLogDir
-	}
-	return defaultLogDir
+	return envutil.GetEnvString("MCP_GATEWAY_LOG_DIR", defaultLogDir)
 }
 
 // getDefaultPayloadDir returns the default payload directory, checking MCP_GATEWAY_PAYLOAD_DIR
 // environment variable first, then falling back to the hardcoded default
 func getDefaultPayloadDir() string {
-	if envPayloadDir := os.Getenv("MCP_GATEWAY_PAYLOAD_DIR"); envPayloadDir != "" {
-		return envPayloadDir
-	}
-	return defaultPayloadDir
+	return envutil.GetEnvString("MCP_GATEWAY_PAYLOAD_DIR", defaultPayloadDir)
 }
 
 // getDefaultPayloadSizeThreshold returns the default payload size threshold, checking
 // MCP_GATEWAY_PAYLOAD_SIZE_THRESHOLD environment variable first, then falling back to the hardcoded default
 func getDefaultPayloadSizeThreshold() int {
-	if envThreshold := os.Getenv("MCP_GATEWAY_PAYLOAD_SIZE_THRESHOLD"); envThreshold != "" {
-		// Try to parse as integer
-		var threshold int
-		if _, err := fmt.Sscanf(envThreshold, "%d", &threshold); err == nil && threshold > 0 {
-			return threshold
-		}
-		// Invalid value, use default
-	}
-	return defaultPayloadSizeThreshold
+	return envutil.GetEnvInt("MCP_GATEWAY_PAYLOAD_SIZE_THRESHOLD", defaultPayloadSizeThreshold)
 }
