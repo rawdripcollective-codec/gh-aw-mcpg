@@ -10,6 +10,18 @@ The Serena MCP server container Dockerfile has been created with support for:
 
 ## Recent Fixes
 
+### Multi-Language Configuration Script (2026-02-07)
+Added automatic project configuration for TypeScript and Python language servers:
+- **Problem**: The `.serena/project.yml` configuration only included Go, causing TypeScript and Python language server analysis to fail
+- **Solution**: Created initialization script (`serena-init.sh`) that automatically generates/updates `.serena/project.yml` with all three languages (Go, TypeScript, Python) on container startup
+- **Impact**: TypeScript and Python code analysis now works out-of-the-box without manual project configuration
+- **Implementation**: 
+  - Script checks if `project.yml` exists and contains all three required languages (Go, TypeScript, Python)
+  - Automatically creates/updates configuration only when any language is missing
+  - Uses anchored grep patterns for precise language detection
+  - Runs via ENTRYPOINT before starting the Serena MCP server
+- **Testing**: Container successfully creates `.serena/project.yml` when mounting any workspace to `/workspace`
+
 ### Go Runtime Re-added (2026-02-05)
 Re-added Go runtime to the container to support Go code analysis:
 - **Problem**: The Dockerfile only installed `gopls` (Go LSP) but not the Go runtime itself
