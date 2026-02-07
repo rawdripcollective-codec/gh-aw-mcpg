@@ -129,12 +129,12 @@ func savePayload(baseDir, sessionID, queryID string, payload []byte) (string, er
 	logger.LogDebug("payload", "Creating payload directory: baseDir=%s, session=%s, query=%s, fullPath=%s",
 		baseDir, sessionID, queryID, dir)
 
-	if err := os.MkdirAll(dir, 0700); err != nil {
+	if err := os.MkdirAll(dir, 0755); err != nil {
 		logger.LogError("payload", "Failed to create payload directory: path=%s, error=%v", dir, err)
 		return "", fmt.Errorf("failed to create payload directory: %w", err)
 	}
 
-	logger.LogDebug("payload", "Successfully created payload directory: path=%s, permissions=0700", dir)
+	logger.LogDebug("payload", "Successfully created payload directory: path=%s, permissions=0755", dir)
 
 	// Save payload to file with restrictive permissions (owner read/write only)
 	filePath := filepath.Join(dir, "payload.json")
@@ -143,13 +143,13 @@ func savePayload(baseDir, sessionID, queryID string, payload []byte) (string, er
 	logger.LogInfo("payload", "Writing large payload to filesystem: path=%s, size=%d bytes (%.2f KB, %.2f MB)",
 		filePath, payloadSize, float64(payloadSize)/1024, float64(payloadSize)/(1024*1024))
 
-	if err := os.WriteFile(filePath, payload, 0600); err != nil {
+	if err := os.WriteFile(filePath, payload, 0644); err != nil {
 		logger.LogError("payload", "Failed to write payload file: path=%s, size=%d bytes, error=%v",
 			filePath, payloadSize, err)
 		return "", fmt.Errorf("failed to write payload file: %w", err)
 	}
 
-	logger.LogInfo("payload", "Successfully saved large payload to filesystem: path=%s, size=%d bytes, permissions=0600",
+	logger.LogInfo("payload", "Successfully saved large payload to filesystem: path=%s, size=%d bytes, permissions=0644",
 		filePath, payloadSize)
 
 	// Verify file was written correctly

@@ -496,12 +496,12 @@ func TestPayloadStorage_FilePermissions(t *testing.T) {
 	dirPath := filepath.Dir(filePath)
 	dirInfo, err := os.Stat(dirPath)
 	require.NoError(t, err)
-	assert.Equal(t, os.FileMode(0700), dirInfo.Mode().Perm(), "Directory should have 0700 permissions")
+	assert.Equal(t, os.FileMode(0755), dirInfo.Mode().Perm(), "Directory should have 0755 permissions")
 
 	// Check file permissions
 	fileInfo, err := os.Stat(filePath)
 	require.NoError(t, err)
-	assert.Equal(t, os.FileMode(0600), fileInfo.Mode().Perm(), "File should have 0600 permissions")
+	assert.Equal(t, os.FileMode(0644), fileInfo.Mode().Perm(), "File should have 0644 permissions")
 }
 
 // TestPayloadStorage_DefaultSessionID verifies behavior when session ID is empty

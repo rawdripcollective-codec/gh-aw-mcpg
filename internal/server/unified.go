@@ -811,8 +811,8 @@ func (us *UnifiedServer) ensureSessionDirectory(sessionID string) error {
 		return fmt.Errorf("failed to check session directory: %w", err)
 	}
 
-	// Directory doesn't exist, create it with restrictive permissions (owner-only access)
-	if err := os.MkdirAll(sessionDir, 0700); err != nil {
+	// Directory doesn't exist, create it with world-readable permissions (for agent access)
+	if err := os.MkdirAll(sessionDir, 0755); err != nil {
 		return fmt.Errorf("failed to create session directory: %w", err)
 	}
 
