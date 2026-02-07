@@ -3,7 +3,11 @@ package difc
 import (
 	"log"
 	"sync"
+
+	"github.com/github/gh-aw-mcpg/internal/logger"
 )
+
+var logAgent = logger.New("difc:agent")
 
 // AgentLabels associates each agent with their DIFC labels
 // Tracks what secrecy and integrity tags an agent has accumulated
@@ -16,6 +20,7 @@ type AgentLabels struct {
 
 // NewAgentLabels creates a new agent with empty labels
 func NewAgentLabels(agentID string) *AgentLabels {
+	logAgent.Printf("Creating new agent labels: agentID=%s", agentID)
 	return &AgentLabels{
 		AgentID:   agentID,
 		Secrecy:   NewSecrecyLabel(),
@@ -25,6 +30,8 @@ func NewAgentLabels(agentID string) *AgentLabels {
 
 // NewAgentLabelsWithTags creates a new agent with initial tags
 func NewAgentLabelsWithTags(agentID string, secrecyTags []Tag, integrityTags []Tag) *AgentLabels {
+	logAgent.Printf("Creating agent labels with tags: agentID=%s, secrecyTags=%v, integrityTags=%v",
+		agentID, secrecyTags, integrityTags)
 	return &AgentLabels{
 		AgentID:   agentID,
 		Secrecy:   NewSecrecyLabelWithTags(secrecyTags),
@@ -34,6 +41,7 @@ func NewAgentLabelsWithTags(agentID string, secrecyTags []Tag, integrityTags []T
 
 // AddSecrecyTag adds a secrecy tag to the agent
 func (a *AgentLabels) AddSecrecyTag(tag Tag) {
+	logAgent.Printf("Agent %s adding secrecy tag: %s", a.AgentID, tag)
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	a.Secrecy.Label.Add(tag)
@@ -42,6 +50,7 @@ func (a *AgentLabels) AddSecrecyTag(tag Tag) {
 
 // AddIntegrityTag adds an integrity tag to the agent
 func (a *AgentLabels) AddIntegrityTag(tag Tag) {
+	logAgent.Printf("Agent %s adding integrity tag: %s", a.AgentID, tag)
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	a.Integrity.Label.Add(tag)
@@ -132,10 +141,13 @@ func NewAgentRegistryWithDefaults(defaultSecrecy []Tag, defaultIntegrity []Tag) 
 
 // GetOrCreate gets an existing agent or creates a new one with default labels
 func (r *AgentRegistry) GetOrCreate(agentID string) *AgentLabels {
+	logAgent.Printf("GetOrCreate called for agentID=%s", agentID)
+	
 	// Try to get existing agent first (read lock)
 	r.mu.RLock()
 	if labels, ok := r.agents[agentID]; ok {
 		r.mu.RUnlock()
+		logAgent.Printf("Found existing agent: %s", agentID)
 		return labels
 	}
 	r.mu.RUnlock()
@@ -146,6 +158,7 @@ func (r *AgentRegistry) GetOrCreate(agentID string) *AgentLabels {
 
 	// Double-check after acquiring write lock
 	if labels, ok := r.agents[agentID]; ok {
+		logAgent.Printf("Agent %s created by another goroutine", agentID)
 		return labels
 	}
 
