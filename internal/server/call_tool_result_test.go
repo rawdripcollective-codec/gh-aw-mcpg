@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"testing"
 
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
@@ -150,4 +151,42 @@ func TestConvertToCallToolResult_NilCheck(t *testing.T) {
 	assert.Greater(t, len(result.Content), 0, "Should have content items")
 
 	t.Log("✓ CallToolResult is properly non-nil and structured")
+}
+
+// TestNewErrorCallToolResult tests the error CallToolResult helper
+func TestNewErrorCallToolResult(t *testing.T) {
+	tests := []struct {
+		name        string
+		err         error
+		expectError bool
+	}{
+		{
+			name:        "simple error",
+			err:         assert.AnError,
+			expectError: true,
+		},
+		{
+			name:        "formatted error",
+			err:         fmt.Errorf("formatted error: %s", "test"),
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, data, err := newErrorCallToolResult(tt.err)
+
+			// Verify the error is returned
+			assert.Equal(t, tt.err, err, "Error should be returned as-is")
+
+			// Verify data is nil
+			assert.Nil(t, data, "Data should be nil for error results")
+
+			// Verify CallToolResult is properly structured
+			require.NotNil(t, result, "CallToolResult should not be nil")
+			assert.True(t, result.IsError, "IsError should be true")
+
+			t.Logf("✓ Error CallToolResult properly created with IsError=%v", result.IsError)
+		})
+	}
 }
