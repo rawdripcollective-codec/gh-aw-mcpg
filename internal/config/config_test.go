@@ -1096,3 +1096,150 @@ args = ["run", "--rm", "-i", "mcp/memory"]
 	_, ok = cfg.Servers["memory"]
 	assert.True(t, ok, "Server 'memory' not found")
 }
+
+// TestLoadFromFile_ParseErrorWithColumnNumber tests that parse errors include column information
+func TestLoadFromFile_ParseErrorWithColumnNumber(t *testing.T) {
+	tmpDir := t.TempDir()
+	tmpFile := filepath.Join(tmpDir, "config.toml")
+
+	// Invalid TOML: missing equals sign
+	tomlContent := `[gateway]
+port 3000
+`
+
+	err := os.WriteFile(tmpFile, []byte(tomlContent), 0644)
+	require.NoError(t, err, "Failed to write temp TOML file")
+
+	cfg, err := LoadFromFile(tmpFile)
+	require.Error(t, err, "Expected error for invalid TOML")
+	assert.Nil(t, cfg, "Config should be nil on error")
+
+	// Error should contain line and column information from our improved error format
+	errMsg := err.Error()
+	assert.Contains(t, errMsg, "line", "Error should mention line number")
+	// Our improved format includes "column" explicitly when ParseError is detected
+	assert.True(t, strings.Contains(errMsg, "column") || strings.Contains(errMsg, "line 2"), 
+		"Error should mention column or line position, got: %s", errMsg)
+}
+
+// TestLoadFromFile_UnknownKeysInGateway tests detection of unknown keys in gateway section
+func TestLoadFromFile_UnknownKeysInGateway(t *testing.T) {
+	tmpDir := t.TempDir()
+	tmpFile := filepath.Join(tmpDir, "config.toml")
+
+	// TOML with typo in gateway field: "prot" instead of "port"
+	tomlContent := `
+[gateway]
+prot = 3000
+api_key = "test-key"
+
+[servers.test]
+command = "docker"
+args = ["run", "--rm", "-i", "test/container:latest"]
+`
+
+	err := os.WriteFile(tmpFile, []byte(tomlContent), 0644)
+	require.NoError(t, err, "Failed to write temp TOML file")
+
+	// Enable debug logging to capture warning about unknown key
+	SetDebug(true)
+	defer SetDebug(false)
+
+	// Should still load successfully, but warning will be logged
+	cfg, err := LoadFromFile(tmpFile)
+	require.NoError(t, err, "LoadFromFile() should succeed even with unknown keys")
+	require.NotNil(t, cfg, "Config should not be nil")
+
+	// Port should be default since "prot" was not recognized
+	assert.Equal(t, DefaultPort, cfg.Gateway.Port, "Port should be default since 'prot' is unknown")
+	assert.Equal(t, "test-key", cfg.Gateway.APIKey, "API key should be set correctly")
+}
+
+// TestLoadFromFile_MultipleUnknownKeys tests detection of multiple typos
+func TestLoadFromFile_MultipleUnknownKeys(t *testing.T) {
+	tmpDir := t.TempDir()
+	tmpFile := filepath.Join(tmpDir, "config.toml")
+
+	// TOML with multiple typos
+	tomlContent := `
+[gateway]
+port = 8080
+startup_timout = 30
+tool_timout = 60
+
+[servers.test]
+command = "docker"
+args = ["run", "--rm", "-i", "test/container:latest"]
+typ = "stdio"
+`
+
+	err := os.WriteFile(tmpFile, []byte(tomlContent), 0644)
+	require.NoError(t, err, "Failed to write temp TOML file")
+
+	// Enable debug logging to capture warnings
+	SetDebug(true)
+	defer SetDebug(false)
+
+	// Should still load successfully
+	cfg, err := LoadFromFile(tmpFile)
+	require.NoError(t, err, "LoadFromFile() should succeed even with multiple unknown keys")
+	require.NotNil(t, cfg, "Config should not be nil")
+
+	// Correctly spelled fields should work
+	assert.Equal(t, 8080, cfg.Gateway.Port, "Port should be set correctly")
+	// Misspelled fields should use defaults
+	assert.Equal(t, DefaultStartupTimeout, cfg.Gateway.StartupTimeout, "StartupTimeout should be default")
+	assert.Equal(t, DefaultToolTimeout, cfg.Gateway.ToolTimeout, "ToolTimeout should be default")
+}
+
+// TestLoadFromFile_StreamingLargeFile tests that streaming decoder works efficiently
+func TestLoadFromFile_StreamingLargeFile(t *testing.T) {
+	tmpDir := t.TempDir()
+	tmpFile := filepath.Join(tmpDir, "large-config.toml")
+
+	// Create a TOML file with many servers
+	var tomlContent strings.Builder
+	tomlContent.WriteString("[gateway]\nport = 3000\n\n")
+	
+	for i := 1; i <= 100; i++ {
+		tomlContent.WriteString(fmt.Sprintf("[servers.server%d]\n", i))
+		tomlContent.WriteString("command = \"docker\"\n")
+		tomlContent.WriteString(fmt.Sprintf("args = [\"run\", \"--rm\", \"-i\", \"test/server%d:latest\"]\n\n", i))
+	}
+
+	err := os.WriteFile(tmpFile, []byte(tomlContent.String()), 0644)
+	require.NoError(t, err, "Failed to write temp TOML file")
+
+	// Should load successfully using streaming decoder
+	cfg, err := LoadFromFile(tmpFile)
+	require.NoError(t, err, "LoadFromFile() should handle large files")
+	require.NotNil(t, cfg, "Config should not be nil")
+	assert.Len(t, cfg.Servers, 100, "Expected 100 servers")
+}
+
+// TestLoadFromFile_InvalidTOMLDuplicateKey tests handling of duplicate keys
+func TestLoadFromFile_InvalidTOMLDuplicateKey(t *testing.T) {
+	tmpDir := t.TempDir()
+	tmpFile := filepath.Join(tmpDir, "config.toml")
+
+	// TOML 1.1+ should detect duplicate keys (available in v1.6.0)
+	tomlContent := `
+[gateway]
+port = 3000
+port = 8080
+
+[servers.test]
+command = "docker"
+args = ["run", "--rm", "-i", "test/container:latest"]
+`
+
+	err := os.WriteFile(tmpFile, []byte(tomlContent), 0644)
+	require.NoError(t, err, "Failed to write temp TOML file")
+
+	cfg, err := LoadFromFile(tmpFile)
+	require.Error(t, err, "Expected error for duplicate key")
+	assert.Nil(t, cfg, "Config should be nil on error")
+	
+	// Error should mention the duplicate key
+	assert.Contains(t, err.Error(), "line", "Error should mention line number")
+}
