@@ -21,7 +21,6 @@ strict: true
 imports:
   - shared/mcp-pagination.md
   - shared/gh.md
-  - shared/mcp/tavily.md
   - shared/reporting.md
   - shared/github-queries-safe-input.md
   - shared/go-make.md
@@ -82,14 +81,13 @@ timeout-minutes: 15
    - After initialization, use the `find_symbol` tool to search for symbols (find which tool to call) and verify that at least 3 symbols are found in the results
 4. **Make Build Testing**: Use the `safeinputs-make` tool to build the project (use args: "build") and verify it succeeds
 5. **Playwright Testing**: Use the playwright tools to navigate to https://github.com and verify the page title contains "GitHub" (do NOT try to install playwright - use the provided MCP tools)
-6. **Tavily Web Search Testing**: Use the Tavily MCP server to perform a web search for "GitHub Agentic Workflows" and verify that results are returned with at least one item
-7. **File Writing Testing**: Create a test file `/tmp/gh-aw/agent/smoke-test-copilot-${{ github.run_id }}.txt` with content "Smoke test passed for Copilot at $(date)" (create the directory if it doesn't exist)
-8. **Bash Tool Testing**: Execute bash commands to verify file creation was successful (use `cat` to read the file back)
-9. **Discussion Interaction Testing**: 
+6. **File Writing Testing**: Create a test file `/tmp/gh-aw/agent/smoke-test-copilot-${{ github.run_id }}.txt` with content "Smoke test passed for Copilot at $(date)" (create the directory if it doesn't exist)
+7. **Bash Tool Testing**: Execute bash commands to verify file creation was successful (use `cat` to read the file back)
+8. **Discussion Interaction Testing**: 
    - Use the `github-discussion-query` safe-input tool with params: `limit=1, jq=".[0]"` to get the latest discussion from ${{ github.repository }}
    - Extract the discussion number from the result (e.g., if the result is `{"number": 123, "title": "...", ...}`, extract 123)
    - Use the `add_comment` tool with `discussion_number: <extracted_number>` to add a fun, news-reporter style comment stating that the smoke test agent was here
-10. **Agentic Workflows MCP Testing**: 
+9. **Agentic Workflows MCP Testing**: 
    - Use the `agentic-workflows` MCP tool with the `status` method to query the status of the "smoke-copilot" workflow in ${{ github.repository }}
    - Extract key information: total runs, recent success/failure status, last run time
    - Write a summary of the smoke-copilot workflow status to `/tmp/gh-aw/agent/smoke-copilot-status-${{ github.run_id }}.txt`
