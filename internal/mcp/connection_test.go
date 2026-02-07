@@ -706,47 +706,47 @@ func TestNewHTTPConnection(t *testing.T) {
 
 // TestIsHTTPConnectionError tests the HTTP connection error detection helper
 func TestIsHTTPConnectionError(t *testing.T) {
-tests := []struct {
-name     string
-err      error
-expected bool
-}{
-{
-name:     "nil error",
-err:      nil,
-expected: false,
-},
-{
-name:     "connection refused error",
-err:      fmt.Errorf("dial tcp: connection refused"),
-expected: true,
-},
-{
-name:     "no such host error",
-err:      fmt.Errorf("dial tcp: lookup example.invalid: no such host"),
-expected: true,
-},
-{
-name:     "network is unreachable error",
-err:      fmt.Errorf("dial tcp: network is unreachable"),
-expected: true,
-},
-{
-name:     "other error",
-err:      fmt.Errorf("some other error"),
-expected: false,
-},
-{
-name:     "timeout error",
-err:      fmt.Errorf("context deadline exceeded"),
-expected: false,
-},
-}
+	tests := []struct {
+		name     string
+		err      error
+		expected bool
+	}{
+		{
+			name:     "nil error",
+			err:      nil,
+			expected: false,
+		},
+		{
+			name:     "connection refused error",
+			err:      fmt.Errorf("dial tcp: connection refused"),
+			expected: true,
+		},
+		{
+			name:     "no such host error",
+			err:      fmt.Errorf("dial tcp: lookup example.invalid: no such host"),
+			expected: true,
+		},
+		{
+			name:     "network is unreachable error",
+			err:      fmt.Errorf("dial tcp: network is unreachable"),
+			expected: true,
+		},
+		{
+			name:     "other error",
+			err:      fmt.Errorf("some other error"),
+			expected: false,
+		},
+		{
+			name:     "timeout error",
+			err:      fmt.Errorf("context deadline exceeded"),
+			expected: false,
+		},
+	}
 
-for _, tt := range tests {
-t.Run(tt.name, func(t *testing.T) {
-result := isHTTPConnectionError(tt.err)
-assert.Equal(t, tt.expected, result, "isHTTPConnectionError should return %v for %v", tt.expected, tt.err)
-})
-}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := isHTTPConnectionError(tt.err)
+			assert.Equal(t, tt.expected, result, "isHTTPConnectionError should return %v for %v", tt.expected, tt.err)
+		})
+	}
 }
