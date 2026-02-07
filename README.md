@@ -273,7 +273,7 @@ Available Commands:
 Flags:
   -c, --config string                Path to config file
       --config-stdin                 Read MCP server configuration from stdin (JSON format). When enabled, overrides --config
-      --enable-difc                  Enable DIFC enforcement and session requirement (requires sys___init call before tool access)
+      --enable-difc                  Enable DIFC enforcement for information flow control
       --env string                   Path to .env file to load environment variables
   -h, --help                         help for awmg
   -l, --listen string                HTTP server listen address (default "127.0.0.1:3000")
