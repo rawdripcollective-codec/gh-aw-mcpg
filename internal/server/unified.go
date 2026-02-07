@@ -66,16 +66,17 @@ type ToolInfo struct {
 
 // UnifiedServer implements a unified MCP server that aggregates multiple backend servers
 type UnifiedServer struct {
-	launcher         *launcher.Launcher
-	sysServer        *sys.SysServer
-	ctx              context.Context
-	server           *sdk.Server
-	sessions         map[string]*Session // mcp-session-id -> Session
-	sessionMu        sync.RWMutex
-	tools            map[string]*ToolInfo // prefixed tool name -> tool info
-	toolsMu          sync.RWMutex
-	sequentialLaunch bool   // When true, launches MCP servers sequentially during startup. Default is false (parallel launch).
-	payloadDir       string // Base directory for storing large payload files (segmented by session ID)
+	launcher             *launcher.Launcher
+	sysServer            *sys.SysServer
+	ctx                  context.Context
+	server               *sdk.Server
+	sessions             map[string]*Session // mcp-session-id -> Session
+	sessionMu            sync.RWMutex
+	tools                map[string]*ToolInfo // prefixed tool name -> tool info
+	toolsMu              sync.RWMutex
+	sequentialLaunch     bool   // When true, launches MCP servers sequentially during startup. Default is false (parallel launch).
+	payloadDir           string // Base directory for storing large payload files (segmented by session ID)
+	payloadSizeThreshold int    // Size threshold (in bytes) for storing payloads to disk. Payloads larger than this are stored to disk, smaller ones are returned inline.
 
 	// DIFC components
 	guardRegistry *guard.Registry
@@ -104,14 +105,23 @@ func NewUnified(ctx context.Context, cfg *config.Config) (*UnifiedServer, error)
 		payloadDir = cfg.Gateway.PayloadDir
 	}
 
+	// Get payload size threshold from config, with fallback to default
+	payloadSizeThreshold := config.DefaultPayloadSizeThreshold
+	if cfg.Gateway != nil && cfg.Gateway.PayloadSizeThreshold > 0 {
+		payloadSizeThreshold = cfg.Gateway.PayloadSizeThreshold
+	}
+	logUnified.Printf("Payload configuration: dir=%s, sizeThreshold=%d bytes (%.2f KB)",
+		payloadDir, payloadSizeThreshold, float64(payloadSizeThreshold)/1024)
+
 	us := &UnifiedServer{
-		launcher:         l,
-		sysServer:        sys.NewSysServer(l.ServerIDs()),
-		ctx:              ctx,
-		sessions:         make(map[string]*Session),
-		tools:            make(map[string]*ToolInfo),
-		sequentialLaunch: cfg.SequentialLaunch,
-		payloadDir:       payloadDir,
+		launcher:             l,
+		sysServer:            sys.NewSysServer(l.ServerIDs()),
+		ctx:                  ctx,
+		sessions:             make(map[string]*Session),
+		tools:                make(map[string]*ToolInfo),
+		sequentialLaunch:     cfg.SequentialLaunch,
+		payloadDir:           payloadDir,
+		payloadSizeThreshold: payloadSizeThreshold,
 
 		// Initialize DIFC components
 		guardRegistry: guard.NewRegistry(),
@@ -340,7 +350,7 @@ func (us *UnifiedServer) registerToolsFromBackend(serverID string) error {
 		// Wrap handler with jqschema middleware if applicable
 		finalHandler := handler
 		if middleware.ShouldApplyMiddleware(prefixedName) {
-			finalHandler = middleware.WrapToolHandler(handler, prefixedName, us.payloadDir, us.getSessionID)
+			finalHandler = middleware.WrapToolHandler(handler, prefixedName, us.payloadDir, us.payloadSizeThreshold, us.getSessionID)
 		}
 
 		// Store handler for routed mode to reuse
@@ -795,6 +805,13 @@ func (us *UnifiedServer) getSessionID(ctx context.Context) string {
 	// In production multi-agent scenarios, the SDK will provide session IDs after initialize
 	log.Printf("No session ID in context, using 'default' (this is normal before SDK session is established)")
 	return "default"
+}
+
+// GetPayloadSizeThreshold returns the configured payload size threshold (in bytes).
+// Payloads larger than this threshold are stored to disk, smaller ones are returned inline.
+// This getter allows other modules to access the threshold configuration.
+func (us *UnifiedServer) GetPayloadSizeThreshold() int {
+	return us.payloadSizeThreshold
 }
 
 // ensureSessionDirectory creates the session subdirectory in the payload directory if it doesn't exist

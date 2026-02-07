@@ -67,7 +67,7 @@ func TestMiddlewareIntegration(t *testing.T) {
 	}
 
 	// Wrap with middleware
-	wrappedHandler := WrapToolHandler(mockHandler, "github___search_repositories", baseDir, testGetSessionID)
+	wrappedHandler := WrapToolHandler(mockHandler, "github___search_repositories", baseDir, 5, testGetSessionID)
 
 	// Call the wrapped handler
 	result, data, err := wrappedHandler(context.Background(), &sdk.CallToolRequest{}, map[string]interface{}{
@@ -211,7 +211,7 @@ func TestMiddlewareWithLargePayload(t *testing.T) {
 		}, nil
 	}
 
-	wrappedHandler := WrapToolHandler(mockHandler, "test_tool", baseDir, testGetSessionID)
+	wrappedHandler := WrapToolHandler(mockHandler, "test_tool", baseDir, 5, testGetSessionID)
 	result, data, err := wrappedHandler(context.Background(), &sdk.CallToolRequest{}, map[string]interface{}{})
 
 	require.NoError(t, err)
@@ -273,7 +273,7 @@ func TestMiddlewareDirectoryCreation(t *testing.T) {
 		return &sdk.CallToolResult{IsError: false}, map[string]interface{}{"test": "data"}, nil
 	}
 
-	wrappedHandler := WrapToolHandler(mockHandler, "test_tool", baseDir, testGetSessionID)
+	wrappedHandler := WrapToolHandler(mockHandler, "test_tool", baseDir, 5, testGetSessionID)
 	result, data, err := wrappedHandler(context.Background(), &sdk.CallToolRequest{}, map[string]interface{}{})
 
 	require.NoError(t, err)

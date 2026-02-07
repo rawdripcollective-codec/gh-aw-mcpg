@@ -127,7 +127,9 @@ For the complete JSON configuration specification with all validation rules, see
     "apiKey": "your-api-key",
     "domain": "localhost",
     "startupTimeout": 30,
-    "toolTimeout": 60
+    "toolTimeout": 60,
+    "payloadDir": "/tmp/jq-payloads",
+    "payloadSizeThreshold": 1024
   }
 }
 ```
@@ -194,6 +196,12 @@ See **[Configuration Specification](https://github.com/github/gh-aw/blob/main/do
   - Must be positive integer
 - **`toolTimeout`** (optional): Seconds to wait for tool execution (default: 120)
   - Must be positive integer
+- **`payloadDir`** (optional): Directory for storing large payload files (default: `/tmp/jq-payloads`)
+  - Payloads are organized by session: `{payloadDir}/{sessionID}/{queryID}/payload.json`
+- **`payloadSizeThreshold`** (optional): Size threshold in bytes for payload storage (default: 1024)
+  - Payloads **larger** than this threshold are stored to disk and return metadata
+  - Payloads **smaller than or equal** to this threshold are returned inline
+  - Common values: `512` (aggressive), `1024` (default), `2048` (balanced), `10240` (minimal storage)
 
 **Note**: Gateway configuration fields are validated and parsed but not yet fully implemented.
 
@@ -216,15 +224,16 @@ Available Commands:
   help        Help about any command
 
 Flags:
-  -c, --config string       Path to config file
-      --config-stdin        Read MCP server configuration from stdin (JSON format). When enabled, overrides --config
-      --enable-difc         Enable DIFC enforcement and session requirement (requires sys___init call before tool access)
-      --env string          Path to .env file to load environment variables
-  -h, --help                help for awmg
-  -l, --listen string       HTTP server listen address (default "127.0.0.1:3000")
-      --log-dir string      Directory for log files (falls back to stdout if directory cannot be created) (default "/tmp/gh-aw/mcp-logs")
-      --payload-dir string  Directory for storing large payload files (segmented by session ID) (default "/tmp/jq-payloads")
-      --routed              Run in routed mode (each backend at /mcp/<server>)
+  -c, --config string                Path to config file
+      --config-stdin                 Read MCP server configuration from stdin (JSON format). When enabled, overrides --config
+      --enable-difc                  Enable DIFC enforcement and session requirement (requires sys___init call before tool access)
+      --env string                   Path to .env file to load environment variables
+  -h, --help                         help for awmg
+  -l, --listen string                HTTP server listen address (default "127.0.0.1:3000")
+      --log-dir string               Directory for log files (falls back to stdout if directory cannot be created) (default "/tmp/gh-aw/mcp-logs")
+      --payload-dir string           Directory for storing large payload files (segmented by session ID) (default "/tmp/jq-payloads")
+      --payload-size-threshold int   Size threshold (in bytes) for storing payloads to disk. Payloads larger than this are stored, smaller ones returned inline (default 1024)
+      --routed                       Run in routed mode (each backend at /mcp/<server>)
       --sequential-launch   Launch MCP servers sequentially during startup (parallel launch is default)
       --unified             Run in unified mode (all backends at /mcp)
       --validate-env        Validate execution environment (Docker, env vars) before starting
@@ -261,6 +270,7 @@ When running locally (`run.sh`), these variables are optional (warnings shown if
 | `MODE` | Gateway mode flag | `--routed` |
 | `MCP_GATEWAY_LOG_DIR` | Log file directory (sets default for `--log-dir` flag) | `/tmp/gh-aw/mcp-logs` |
 | `MCP_GATEWAY_PAYLOAD_DIR` | Large payload storage directory (sets default for `--payload-dir` flag) | `/tmp/jq-payloads` |
+| `MCP_GATEWAY_PAYLOAD_SIZE_THRESHOLD` | Size threshold in bytes for payload storage (sets default for `--payload-size-threshold` flag) | `1024` |
 
 ### Docker Configuration
 
