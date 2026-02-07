@@ -167,12 +167,14 @@ func savePayload(baseDir, sessionID, queryID string, payload []byte) (string, er
 // This middleware:
 // 1. Generates a random ID for the query
 // 2. Extracts session ID from context (or uses "default")
-// 3. Saves the response payload to {baseDir}/{sessionID}/{queryID}/payload.json
-// 4. Returns first 500 chars of payload + jq inferred schema
+// 3. If payload size > sizeThreshold: saves to {baseDir}/{sessionID}/{queryID}/payload.json and returns metadata
+// 4. If payload size <= sizeThreshold: returns original response directly (no file storage)
+// 5. For large payloads: returns first 500 chars of payload + jq inferred schema
 func WrapToolHandler(
 	handler func(context.Context, *sdk.CallToolRequest, interface{}) (*sdk.CallToolResult, interface{}, error),
 	toolName string,
 	baseDir string,
+	sizeThreshold int,
 	getSessionID func(context.Context) string,
 ) func(context.Context, *sdk.CallToolRequest, interface{}) (*sdk.CallToolResult, interface{}, error) {
 	return func(ctx context.Context, req *sdk.CallToolRequest, args interface{}) (*sdk.CallToolResult, interface{}, error) {
@@ -224,12 +226,24 @@ func WrapToolHandler(
 		}
 
 		payloadSize := len(payloadJSON)
-		logger.LogInfo("payload", "Response data marshaled to JSON: tool=%s, queryID=%s, size=%d bytes (%.2f KB, %.2f MB)",
-			toolName, queryID, payloadSize, float64(payloadSize)/1024, float64(payloadSize)/(1024*1024))
+		logger.LogInfo("payload", "Response data marshaled to JSON: tool=%s, queryID=%s, size=%d bytes (%.2f KB, %.2f MB), threshold=%d bytes",
+			toolName, queryID, payloadSize, float64(payloadSize)/1024, float64(payloadSize)/(1024*1024), sizeThreshold)
 
-		// Save the payload
-		logger.LogInfo("payload", "Starting payload storage to filesystem: tool=%s, queryID=%s, session=%s, baseDir=%s",
-			toolName, queryID, sessionID, baseDir)
+		// Check if payload size is within threshold - if so, return original response directly
+		if payloadSize <= sizeThreshold {
+			logger.LogInfo("payload", "Payload size (%d bytes) is within threshold (%d bytes), returning inline without file storage: tool=%s, queryID=%s",
+				payloadSize, sizeThreshold, toolName, queryID)
+			logMiddleware.Printf("Payload within threshold: tool=%s, queryID=%s, size=%d bytes, threshold=%d bytes, returning inline",
+				toolName, queryID, payloadSize, sizeThreshold)
+			// Return the original result without modification
+			return result, data, err
+		}
+
+		// Payload is larger than threshold - save to filesystem
+		logger.LogInfo("payload", "Payload size (%d bytes) exceeds threshold (%d bytes), saving to filesystem: tool=%s, queryID=%s, session=%s, baseDir=%s",
+			payloadSize, sizeThreshold, toolName, queryID, sessionID, baseDir)
+		logMiddleware.Printf("Payload exceeds threshold: tool=%s, queryID=%s, size=%d bytes, threshold=%d bytes, saving to disk",
+			toolName, queryID, payloadSize, sizeThreshold)
 
 		filePath, saveErr := savePayload(baseDir, sessionID, queryID, payloadJSON)
 		if saveErr != nil {

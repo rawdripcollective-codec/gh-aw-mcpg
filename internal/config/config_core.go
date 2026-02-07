@@ -54,6 +54,11 @@ type GatewayConfig struct {
 
 	// PayloadDir is the directory for storing large payloads
 	PayloadDir string `toml:"payload_dir" json:"payload_dir,omitempty"`
+
+	// PayloadSizeThreshold is the size threshold (in bytes) for storing payloads to disk.
+	// Payloads larger than this threshold are stored to disk, smaller ones are returned inline.
+	// Default: 1024 bytes (1KB)
+	PayloadSizeThreshold int `toml:"payload_size_threshold" json:"payload_size_threshold,omitempty"`
 }
 
 // ServerConfig represents an individual MCP server configuration.

@@ -148,8 +148,8 @@ func TestWrapToolHandler(t *testing.T) {
 		}, nil
 	}
 
-	// Wrap the handler
-	wrapped := WrapToolHandler(mockHandler, "test_tool", baseDir, testGetSessionID)
+	// Wrap the handler with size threshold of 10 bytes (payload will exceed this)
+	wrapped := WrapToolHandler(mockHandler, "test_tool", baseDir, 10, testGetSessionID)
 
 	// Call the wrapped handler
 	result, data, err := wrapped(context.Background(), &sdk.CallToolRequest{}, map[string]interface{}{})
@@ -206,7 +206,7 @@ func TestWrapToolHandler_ErrorHandling(t *testing.T) {
 			return &sdk.CallToolResult{IsError: true}, nil, assert.AnError
 		}
 
-		wrapped := WrapToolHandler(mockHandler, "test_tool", baseDir, testGetSessionID)
+		wrapped := WrapToolHandler(mockHandler, "test_tool", baseDir, 1024, testGetSessionID)
 		result, data, err := wrapped(context.Background(), &sdk.CallToolRequest{}, map[string]interface{}{})
 
 		assert.Error(t, err, "Should return error from handler")
@@ -219,7 +219,7 @@ func TestWrapToolHandler_ErrorHandling(t *testing.T) {
 			return &sdk.CallToolResult{IsError: false}, nil, nil
 		}
 
-		wrapped := WrapToolHandler(mockHandler, "test_tool", baseDir, testGetSessionID)
+		wrapped := WrapToolHandler(mockHandler, "test_tool", baseDir, 1024, testGetSessionID)
 		result, data, err := wrapped(context.Background(), &sdk.CallToolRequest{}, map[string]interface{}{})
 
 		assert.NoError(t, err, "Should not return error")
@@ -242,7 +242,7 @@ func TestWrapToolHandler_LongPayload(t *testing.T) {
 		return &sdk.CallToolResult{IsError: false}, largeData, nil
 	}
 
-	wrapped := WrapToolHandler(mockHandler, "test_tool", baseDir, testGetSessionID)
+	wrapped := WrapToolHandler(mockHandler, "test_tool", baseDir, 100, testGetSessionID)
 	result, data, err := wrapped(context.Background(), &sdk.CallToolRequest{}, map[string]interface{}{})
 
 	require.NoError(t, err, "Should not return error")
@@ -290,12 +290,12 @@ func TestPayloadStorage_SessionIsolation(t *testing.T) {
 	getSession2 := func(ctx context.Context) string { return session2 }
 
 	// Call handler for session 1
-	wrapped1 := WrapToolHandler(mockHandler, "test_tool", baseDir, getSession1)
+	wrapped1 := WrapToolHandler(mockHandler, "test_tool", baseDir, 5, getSession1)
 	_, data1, err := wrapped1(context.Background(), &sdk.CallToolRequest{}, map[string]interface{}{})
 	require.NoError(t, err)
 
 	// Call handler for session 2
-	wrapped2 := WrapToolHandler(mockHandler, "test_tool", baseDir, getSession2)
+	wrapped2 := WrapToolHandler(mockHandler, "test_tool", baseDir, 5, getSession2)
 	_, data2, err := wrapped2(context.Background(), &sdk.CallToolRequest{}, map[string]interface{}{})
 	require.NoError(t, err)
 
@@ -354,7 +354,7 @@ func TestPayloadStorage_LargePayloadPreserved(t *testing.T) {
 		return &sdk.CallToolResult{IsError: false}, largePayload, nil
 	}
 
-	wrapped := WrapToolHandler(mockHandler, "test_tool", baseDir, testGetSessionID)
+	wrapped := WrapToolHandler(mockHandler, "test_tool", baseDir, 1024, testGetSessionID)
 	_, data, err := wrapped(context.Background(), &sdk.CallToolRequest{}, map[string]interface{}{})
 	require.NoError(t, err)
 
@@ -406,7 +406,7 @@ func TestPayloadStorage_DirectoryStructure(t *testing.T) {
 		return &sdk.CallToolResult{IsError: false}, map[string]interface{}{"test": "data"}, nil
 	}
 
-	wrapped := WrapToolHandler(mockHandler, "test_tool", baseDir, getSessionID)
+	wrapped := WrapToolHandler(mockHandler, "test_tool", baseDir, 5, getSessionID)
 	_, data, err := wrapped(context.Background(), &sdk.CallToolRequest{}, map[string]interface{}{})
 	require.NoError(t, err)
 
@@ -441,7 +441,7 @@ func TestPayloadStorage_MultipleRequestsSameSession(t *testing.T) {
 		return &sdk.CallToolResult{IsError: false}, map[string]interface{}{"request": "data"}, nil
 	}
 
-	wrapped := WrapToolHandler(mockHandler, "test_tool", baseDir, getSessionID)
+	wrapped := WrapToolHandler(mockHandler, "test_tool", baseDir, 5, getSessionID)
 
 	// Make multiple requests
 	var payloadPaths []string
@@ -515,7 +515,8 @@ func TestPayloadStorage_DefaultSessionID(t *testing.T) {
 		return &sdk.CallToolResult{IsError: false}, map[string]interface{}{"test": "data"}, nil
 	}
 
-	wrapped := WrapToolHandler(mockHandler, "test_tool", baseDir, getEmptySessionID)
+	// Use 5-byte threshold to ensure storage happens for this 15-byte payload
+	wrapped := WrapToolHandler(mockHandler, "test_tool", baseDir, 5, getEmptySessionID)
 	_, data, err := wrapped(context.Background(), &sdk.CallToolRequest{}, map[string]interface{}{})
 	require.NoError(t, err)
 
@@ -602,4 +603,448 @@ func TestApplyJqSchema_ErrorCases(t *testing.T) {
 			assert.Contains(t, err.Error(), "context", "Error should mention context if cancelled")
 		}
 	})
+}
+
+// TestPayloadSizeThreshold_SmallPayload verifies that payloads smaller than or equal to the threshold
+// are returned inline without file storage
+func TestPayloadSizeThreshold_SmallPayload(t *testing.T) {
+baseDir := t.TempDir()
+
+// Create a small payload (well under 1KB)
+smallPayload := map[string]interface{}{
+"message": "success",
+"count":   42,
+}
+
+mockHandler := func(ctx context.Context, req *sdk.CallToolRequest, args interface{}) (*sdk.CallToolResult, interface{}, error) {
+return &sdk.CallToolResult{IsError: false}, smallPayload, nil
+}
+
+// Set threshold to 1024 bytes - payload should be ~40 bytes
+wrapped := WrapToolHandler(mockHandler, "test_tool", baseDir, 1024, testGetSessionID)
+result, data, err := wrapped(context.Background(), &sdk.CallToolRequest{}, map[string]interface{}{})
+
+require.NoError(t, err, "Should not return error")
+require.NotNil(t, result, "Result should not be nil")
+assert.False(t, result.IsError, "Result should not indicate error")
+
+// Verify the data returned is the original payload, not metadata
+dataMap, ok := data.(map[string]interface{})
+require.True(t, ok, "Data should be original payload map")
+assert.Equal(t, "success", dataMap["message"], "Original message should be preserved")
+assert.Equal(t, 42, dataMap["count"], "Original count should be preserved")
+
+// Verify no PayloadMetadata fields are present
+assert.NotContains(t, dataMap, "queryID", "Should not have queryID field")
+assert.NotContains(t, dataMap, "payloadPath", "Should not have payloadPath field")
+assert.NotContains(t, dataMap, "preview", "Should not have preview field")
+
+// Verify no files were created in the payload directory
+entries, err := os.ReadDir(baseDir)
+require.NoError(t, err, "Should be able to read baseDir")
+assert.Empty(t, entries, "No files should be created for small payloads")
+}
+
+// TestPayloadSizeThreshold_LargePayload verifies that payloads larger than the threshold
+// are stored to disk and return metadata
+func TestPayloadSizeThreshold_LargePayload(t *testing.T) {
+baseDir := t.TempDir()
+
+// Create a large payload (> 1KB)
+largeContent := strings.Repeat("x", 1500)
+largePayload := map[string]interface{}{
+"message": largeContent,
+}
+
+mockHandler := func(ctx context.Context, req *sdk.CallToolRequest, args interface{}) (*sdk.CallToolResult, interface{}, error) {
+return &sdk.CallToolResult{IsError: false}, largePayload, nil
+}
+
+// Set threshold to 1024 bytes - payload should be ~1520 bytes
+wrapped := WrapToolHandler(mockHandler, "test_tool", baseDir, 1024, testGetSessionID)
+result, data, err := wrapped(context.Background(), &sdk.CallToolRequest{}, map[string]interface{}{})
+
+require.NoError(t, err, "Should not return error")
+require.NotNil(t, result, "Result should not be nil")
+
+// Verify the data returned is PayloadMetadata, not the original payload
+pm, ok := data.(PayloadMetadata)
+require.True(t, ok, "Data should be PayloadMetadata")
+assert.NotEmpty(t, pm.QueryID, "Should have queryID")
+assert.NotEmpty(t, pm.PayloadPath, "Should have payloadPath")
+assert.True(t, pm.OriginalSize > 1024, "Original size should exceed threshold")
+
+// Verify file was created
+assert.FileExists(t, pm.PayloadPath, "Payload file should exist")
+
+// Verify file content matches original payload
+fileContent, err := os.ReadFile(pm.PayloadPath)
+require.NoError(t, err, "Should be able to read payload file")
+
+var storedPayload map[string]interface{}
+err = json.Unmarshal(fileContent, &storedPayload)
+require.NoError(t, err, "Stored payload should be valid JSON")
+assert.Equal(t, largeContent, storedPayload["message"], "Stored content should match original")
+}
+
+// TestPayloadSizeThreshold_ExactBoundary verifies behavior at the exact threshold boundary
+func TestPayloadSizeThreshold_ExactBoundary(t *testing.T) {
+baseDir := t.TempDir()
+
+// Create a payload that will be exactly at or very close to the threshold
+// JSON encoding adds quotes, braces, etc., so we need to account for that
+threshold := 100
+
+t.Run("exactly at threshold", func(t *testing.T) {
+// Create data that marshals to exactly 100 bytes
+// {"message":"xxxx..."} where total is 100 bytes
+// We need 100 - len(`{"message":""}`) = 100 - 13 = 87 characters
+content := strings.Repeat("x", 86)
+payload := map[string]interface{}{
+"message": content,
+}
+
+mockHandler := func(ctx context.Context, req *sdk.CallToolRequest, args interface{}) (*sdk.CallToolResult, interface{}, error) {
+return &sdk.CallToolResult{IsError: false}, payload, nil
+}
+
+wrapped := WrapToolHandler(mockHandler, "test_tool", baseDir, threshold, testGetSessionID)
+result, data, err := wrapped(context.Background(), &sdk.CallToolRequest{}, map[string]interface{}{})
+
+require.NoError(t, err, "Should not return error")
+require.NotNil(t, result, "Result should not be nil")
+
+// Verify payload is returned inline (size <= threshold)
+dataMap, ok := data.(map[string]interface{})
+require.True(t, ok, "Data should be original payload at exact threshold")
+assert.Equal(t, content, dataMap["message"], "Original message should be preserved")
+})
+
+t.Run("one byte over threshold", func(t *testing.T) {
+// Create data that marshals to 101 bytes (one over threshold)
+content := strings.Repeat("x", 87)
+payload := map[string]interface{}{
+"message": content,
+}
+
+mockHandler := func(ctx context.Context, req *sdk.CallToolRequest, args interface{}) (*sdk.CallToolResult, interface{}, error) {
+return &sdk.CallToolResult{IsError: false}, payload, nil
+}
+
+wrapped := WrapToolHandler(mockHandler, "test_tool", baseDir, threshold, testGetSessionID)
+result, data, err := wrapped(context.Background(), &sdk.CallToolRequest{}, map[string]interface{}{})
+
+require.NoError(t, err, "Should not return error")
+require.NotNil(t, result, "Result should not be nil")
+
+// Verify payload is stored to disk (size > threshold)
+pm, ok := data.(PayloadMetadata)
+require.True(t, ok, "Data should be PayloadMetadata when over threshold")
+assert.NotEmpty(t, pm.PayloadPath, "Should have payloadPath")
+assert.FileExists(t, pm.PayloadPath, "Payload file should exist")
+})
+}
+
+// TestPayloadSizeThreshold_CustomThreshold verifies that custom thresholds work correctly
+func TestPayloadSizeThreshold_CustomThreshold(t *testing.T) {
+baseDir := t.TempDir()
+
+payload := map[string]interface{}{
+"data": strings.Repeat("x", 200),
+}
+
+mockHandler := func(ctx context.Context, req *sdk.CallToolRequest, args interface{}) (*sdk.CallToolResult, interface{}, error) {
+return &sdk.CallToolResult{IsError: false}, payload, nil
+}
+
+t.Run("low threshold triggers storage", func(t *testing.T) {
+// Use very low threshold (50 bytes) - should trigger storage
+wrapped := WrapToolHandler(mockHandler, "test_tool", baseDir, 50, testGetSessionID)
+_, data, err := wrapped(context.Background(), &sdk.CallToolRequest{}, map[string]interface{}{})
+
+require.NoError(t, err)
+pm, ok := data.(PayloadMetadata)
+require.True(t, ok, "Should store with low threshold")
+assert.FileExists(t, pm.PayloadPath, "File should be created")
+})
+
+t.Run("high threshold returns inline", func(t *testing.T) {
+// Use very high threshold (10000 bytes) - should return inline
+wrapped := WrapToolHandler(mockHandler, "test_tool", baseDir, 10000, testGetSessionID)
+_, data, err := wrapped(context.Background(), &sdk.CallToolRequest{}, map[string]interface{}{})
+
+require.NoError(t, err)
+dataMap, ok := data.(map[string]interface{})
+require.True(t, ok, "Should return inline with high threshold")
+assert.NotContains(t, dataMap, "payloadPath", "Should not have payloadPath")
+})
+}
+
+// TestThresholdBehavior_SmallPayloadsAsIs verifies that payloads smaller than threshold
+// are delivered as-is without any file storage or transformation
+func TestThresholdBehavior_SmallPayloadsAsIs(t *testing.T) {
+baseDir := t.TempDir()
+
+tests := []struct {
+name      string
+payload   map[string]interface{}
+threshold int
+comment   string
+}{
+{
+name:      "tiny payload with 1KB threshold",
+payload:   map[string]interface{}{"status": "ok"},
+threshold: 1024,
+comment:   "14-byte payload should be returned inline",
+},
+{
+name:      "small JSON with 500 byte threshold",
+payload:   map[string]interface{}{"message": "success", "count": 5, "active": true},
+threshold: 500,
+comment:   "~42-byte payload should be returned inline",
+},
+{
+name:      "medium payload with 1KB threshold",
+payload:   map[string]interface{}{"data": strings.Repeat("x", 200)},
+threshold: 1024,
+comment:   "~214-byte payload should be returned inline",
+},
+{
+name: "structured data with default threshold",
+payload: map[string]interface{}{
+"user":   "alice",
+"action": "login",
+"timestamp": 1234567890,
+"metadata": map[string]interface{}{
+"ip": "192.168.1.1",
+"agent": "Mozilla/5.0",
+},
+},
+threshold: 1024,
+comment:   "~120-byte structured payload should be returned inline",
+},
+}
+
+for _, tt := range tests {
+t.Run(tt.name, func(t *testing.T) {
+mockHandler := func(ctx context.Context, req *sdk.CallToolRequest, args interface{}) (*sdk.CallToolResult, interface{}, error) {
+return &sdk.CallToolResult{IsError: false}, tt.payload, nil
+}
+
+wrapped := WrapToolHandler(mockHandler, "test_tool", baseDir, tt.threshold, testGetSessionID)
+result, data, err := wrapped(context.Background(), &sdk.CallToolRequest{}, map[string]interface{}{})
+
+require.NoError(t, err, "Should not return error")
+require.NotNil(t, result, "Result should not be nil")
+assert.False(t, result.IsError, "Result should not indicate error")
+
+// Verify data is returned as-is (not PayloadMetadata)
+dataMap, ok := data.(map[string]interface{})
+require.True(t, ok, "Data should be original payload map, not PayloadMetadata: %s", tt.comment)
+
+// Verify no PayloadMetadata fields
+assert.NotContains(t, dataMap, "queryID", "Should not have queryID field")
+assert.NotContains(t, dataMap, "payloadPath", "Should not have payloadPath field")
+assert.NotContains(t, dataMap, "preview", "Should not have preview field")
+assert.NotContains(t, dataMap, "schema", "Should not have schema field")
+
+// Verify original data is preserved
+payloadJSON, _ := json.Marshal(tt.payload)
+dataJSON, _ := json.Marshal(dataMap)
+assert.JSONEq(t, string(payloadJSON), string(dataJSON), "Original data should be preserved")
+
+// Verify no files were created
+entries, err := os.ReadDir(baseDir)
+require.NoError(t, err)
+assert.Empty(t, entries, "No files should be created for small payloads: %s", tt.comment)
+})
+}
+}
+
+// TestThresholdBehavior_LargePayloadsUsePayloadDir verifies that payloads larger than threshold
+// use the payloadDir for file storage and return metadata
+func TestThresholdBehavior_LargePayloadsUsePayloadDir(t *testing.T) {
+baseDir := t.TempDir()
+
+tests := []struct {
+name      string
+payload   map[string]interface{}
+threshold int
+comment   string
+}{
+{
+name:      "payload exceeds 100 byte threshold",
+payload:   map[string]interface{}{"data": strings.Repeat("x", 200)},
+threshold: 100,
+comment:   "~214-byte payload should use file storage",
+},
+{
+name:      "large text exceeds 1KB threshold",
+payload:   map[string]interface{}{"content": strings.Repeat("Lorem ipsum ", 100)},
+threshold: 1024,
+comment:   "~1200-byte payload should use file storage",
+},
+{
+name: "complex nested structure exceeds 500 byte threshold",
+payload: map[string]interface{}{
+"items": []interface{}{
+map[string]interface{}{"id": 1, "name": strings.Repeat("a", 100)},
+map[string]interface{}{"id": 2, "name": strings.Repeat("b", 100)},
+map[string]interface{}{"id": 3, "name": strings.Repeat("c", 100)},
+map[string]interface{}{"id": 4, "name": strings.Repeat("d", 100)},
+},
+},
+threshold: 400,
+comment:   "~460-byte nested structure should use file storage",
+},
+{
+name:      "moderate payload with very low threshold",
+payload:   map[string]interface{}{"message": "hello world", "count": 42},
+threshold: 10,
+comment:   "~35-byte payload exceeds 10-byte threshold, should use file storage",
+},
+}
+
+for _, tt := range tests {
+t.Run(tt.name, func(t *testing.T) {
+mockHandler := func(ctx context.Context, req *sdk.CallToolRequest, args interface{}) (*sdk.CallToolResult, interface{}, error) {
+return &sdk.CallToolResult{IsError: false}, tt.payload, nil
+}
+
+wrapped := WrapToolHandler(mockHandler, "test_tool", baseDir, tt.threshold, testGetSessionID)
+result, data, err := wrapped(context.Background(), &sdk.CallToolRequest{}, map[string]interface{}{})
+
+require.NoError(t, err, "Should not return error")
+require.NotNil(t, result, "Result should not be nil")
+
+// Verify data is PayloadMetadata, not original payload
+pm, ok := data.(PayloadMetadata)
+require.True(t, ok, "Data should be PayloadMetadata for large payload: %s", tt.comment)
+
+// Verify PayloadMetadata fields are present
+assert.NotEmpty(t, pm.QueryID, "Should have queryID")
+assert.NotEmpty(t, pm.PayloadPath, "Should have payloadPath")
+assert.NotEmpty(t, pm.Preview, "Should have preview")
+assert.NotNil(t, pm.Schema, "Should have schema")
+assert.True(t, pm.OriginalSize > tt.threshold, "Original size should exceed threshold: %s", tt.comment)
+
+// Verify file was created at the specified path
+assert.FileExists(t, pm.PayloadPath, "Payload file should exist at path: %s", tt.comment)
+
+// Verify payloadPath contains baseDir
+assert.Contains(t, pm.PayloadPath, baseDir, "Payload path should be under baseDir")
+
+// Verify file content matches original payload
+fileContent, err := os.ReadFile(pm.PayloadPath)
+require.NoError(t, err, "Should be able to read payload file")
+
+var storedPayload map[string]interface{}
+err = json.Unmarshal(fileContent, &storedPayload)
+require.NoError(t, err, "Stored payload should be valid JSON")
+
+originalJSON, _ := json.Marshal(tt.payload)
+storedJSON, _ := json.Marshal(storedPayload)
+assert.JSONEq(t, string(originalJSON), string(storedJSON), "Stored content should match original: %s", tt.comment)
+
+// Verify originalSize matches file size
+assert.Equal(t, len(fileContent), pm.OriginalSize, "OriginalSize should match file size")
+})
+}
+}
+
+// TestThresholdBehavior_MixedPayloads verifies that the same handler with the same threshold
+// correctly handles both small (inline) and large (file storage) payloads
+func TestThresholdBehavior_MixedPayloads(t *testing.T) {
+baseDir := t.TempDir()
+threshold := 100 // 100 bytes
+
+// Create a handler factory that returns different payload sizes
+createHandler := func(payload map[string]interface{}) func(context.Context, *sdk.CallToolRequest, interface{}) (*sdk.CallToolResult, interface{}, error) {
+return func(ctx context.Context, req *sdk.CallToolRequest, args interface{}) (*sdk.CallToolResult, interface{}, error) {
+return &sdk.CallToolResult{IsError: false}, payload, nil
+}
+}
+
+// Small payload (under threshold)
+smallPayload := map[string]interface{}{"status": "ok", "code": 200}
+smallHandler := createHandler(smallPayload)
+wrappedSmall := WrapToolHandler(smallHandler, "test_tool", baseDir, threshold, testGetSessionID)
+
+_, smallData, err := wrappedSmall(context.Background(), &sdk.CallToolRequest{}, map[string]interface{}{})
+require.NoError(t, err)
+
+// Verify small payload is returned inline
+smallMap, ok := smallData.(map[string]interface{})
+require.True(t, ok, "Small payload should be returned as-is")
+assert.Equal(t, "ok", smallMap["status"], "Small payload data should be preserved")
+assert.NotContains(t, smallMap, "payloadPath", "Small payload should not have payloadPath")
+
+// Large payload (over threshold)
+largePayload := map[string]interface{}{"data": strings.Repeat("x", 200)}
+largeHandler := createHandler(largePayload)
+wrappedLarge := WrapToolHandler(largeHandler, "test_tool", baseDir, threshold, testGetSessionID)
+
+_, largeData, err := wrappedLarge(context.Background(), &sdk.CallToolRequest{}, map[string]interface{}{})
+require.NoError(t, err)
+
+// Verify large payload uses file storage
+pm, ok := largeData.(PayloadMetadata)
+require.True(t, ok, "Large payload should return PayloadMetadata")
+assert.NotEmpty(t, pm.PayloadPath, "Large payload should have payloadPath")
+assert.FileExists(t, pm.PayloadPath, "Large payload file should exist")
+
+// Verify files created - should only have large payload
+entries, err := os.ReadDir(baseDir)
+require.NoError(t, err)
+assert.NotEmpty(t, entries, "Should have created files for large payload only")
+}
+
+// TestThresholdBehavior_ConfigurableThresholds verifies that different threshold values
+// correctly determine whether payloads are stored or returned inline
+func TestThresholdBehavior_ConfigurableThresholds(t *testing.T) {
+baseDir := t.TempDir()
+
+// Create a payload that's ~50 bytes
+payload := map[string]interface{}{"data": strings.Repeat("x", 30)}
+payloadJSON, _ := json.Marshal(payload)
+payloadSize := len(payloadJSON)
+
+t.Logf("Test payload size: %d bytes", payloadSize)
+
+mockHandler := func(ctx context.Context, req *sdk.CallToolRequest, args interface{}) (*sdk.CallToolResult, interface{}, error) {
+return &sdk.CallToolResult{IsError: false}, payload, nil
+}
+
+testCases := []struct {
+name              string
+threshold         int
+expectFileStorage bool
+}{
+{"threshold 10 bytes - expect storage", 10, true},
+{"threshold 20 bytes - expect storage", 20, true},
+{"threshold 40 bytes - expect storage", 40, true},
+{"threshold 50 bytes - expect inline", 50, false},
+{"threshold 100 bytes - expect inline", 100, false},
+{"threshold 1KB - expect inline", 1024, false},
+}
+
+for _, tc := range testCases {
+t.Run(tc.name, func(t *testing.T) {
+wrapped := WrapToolHandler(mockHandler, "test_tool", baseDir, tc.threshold, testGetSessionID)
+_, data, err := wrapped(context.Background(), &sdk.CallToolRequest{}, map[string]interface{}{})
+
+require.NoError(t, err)
+
+if tc.expectFileStorage {
+pm, ok := data.(PayloadMetadata)
+require.True(t, ok, "Should return PayloadMetadata when size (%d) > threshold (%d)", payloadSize, tc.threshold)
+assert.NotEmpty(t, pm.PayloadPath, "Should have payloadPath")
+assert.FileExists(t, pm.PayloadPath, "File should exist")
+} else {
+dataMap, ok := data.(map[string]interface{})
+require.True(t, ok, "Should return original data when size (%d) <= threshold (%d)", payloadSize, tc.threshold)
+assert.NotContains(t, dataMap, "payloadPath", "Should not have payloadPath")
+}
+})
+}
 }
