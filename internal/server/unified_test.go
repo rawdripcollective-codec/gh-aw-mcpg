@@ -549,8 +549,8 @@ func TestUnifiedServer_EnsureSessionDirectory(t *testing.T) {
 	require.NoError(t, err, "Session directory should exist")
 	assert.True(t, info.IsDir(), "Session path should be a directory")
 
-	// Verify directory has correct permissions (0700)
-	assert.Equal(t, os.FileMode(0700), info.Mode().Perm(), "Session directory should have 0700 permissions")
+	// Verify directory has correct permissions (0755 - world-readable for agent access)
+	assert.Equal(t, os.FileMode(0755), info.Mode().Perm(), "Session directory should have 0755 permissions")
 
 	// Test that calling ensureSessionDirectory again doesn't fail (idempotent)
 	err = us.ensureSessionDirectory(sessionID)
