@@ -16,7 +16,6 @@ engine: codex
 strict: true
 imports:
   - shared/gh.md
-  - shared/mcp/tavily.md
 network:
   allowed:
     - defaults
@@ -60,9 +59,8 @@ timeout-minutes: 10
 1. **GitHub MCP Testing**: Review the last 2 merged pull requests in ${{ github.repository }}
 2. **Serena MCP Testing**: Use the Serena MCP server tool `activate_project` to initialize the workspace and verify it succeeds (do NOT use bash to run go commands - use Serena's MCP tools)
 3. **Playwright Testing**: Use playwright to navigate to https://github.com and verify the page title contains "GitHub"
-4. **Tavily Web Search Testing**: Use the Tavily MCP server to perform a web search for "GitHub Agentic Workflows" and verify that results are returned with at least one item
-5. **File Writing Testing**: Create a test file `/tmp/gh-aw/agent/smoke-test-codex-${{ github.run_id }}.txt` with content "Smoke test passed for Codex at $(date)" (create the directory if it doesn't exist)
-6. **Bash Tool Testing**: Execute bash commands to verify file creation was successful (use `cat` to read the file back)
+4. **File Writing Testing**: Create a test file `/tmp/gh-aw/agent/smoke-test-codex-${{ github.run_id }}.txt` with content "Smoke test passed for Codex at $(date)" (create the directory if it doesn't exist)
+5. **Bash Tool Testing**: Execute bash commands to verify file creation was successful (use `cat` to read the file back)
 
 ## Output
 
