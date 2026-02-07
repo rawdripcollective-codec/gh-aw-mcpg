@@ -16,8 +16,9 @@ Added automatic project configuration for TypeScript and Python language servers
 - **Solution**: Created initialization script (`serena-init.sh`) that automatically generates/updates `.serena/project.yml` with all three languages (Go, TypeScript, Python) on container startup
 - **Impact**: TypeScript and Python code analysis now works out-of-the-box without manual project configuration
 - **Implementation**: 
-  - Script checks if `project.yml` exists or only contains Go configuration
-  - Automatically creates/updates configuration with all supported languages
+  - Script checks if `project.yml` exists and contains all three required languages (Go, TypeScript, Python)
+  - Automatically creates/updates configuration only when any language is missing
+  - Uses anchored grep patterns for precise language detection
   - Runs via ENTRYPOINT before starting the Serena MCP server
 - **Testing**: Container successfully creates `.serena/project.yml` when mounting any workspace to `/workspace`
 
