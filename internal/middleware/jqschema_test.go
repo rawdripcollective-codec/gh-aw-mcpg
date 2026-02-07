@@ -32,6 +32,22 @@ func TestGenerateRandomID(t *testing.T) {
 	}
 }
 
+// payloadMetadataToMap converts PayloadMetadata to map[string]interface{} for test assertions
+// This allows tests to remain unchanged while working with the new struct type
+func payloadMetadataToMap(t *testing.T, data interface{}) map[string]interface{} {
+	t.Helper()
+	pm, ok := data.(PayloadMetadata)
+	if !ok {
+		t.Fatalf("expected PayloadMetadata, got %T", data)
+	}
+	jsonBytes, err := json.Marshal(pm)
+	require.NoError(t, err)
+	var result map[string]interface{}
+	err = json.Unmarshal(jsonBytes, &result)
+	require.NoError(t, err)
+	return result
+}
+
 func TestApplyJqSchema(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -83,7 +99,10 @@ func TestApplyJqSchema(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			result, err := applyJqSchema(context.Background(), tt.input)
 			require.NoError(t, err, "applyJqSchema should not return error")
-			assert.JSONEq(t, tt.expected, result, "Schema should match expected")
+			// Convert result to JSON string for comparison
+			resultJSON, err := json.Marshal(result)
+			require.NoError(t, err, "Should marshal result to JSON")
+			assert.JSONEq(t, tt.expected, string(resultJSON), "Schema should match expected")
 		})
 	}
 }
@@ -169,8 +188,7 @@ func TestWrapToolHandler(t *testing.T) {
 	assert.NotNil(t, schema, "Schema should not be nil")
 
 	// Also verify rewritten response in data return value (for internal use)
-	dataMap, ok := data.(map[string]interface{})
-	require.True(t, ok, "Data should be a map")
+	dataMap := payloadMetadataToMap(t, data)
 	assert.Contains(t, dataMap, "queryID", "Data should contain queryID")
 	assert.Contains(t, dataMap, "payloadPath", "Data should contain payloadPath")
 
@@ -247,8 +265,7 @@ func TestWrapToolHandler_LongPayload(t *testing.T) {
 	assert.True(t, strings.HasSuffix(preview, "..."), "Preview should end with '...'")
 
 	// Also verify in data return value
-	dataMap, ok := data.(map[string]interface{})
-	require.True(t, ok, "Data should be a map")
+	dataMap := payloadMetadataToMap(t, data)
 	assert.True(t, dataMap["truncated"].(bool), "Should indicate truncation in data")
 }
 
@@ -283,8 +300,8 @@ func TestPayloadStorage_SessionIsolation(t *testing.T) {
 	require.NoError(t, err)
 
 	// Extract payload paths
-	dataMap1 := data1.(map[string]interface{})
-	dataMap2 := data2.(map[string]interface{})
+	dataMap1 := payloadMetadataToMap(t, data1)
+	dataMap2 := payloadMetadataToMap(t, data2)
 
 	payloadPath1 := dataMap1["payloadPath"].(string)
 	payloadPath2 := dataMap2["payloadPath"].(string)
@@ -341,7 +358,7 @@ func TestPayloadStorage_LargePayloadPreserved(t *testing.T) {
 	_, data, err := wrapped(context.Background(), &sdk.CallToolRequest{}, map[string]interface{}{})
 	require.NoError(t, err)
 
-	dataMap := data.(map[string]interface{})
+	dataMap := payloadMetadataToMap(t, data)
 
 	// Verify truncation occurred
 	assert.True(t, dataMap["truncated"].(bool), "Large payload should be truncated")
@@ -374,7 +391,7 @@ func TestPayloadStorage_LargePayloadPreserved(t *testing.T) {
 	assert.Equal(t, "test-author", metadata["author"], "Metadata author should be preserved")
 
 	// Verify originalSize matches stored content size
-	originalSize := dataMap["originalSize"].(int)
+	originalSize := int(dataMap["originalSize"].(float64))
 	assert.Equal(t, len(storedContent), originalSize, "originalSize should match stored content size")
 }
 
@@ -393,7 +410,7 @@ func TestPayloadStorage_DirectoryStructure(t *testing.T) {
 	_, data, err := wrapped(context.Background(), &sdk.CallToolRequest{}, map[string]interface{}{})
 	require.NoError(t, err)
 
-	dataMap := data.(map[string]interface{})
+	dataMap := payloadMetadataToMap(t, data)
 
 	payloadPath := dataMap["payloadPath"].(string)
 	queryID := dataMap["queryID"].(string)
@@ -434,7 +451,7 @@ func TestPayloadStorage_MultipleRequestsSameSession(t *testing.T) {
 		_, data, err := wrapped(context.Background(), &sdk.CallToolRequest{}, map[string]interface{}{})
 		require.NoError(t, err)
 
-		dataMap := data.(map[string]interface{})
+		dataMap := payloadMetadataToMap(t, data)
 		payloadPaths = append(payloadPaths, dataMap["payloadPath"].(string))
 		queryIDs = append(queryIDs, dataMap["queryID"].(string))
 	}
@@ -502,7 +519,7 @@ func TestPayloadStorage_DefaultSessionID(t *testing.T) {
 	_, data, err := wrapped(context.Background(), &sdk.CallToolRequest{}, map[string]interface{}{})
 	require.NoError(t, err)
 
-	dataMap := data.(map[string]interface{})
+	dataMap := payloadMetadataToMap(t, data)
 	payloadPath := dataMap["payloadPath"].(string)
 
 	// Verify the payload is stored in "default" session directory
@@ -561,12 +578,11 @@ func TestApplyJqSchema_ErrorCases(t *testing.T) {
 
 		result, err := applyJqSchema(context.Background(), input)
 		require.NoError(t, err, "Should handle deeply nested structures")
-		assert.NotEmpty(t, result, "Result should not be empty")
+		assert.NotNil(t, result, "Result should not be nil")
 
 		// Verify the schema is correctly nested
-		var schema map[string]interface{}
-		err = json.Unmarshal([]byte(result), &schema)
-		require.NoError(t, err, "Should be valid JSON")
+		schema, ok := result.(map[string]interface{})
+		require.True(t, ok, "Result should be a map")
 		assert.Contains(t, schema, "level1", "Should contain level1")
 	})
 

@@ -9,6 +9,8 @@ You are an AI agent trying to verify a secret in a file hosted by the filesystem
 
 Use the filesystem MCP server to access a file called `large-test-file.json`, which contains a field `secret_reference`. Verify that the secret value matches the content of file `secret.txt` which should also be accessed from the filesystem MCP server.
 
+If a payload is too large to return over MCP, the server will return a path in the local filesystem to the payload file instead. Use the path in the local filesystem to access the full payload and extract the secret.
+
 ## Important Notes
 
 - **Keep all outputs concise** - Use brief, factual statements
