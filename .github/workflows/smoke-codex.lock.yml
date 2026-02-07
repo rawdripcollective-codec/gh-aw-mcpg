@@ -35,7 +35,7 @@ name: "Smoke Codex"
     types:
     - labeled
   schedule:
-  - cron: "23 */12 * * *"
+  - cron: "2 */12 * * *"
   workflow_dispatch: null
 
 permissions: {}
@@ -64,7 +64,7 @@ jobs:
       comment_url: ${{ steps.add-comment.outputs.comment-url }}
     steps:
       - name: Setup Scripts
-        uses: github/gh-aw/actions/setup@v0.42.13
+        uses: github/gh-aw/actions/setup@94662b1dee8ce96c876ba9f33b3ab8be32de82a4 # v0.42.13
         with:
           destination: /opt/gh-aw/actions
       - name: Check workflow file timestamps
@@ -116,7 +116,7 @@ jobs:
       secret_verification_result: ${{ steps.validate-secret.outputs.verification_result }}
     steps:
       - name: Setup Scripts
-        uses: github/gh-aw/actions/setup@v0.42.13
+        uses: github/gh-aw/actions/setup@94662b1dee8ce96c876ba9f33b3ab8be32de82a4 # v0.42.13
         with:
           destination: /opt/gh-aw/actions
       - name: Checkout .github and .agents folders
@@ -1141,7 +1141,7 @@ jobs:
       total_count: ${{ steps.missing_tool.outputs.total_count }}
     steps:
       - name: Setup Scripts
-        uses: github/gh-aw/actions/setup@v0.42.13
+        uses: github/gh-aw/actions/setup@94662b1dee8ce96c876ba9f33b3ab8be32de82a4 # v0.42.13
         with:
           destination: /opt/gh-aw/actions
       - name: Debug job inputs
@@ -1241,7 +1241,7 @@ jobs:
       success: ${{ steps.parse_results.outputs.success }}
     steps:
       - name: Setup Scripts
-        uses: github/gh-aw/actions/setup@v0.42.13
+        uses: github/gh-aw/actions/setup@94662b1dee8ce96c876ba9f33b3ab8be32de82a4 # v0.42.13
         with:
           destination: /opt/gh-aw/actions
       - name: Download agent artifacts
@@ -1335,7 +1335,7 @@ jobs:
       activated: ${{ steps.check_membership.outputs.is_team_member == 'true' }}
     steps:
       - name: Setup Scripts
-        uses: github/gh-aw/actions/setup@v0.42.13
+        uses: github/gh-aw/actions/setup@94662b1dee8ce96c876ba9f33b3ab8be32de82a4 # v0.42.13
         with:
           destination: /opt/gh-aw/actions
       - name: Add hooray reaction for immediate feedback
@@ -1388,7 +1388,7 @@ jobs:
       process_safe_outputs_temporary_id_map: ${{ steps.process_safe_outputs.outputs.temporary_id_map }}
     steps:
       - name: Setup Scripts
-        uses: github/gh-aw/actions/setup@v0.42.13
+        uses: github/gh-aw/actions/setup@94662b1dee8ce96c876ba9f33b3ab8be32de82a4 # v0.42.13
         with:
           destination: /opt/gh-aw/actions
       - name: Download agent output artifact
@@ -1425,7 +1425,7 @@ jobs:
     permissions: {}
     steps:
       - name: Setup Scripts
-        uses: github/gh-aw/actions/setup@v0.42.13
+        uses: github/gh-aw/actions/setup@94662b1dee8ce96c876ba9f33b3ab8be32de82a4 # v0.42.13
         with:
           destination: /opt/gh-aw/actions
       - name: Download cache-memory artifact (default)
