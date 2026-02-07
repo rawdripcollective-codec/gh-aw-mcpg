@@ -162,7 +162,7 @@ func TestNewErrorCallToolResult(t *testing.T) {
 	}{
 		{
 			name:        "simple error",
-			err:         assert.AnError,
+			err:         fmt.Errorf("test error"),
 			expectError: true,
 		},
 		{

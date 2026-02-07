@@ -24,7 +24,9 @@ import (
 var logConn = logger.New("mcp:connection")
 
 // isHTTPConnectionError checks if an error is a network connection error
-// This helper reduces code duplication for checking common connection error patterns
+// This helper reduces code duplication for checking common connection error patterns.
+// Note: Uses string matching which is fragile but consistent with existing patterns in the codebase.
+// TODO: Consider using errors.Is() or type assertions (*net.OpError) for more robust error classification.
 func isHTTPConnectionError(err error) bool {
 	if err == nil {
 		return false
