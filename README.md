@@ -211,6 +211,51 @@ See **[Configuration Specification](https://github.com/github/gh-aw/blob/main/do
 - **Passthrough**: Set value to empty string (`""`) to pass through from host
 - **Expansion**: Use `${VAR_NAME}` syntax for dynamic substitution (fails if undefined)
 
+### Configuration Validation and Error Handling
+
+MCP Gateway provides detailed error messages and validation to help catch configuration issues early:
+
+#### Parse Errors with Precise Location
+
+When there's a syntax error in your TOML configuration, the gateway reports the exact line and column:
+
+```bash
+$ awmg --config config.toml
+Error: failed to parse TOML at line 2, column 6: expected '.' or '=', but got '3' instead
+```
+
+This helps you quickly identify and fix syntax issues.
+
+#### Unknown Key Detection (Typo Detection)
+
+The gateway detects and warns about unknown configuration keys, helping catch typos and deprecated options:
+
+```toml
+[gateway]
+prot = 3000              # Typo: should be 'port'
+startup_timout = 30      # Typo: should be 'startup_timeout'
+```
+
+When you run the gateway with these typos, you'll see warnings in the log file:
+
+```
+[2026-02-07T17:46:51Z] [WARN] [config] Unknown configuration key 'gateway.prot' - check for typos or deprecated options
+[2026-02-07T17:46:51Z] [WARN] [config] Unknown configuration key 'gateway.startup_timout' - check for typos or deprecated options
+```
+
+The gateway will use default values for unrecognized keys, so it will still start, but the warnings help you identify and fix configuration issues.
+
+#### Memory-Efficient Parsing
+
+The gateway uses streaming parsing for configuration files, making it efficient even with large configuration files containing many servers.
+
+#### Best Practices
+
+1. **Check logs for warnings**: After starting the gateway, check the log file for any warnings about unknown keys
+2. **Use precise error messages**: When you see a parse error, the line and column numbers point exactly to the problem
+3. **Validate configuration**: Test your configuration changes by running the gateway and checking for warnings
+4. **Keep configuration clean**: Remove any deprecated or unused configuration options
+
 ## Usage
 
 ```

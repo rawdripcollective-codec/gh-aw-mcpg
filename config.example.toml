@@ -139,8 +139,14 @@ args = [
 #
 # Configuration Validation:
 # - Required fields: command, args (for stdio servers)
-# - Unknown keys will generate warnings in logs
-# - Parse errors will show line numbers for easy debugging
+# - Unknown keys will generate warnings in logs (helps catch typos!)
+# - Parse errors show exact line and column numbers for easy debugging
+# - Example: "failed to parse TOML at line 2, column 6: expected '=' ..."
+#
+# Common Typos Detected:
+# - prot → port
+# - startup_timout → startup_timeout
+# - tool_timout → tool_timeout
 #
 # For more information, see:
 # - MCP Protocol: https://github.com/modelcontextprotocol

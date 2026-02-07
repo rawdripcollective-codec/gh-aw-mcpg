@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/BurntSushi/toml"
+	"github.com/github/gh-aw-mcpg/internal/logger"
 )
 
 // Core constants for configuration defaults
@@ -91,19 +92,47 @@ type ServerConfig struct {
 // LoadFromFile loads configuration from a TOML file.
 func LoadFromFile(path string) (*Config, error) {
 	logConfig.Printf("Loading configuration from file: %s", path)
-	data, err := os.ReadFile(path)
+
+	// Open file for streaming
+	file, err := os.Open(path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read config file: %w", err)
+		return nil, fmt.Errorf("failed to open config file: %w", err)
 	}
+	defer file.Close()
 
-	logConfig.Printf("Read %d bytes from config file", len(data))
-
+	// Use streaming decoder for better memory efficiency
 	var cfg Config
-	if _, err := toml.Decode(string(data), &cfg); err != nil {
+	decoder := toml.NewDecoder(file)
+	md, err := decoder.Decode(&cfg)
+	if err != nil {
+		// Extract position information from ParseError for better error messages
+		// Note: We use Position.Line, Position.Col, and Message separately to provide
+		// a consistent, precise error format. perr.Error() includes line info but not
+		// column, so we construct our own message with both for better UX.
+		// Try pointer type first (for compatibility)
+		if perr, ok := err.(*toml.ParseError); ok {
+			return nil, fmt.Errorf("failed to parse TOML at line %d, column %d: %s",
+				perr.Position.Line, perr.Position.Col, perr.Message)
+		}
+		// Try value type (used by toml.Decode)
+		if perr, ok := err.(toml.ParseError); ok {
+			return nil, fmt.Errorf("failed to parse TOML at line %d, column %d: %s",
+				perr.Position.Line, perr.Position.Col, perr.Message)
+		}
 		return nil, fmt.Errorf("failed to parse TOML: %w", err)
 	}
 
 	logConfig.Printf("Parsed TOML config with %d servers", len(cfg.Servers))
+
+	// Detect and warn about unknown configuration keys (typos, deprecated options)
+	undecoded := md.Undecoded()
+	if len(undecoded) > 0 {
+		for _, key := range undecoded {
+			// Log to both debug logger and file logger for visibility
+			logConfig.Printf("WARNING: Unknown configuration key '%s' - check for typos or deprecated options", key)
+			logger.LogWarn("config", "Unknown configuration key '%s' - check for typos or deprecated options", key)
+		}
+	}
 
 	// Validate required fields
 	if len(cfg.Servers) == 0 {
