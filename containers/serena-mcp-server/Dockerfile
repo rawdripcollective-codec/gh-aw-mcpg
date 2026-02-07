@@ -53,6 +53,24 @@ RUN mkdir -p /workspace /tmp/serena-cache /root/.serena
 ENV SERENA_WORKSPACE=/workspace
 ENV SERENA_CACHE_DIR=/tmp/serena-cache
 
+# Create a startup script that ensures multi-language support
+# This script will initialize the workspace with Go, TypeScript, and Python if not already configured
+RUN printf '#!/bin/bash\n\
+set -e\n\
+\n\
+# Ensure .serena directory exists in workspace\n\
+mkdir -p /workspace/.serena\n\
+\n\
+# If project.yml does not exist or only has go, create/update it with all languages\n\
+if [ ! -f /workspace/.serena/project.yml ] || ! grep -q "typescript" /workspace/.serena/project.yml; then\n\
+  echo "Initializing Serena project with Go, TypeScript, and Python support..."\n\
+  printf "languages:\\n- go\\n- typescript\\n- python\\n" > /workspace/.serena/project.yml\n\
+fi\n\
+\n\
+# Start the Serena MCP server\n\
+exec serena-mcp-server "$@"\n\
+' > /usr/local/bin/serena-init.sh && chmod +x /usr/local/bin/serena-init.sh
+
 # Create a dummy project to pre-warm Serena's LSP cache
 # Focus on Python, Go, and TypeScript for codex context
 RUN mkdir -p /tmp/dummy-project && \
@@ -72,7 +90,7 @@ RUN rm -rf /tmp/dummy-project
 # Expose the workspace directory as a volume mount point
 VOLUME ["/workspace"]
 
-# Set default entrypoint to run Serena MCP server
-ENTRYPOINT ["serena-mcp-server"]
+# Set default entrypoint to run initialization script
+ENTRYPOINT ["/usr/local/bin/serena-init.sh"]
 
 CMD []
