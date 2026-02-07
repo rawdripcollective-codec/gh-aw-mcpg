@@ -57,7 +57,7 @@ type GatewayConfig struct {
 
 	// PayloadSizeThreshold is the size threshold (in bytes) for storing payloads to disk.
 	// Payloads larger than this threshold are stored to disk, smaller ones are returned inline.
-	// Default: 1024 bytes (1KB)
+	// Default: 10240 bytes (10KB)
 	PayloadSizeThreshold int `toml:"payload_size_threshold" json:"payload_size_threshold,omitempty"`
 }
 

@@ -7,8 +7,8 @@ const DefaultPayloadDir = "/tmp/jq-payloads"
 
 // DefaultPayloadSizeThreshold is the default size threshold (in bytes) for storing payloads to disk.
 // Payloads larger than this threshold are stored to disk, smaller ones are returned inline.
-// Default: 1024 bytes (1KB)
-const DefaultPayloadSizeThreshold = 1024
+// Default: 10240 bytes (10KB)
+const DefaultPayloadSizeThreshold = 10240
 
 func init() {
 	// Register default setter for PayloadDir and PayloadSizeThreshold
