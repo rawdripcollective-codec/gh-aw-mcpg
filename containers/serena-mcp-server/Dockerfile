@@ -61,8 +61,12 @@ set -e\n\
 # Ensure .serena directory exists in workspace\n\
 mkdir -p /workspace/.serena\n\
 \n\
-# If project.yml does not exist or only has go, create/update it with all languages\n\
-if [ ! -f /workspace/.serena/project.yml ] || ! grep -q "typescript" /workspace/.serena/project.yml; then\n\
+# Check if project.yml needs to be created or updated\n\
+# Create/update if: file does not exist, OR it is missing any of the three required languages\n\
+if [ ! -f /workspace/.serena/project.yml ] || \\\n\
+   ! grep -q "^- go$" /workspace/.serena/project.yml || \\\n\
+   ! grep -q "^- typescript$" /workspace/.serena/project.yml || \\\n\
+   ! grep -q "^- python$" /workspace/.serena/project.yml; then\n\
   echo "Initializing Serena project with Go, TypeScript, and Python support..."\n\
   printf "languages:\\n- go\\n- typescript\\n- python\\n" > /workspace/.serena/project.yml\n\
 fi\n\
