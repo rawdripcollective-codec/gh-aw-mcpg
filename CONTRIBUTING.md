@@ -246,6 +246,79 @@ awmg/
 - Add Godoc comments for all exported functions, types, and packages
 - Mock external dependencies (Docker, network) in tests
 
+### Constructor Naming Conventions
+
+The codebase uses three distinct constructor patterns. Follow these conventions consistently:
+
+#### 1. `New*(args) *Type` - Standard Constructors
+
+Use for simple object creation without error handling or complex initialization.
+
+```go
+// Creates a new instance of the type directly
+func NewConnection(ctx context.Context) *Connection { ... }
+func NewRegistry() *Registry { ... }
+func NewSession(sessionID, token string) *Session { ... }
+```
+
+**When to use:**
+- Object creation is always successful (no errors to return)
+- Direct instantiation of struct with provided parameters
+- Most common pattern in the codebase (35+ usages)
+
+#### 2. `Create*(args) (Type, error)` - Factory Patterns
+
+Use for factory functions that perform registry lookups or complex configuration-based initialization.
+
+```go
+// Looks up a guard type from registry and creates it
+func CreateGuard(name string) (Guard, error) { ... }
+
+// Complex initialization with potential failures
+func CreateHTTPServerForMCP(cfg *Config) (*http.Server, error) { ... }
+```
+
+**When to use:**
+- Registry-based object creation (looking up registered types)
+- Complex configuration that might fail
+- Need to validate parameters and return errors
+- Factory pattern with type selection logic
+
+#### 3. `Init*(args) error` - Global State Initialization
+
+Use for initializing global singletons, loggers, or package-level state.
+
+```go
+// Initializes global file logger singleton
+func InitFileLogger(dir string) error { ... }
+
+// Initializes global JSON logger singleton  
+func InitJSONLLogger(dir string) error { ... }
+```
+
+**When to use:**
+- Initializing global variables or package-level state
+- Singleton initialization that should only happen once
+- Setting up loggers, configuration, or other shared resources
+- Typically returns an error if initialization fails
+
+#### Examples from Codebase
+
+**Standard Constructors (`New*`):**
+- `NewConnection`, `NewHTTPConnection` (mcp package)
+- `NewUnified`, `NewSession` (server package)
+- `NewRegistry`, `NewNoopGuard` (guard package)
+- `NewLabel`, `NewAgentLabels` (difc package)
+
+**Factory Patterns (`Create*`):**
+- `CreateGuard` (guard package) - registry lookup
+- `CreateHTTPServerForMCP` (server package) - complex config-based creation
+
+**Global Initialization (`Init*`):**
+- `InitFileLogger`, `InitJSONLLogger`, `InitMarkdownLogger`, `InitServerFileLogger` (logger package)
+
+**When in doubt:** Use `New*` for most constructors. Only use `Create*` when implementing factory patterns with type selection, and `Init*` for global state initialization.
+
 ### Debug Logging
 
 Use the logger package for debug logging:
