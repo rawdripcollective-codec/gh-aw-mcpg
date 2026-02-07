@@ -92,7 +92,7 @@ type ServerConfig struct {
 // LoadFromFile loads configuration from a TOML file.
 func LoadFromFile(path string) (*Config, error) {
 	logConfig.Printf("Loading configuration from file: %s", path)
-	
+
 	// Open file for streaming
 	file, err := os.Open(path)
 	if err != nil {
@@ -108,12 +108,12 @@ func LoadFromFile(path string) (*Config, error) {
 		// Extract position information from ParseError for better error messages
 		// Try pointer type first (for compatibility)
 		if perr, ok := err.(*toml.ParseError); ok {
-			return nil, fmt.Errorf("failed to parse TOML at line %d, column %d: %s", 
+			return nil, fmt.Errorf("failed to parse TOML at line %d, column %d: %s",
 				perr.Position.Line, perr.Position.Col, perr.Message)
 		}
 		// Try value type (used by toml.Decode)
 		if perr, ok := err.(toml.ParseError); ok {
-			return nil, fmt.Errorf("failed to parse TOML at line %d, column %d: %s", 
+			return nil, fmt.Errorf("failed to parse TOML at line %d, column %d: %s",
 				perr.Position.Line, perr.Position.Col, perr.Message)
 		}
 		return nil, fmt.Errorf("failed to parse TOML: %w", err)

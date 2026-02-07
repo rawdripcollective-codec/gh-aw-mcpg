@@ -1118,7 +1118,7 @@ port 3000
 	errMsg := err.Error()
 	assert.Contains(t, errMsg, "line", "Error should mention line number")
 	// Our improved format includes "column" explicitly when ParseError is detected
-	assert.True(t, strings.Contains(errMsg, "column") || strings.Contains(errMsg, "line 2"), 
+	assert.True(t, strings.Contains(errMsg, "column") || strings.Contains(errMsg, "line 2"),
 		"Error should mention column or line position, got: %s", errMsg)
 }
 
@@ -1200,7 +1200,7 @@ func TestLoadFromFile_StreamingLargeFile(t *testing.T) {
 	// Create a TOML file with many servers
 	var tomlContent strings.Builder
 	tomlContent.WriteString("[gateway]\nport = 3000\n\n")
-	
+
 	for i := 1; i <= 100; i++ {
 		tomlContent.WriteString(fmt.Sprintf("[servers.server%d]\n", i))
 		tomlContent.WriteString("command = \"docker\"\n")
@@ -1239,7 +1239,7 @@ args = ["run", "--rm", "-i", "test/container:latest"]
 	cfg, err := LoadFromFile(tmpFile)
 	require.Error(t, err, "Expected error for duplicate key")
 	assert.Nil(t, cfg, "Config should be nil on error")
-	
+
 	// Error should mention the duplicate key
 	assert.Contains(t, err.Error(), "line", "Error should mention line number")
 }
