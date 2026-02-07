@@ -12,6 +12,21 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// integrationPayloadMetadataToMap converts PayloadMetadata to map[string]interface{} for test assertions
+func integrationPayloadMetadataToMap(t *testing.T, data interface{}) map[string]interface{} {
+	t.Helper()
+	pm, ok := data.(PayloadMetadata)
+	if !ok {
+		t.Fatalf("expected PayloadMetadata, got %T", data)
+	}
+	jsonBytes, err := json.Marshal(pm)
+	require.NoError(t, err)
+	var result map[string]interface{}
+	err = json.Unmarshal(jsonBytes, &result)
+	require.NoError(t, err)
+	return result
+}
+
 // TestMiddlewareIntegration tests the complete middleware flow
 func TestMiddlewareIntegration(t *testing.T) {
 	// Create temporary directory for test
@@ -88,8 +103,7 @@ func TestMiddlewareIntegration(t *testing.T) {
 	assert.Len(t, queryIDFromContent, 32, "QueryID should be 32 hex characters")
 
 	// Verify response structure in data return value (for internal use)
-	dataMap, ok := data.(map[string]interface{})
-	require.True(t, ok, "Response should be a map")
+	dataMap := integrationPayloadMetadataToMap(t, data)
 
 	// Check all required fields exist
 	assert.Contains(t, dataMap, "queryID")
@@ -170,7 +184,7 @@ func TestMiddlewareIntegration(t *testing.T) {
 	assert.False(t, dataMap["truncated"].(bool), "Should not be truncated for small payloads")
 
 	// Verify originalSize
-	originalSize := dataMap["originalSize"].(int)
+	originalSize := int(dataMap["originalSize"].(float64))
 	assert.Greater(t, originalSize, 0, "Original size should be positive")
 }
 
@@ -222,7 +236,7 @@ func TestMiddlewareWithLargePayload(t *testing.T) {
 	}
 
 	// Also check data return value
-	dataMap := data.(map[string]interface{})
+	dataMap := integrationPayloadMetadataToMap(t, data)
 
 	// Verify truncation occurred
 	truncated := dataMap["truncated"].(bool)
@@ -277,7 +291,7 @@ func TestMiddlewareDirectoryCreation(t *testing.T) {
 	queryIDFromContent := contentMap["queryID"].(string)
 
 	// Also check data return value
-	dataMap := data.(map[string]interface{})
+	dataMap := integrationPayloadMetadataToMap(t, data)
 	queryID := dataMap["queryID"].(string)
 
 	// Both should match

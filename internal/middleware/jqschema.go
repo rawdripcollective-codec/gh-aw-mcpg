@@ -17,6 +17,22 @@ import (
 
 var logMiddleware = logger.New("middleware:jqschema")
 
+// PayloadTruncatedInstructions is the message returned to clients when a payload
+// has been truncated and saved to the filesystem
+const PayloadTruncatedInstructions = "The payload was too large for an MCP response. The full response can be accessed through the local file system at the payloadPath."
+
+// PayloadMetadata represents the metadata response returned when a payload is too large
+// and has been saved to the filesystem
+type PayloadMetadata struct {
+	QueryID      string      `json:"queryID"`
+	PayloadPath  string      `json:"payloadPath"`
+	Preview      string      `json:"preview"`
+	Schema       interface{} `json:"schema"`
+	OriginalSize int         `json:"originalSize"`
+	Truncated    bool        `json:"truncated"`
+	Instructions string      `json:"instructions"`
+}
+
 // jqSchemaFilter is the jq filter that transforms JSON to schema
 // This is the same logic as in gh-aw shared/jqschema.md
 const jqSchemaFilter = `
@@ -71,17 +87,18 @@ func generateRandomID() string {
 // applyJqSchema applies the jq schema transformation to JSON data
 // Uses pre-compiled query code for better performance (3-10x faster than parsing on each request)
 // Accepts a context for timeout and cancellation support
-func applyJqSchema(ctx context.Context, jsonData interface{}) (string, error) {
+// Returns the schema as an interface{} object (not a JSON string)
+func applyJqSchema(ctx context.Context, jsonData interface{}) (interface{}, error) {
 	// Check if compilation succeeded at init time
 	if jqSchemaCompileErr != nil {
-		return "", jqSchemaCompileErr
+		return nil, jqSchemaCompileErr
 	}
 
 	// Run the pre-compiled query with context support (much faster than Parse+Run)
 	iter := jqSchemaCode.RunWithContext(ctx, jsonData)
 	v, ok := iter.Next()
 	if !ok {
-		return "", fmt.Errorf("jq schema filter returned no results")
+		return nil, fmt.Errorf("jq schema filter returned no results")
 	}
 
 	// Check for errors with type-specific handling
@@ -90,22 +107,17 @@ func applyJqSchema(ctx context.Context, jsonData interface{}) (string, error) {
 		if haltErr, ok := err.(*gojq.HaltError); ok {
 			// HaltError with nil value means clean halt (not an error)
 			if haltErr.Value() == nil {
-				return "", fmt.Errorf("jq schema filter halted cleanly with no output")
+				return nil, fmt.Errorf("jq schema filter halted cleanly with no output")
 			}
 			// HaltError with non-nil value is an actual error
-			return "", fmt.Errorf("jq schema filter halted with error (exit code %d): %w", haltErr.ExitCode(), err)
+			return nil, fmt.Errorf("jq schema filter halted with error (exit code %d): %w", haltErr.ExitCode(), err)
 		}
 		// Generic error case
-		return "", fmt.Errorf("jq schema filter error: %w", err)
+		return nil, fmt.Errorf("jq schema filter error: %w", err)
 	}
 
-	// Convert result to JSON
-	schemaJSON, err := json.Marshal(v)
-	if err != nil {
-		return "", fmt.Errorf("failed to marshal schema result: %w", err)
-	}
-
-	return string(schemaJSON), nil
+	// Return the schema object directly (no JSON marshaling needed here)
+	return v, nil
 }
 
 // savePayload saves the payload to disk and returns the file path
@@ -234,7 +246,7 @@ func WrapToolHandler(
 
 		// Apply jq schema transformation
 		logger.LogDebug("payload", "Applying jq schema transformation: tool=%s, queryID=%s", toolName, queryID)
-		var schemaJSON string
+		var schemaObj interface{}
 		if schemaErr := func() error {
 			// Unmarshal to interface{} for jq processing
 			var jsonData interface{}
@@ -246,7 +258,7 @@ func WrapToolHandler(
 			if err != nil {
 				return err
 			}
-			schemaJSON = schema
+			schemaObj = schema
 			return nil
 		}(); schemaErr != nil {
 			logMiddleware.Printf("Failed to apply jq schema: tool=%s, queryID=%s, sessionID=%s, error=%v", toolName, queryID, sessionID, schemaErr)
@@ -256,8 +268,10 @@ func WrapToolHandler(
 			return result, data, err
 		}
 
+		// Calculate schema size for logging (marshal temporarily)
+		schemaBytes, _ := json.Marshal(schemaObj)
 		logger.LogDebug("payload", "Schema transformation completed: tool=%s, queryID=%s, schemaSize=%d bytes",
-			toolName, queryID, len(schemaJSON))
+			toolName, queryID, len(schemaBytes))
 
 		// Build the transformed response: first 500 chars + schema
 		payloadStr := string(payloadJSON)
@@ -273,26 +287,21 @@ func WrapToolHandler(
 				toolName, queryID, len(payloadStr))
 		}
 
-		// Create rewritten response
-		rewrittenResponse := map[string]interface{}{
-			"queryID":      queryID,
-			"payloadPath":  filePath,
-			"preview":      preview,
-			"schema":       schemaJSON,
-			"originalSize": len(payloadJSON),
-			"truncated":    truncated,
+		// Create rewritten response using the PayloadMetadata struct
+		rewrittenResponse := PayloadMetadata{
+			QueryID:      queryID,
+			PayloadPath:  filePath,
+			Preview:      preview,
+			Schema:       schemaObj,
+			OriginalSize: len(payloadJSON),
+			Truncated:    truncated,
+			Instructions: PayloadTruncatedInstructions,
 		}
 
 		logMiddleware.Printf("Rewritten response: tool=%s, queryID=%s, sessionID=%s, originalSize=%d, truncated=%v",
 			toolName, queryID, sessionID, len(payloadJSON), truncated)
 		logger.LogInfo("payload", "Created metadata response for client: tool=%s, queryID=%s, session=%s, payloadPath=%s, originalSize=%d bytes, truncated=%v",
 			toolName, queryID, sessionID, filePath, len(payloadJSON), truncated)
-
-		// Parse the schema JSON string back to an object for cleaner display
-		var schemaObj interface{}
-		if err := json.Unmarshal([]byte(schemaJSON), &schemaObj); err == nil {
-			rewrittenResponse["schema"] = schemaObj
-		}
 
 		// Marshal the rewritten response to JSON for the Content field
 		rewrittenJSON, marshalErr := json.Marshal(rewrittenResponse)
