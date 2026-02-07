@@ -72,6 +72,128 @@ import (
 //
 // When adding a new logger type, follow this pattern to ensure consistent behavior.
 
+// Initialization Pattern for Logger Types
+//
+// The logger package follows a consistent initialization pattern across all logger types,
+// with support for customizable fallback behavior. This section documents the pattern
+// and explains the different fallback strategies used by each logger type.
+//
+// Standard Initialization Pattern:
+//
+// All logger types use the initLogger() generic helper function for initialization:
+//
+//	func Init*Logger(logDir, fileName string) error {
+//	    logger, err := initLogger(
+//	        logDir, fileName, fileFlags,
+//	        setupFunc,    // Configure logger after file is opened
+//	        errorHandler, // Handle initialization failures
+//	    )
+//	    initGlobal*Logger(logger)
+//	    return err
+//	}
+//
+// The initLogger() helper:
+//  1. Attempts to create the log directory (if needed)
+//  2. Opens the log file with specified flags (os.O_APPEND, os.O_TRUNC, etc.)
+//  3. Calls setupFunc to configure the logger instance
+//  4. On error, calls errorHandler to implement fallback behavior
+//  5. Returns the initialized logger and any error
+//
+// Fallback Behavior Strategies:
+//
+// Different logger types implement different fallback strategies based on their purpose:
+//
+// 1. FileLogger - Stdout Fallback:
+//    - Purpose: Operational logs must always be visible
+//    - Fallback: Redirects to stdout if log directory/file creation fails
+//    - Error: Returns nil (never fails, always provides output)
+//    - Use case: Critical operational messages that must be seen
+//
+//    Example error handler:
+//    func(err error, logDir, fileName string) (*FileLogger, error) {
+//        log.Printf("WARNING: Failed to initialize log file: %v", err)
+//        log.Printf("WARNING: Falling back to stdout for logging")
+//        return &FileLogger{
+//            logDir:      logDir,
+//            fileName:    fileName,
+//            useFallback: true,
+//            logger:      log.New(os.Stdout, "", 0),
+//        }, nil
+//    }
+//
+// 2. MarkdownLogger - Silent Fallback:
+//    - Purpose: GitHub workflow preview logs (optional enhancement)
+//    - Fallback: Sets useFallback flag, produces no output
+//    - Error: Returns nil (never fails, silently disables)
+//    - Use case: Nice-to-have logs that shouldn't block operations
+//
+//    Example error handler:
+//    func(err error, logDir, fileName string) (*MarkdownLogger, error) {
+//        return &MarkdownLogger{
+//            logDir:      logDir,
+//            fileName:    fileName,
+//            useFallback: true,
+//        }, nil
+//    }
+//
+// 3. JSONLLogger - Strict Mode:
+//    - Purpose: Machine-readable RPC message logs for analysis
+//    - Fallback: None - returns error immediately
+//    - Error: Returns error to caller
+//    - Use case: Structured data that requires file storage
+//
+//    Example error handler:
+//    func(err error, logDir, fileName string) (*JSONLLogger, error) {
+//        return nil, err
+//    }
+//
+// 4. ServerFileLogger - Unified Fallback:
+//    - Purpose: Per-server log files for troubleshooting
+//    - Fallback: Sets useFallback flag, logs to unified logger only
+//    - Error: Returns nil (never fails, falls back to unified logging)
+//    - Use case: Per-server logs are helpful but not required
+//
+//    Note: ServerFileLogger doesn't use initLogger() because it creates
+//    files on-demand, but follows the same fallback philosophy.
+//
+// Global Logger Management:
+//
+// After initialization, all logger types register themselves as global loggers
+// using the generic initGlobal*Logger() helpers from global_helpers.go:
+//
+//  - initGlobalFileLogger()
+//  - initGlobalJSONLLogger()
+//  - initGlobalMarkdownLogger()
+//  - initGlobalServerFileLogger()
+//
+// These helpers ensure thread-safe initialization with proper cleanup of any
+// existing logger instance.
+//
+// When to Use Each Logger Type:
+//
+// - FileLogger: Required operational logs (startup, errors, warnings)
+// - MarkdownLogger: Optional GitHub workflow preview logs
+// - JSONLLogger: Structured RPC message logs for tooling/analysis
+// - ServerFileLogger: Per-server troubleshooting logs
+//
+// Adding a New Logger Type:
+//
+// When adding a new logger type:
+//  1. Implement Close() method following the Close Pattern (above)
+//  2. Add type to closableLogger constraint in global_helpers.go
+//  3. Use initLogger() for initialization with appropriate fallback strategy
+//  4. Add initGlobal*Logger() and closeGlobal*Logger() helpers
+//  5. Document the fallback strategy and use case
+//
+// This consistent pattern ensures:
+//  - Predictable behavior across all loggers
+//  - Easy to understand fallback strategies
+//  - Minimal code duplication
+//  - Type-safe global logger management
+//
+// See file_logger.go, jsonl_logger.go, markdown_logger.go, and server_file_logger.go
+// for complete implementation examples.
+
 // closeLogFile is a common helper for closing log files with consistent error handling.
 // It syncs buffered data before closing and handles errors appropriately.
 // The mutex should already be held by the caller.
@@ -148,7 +270,7 @@ type loggerErrorHandlerFunc[T closableLogger] func(err error, logDir, fileName s
 //   - fileName: Name of the log file
 //   - flags: File opening flags (e.g., os.O_APPEND, os.O_TRUNC)
 //   - setup: Function to configure the logger after the file is opened
-//   - onError: Function to handle initialization errors (can return fallback or error)
+//   - onError: Function to handle initialization errors (implements fallback strategy)
 //
 // Returns:
 //   - T: The initialized logger instance
@@ -157,7 +279,13 @@ type loggerErrorHandlerFunc[T closableLogger] func(err error, logDir, fileName s
 // This function:
 //  1. Attempts to open the log file with the specified flags
 //  2. If successful, calls the setup function to configure the logger
-//  3. If unsuccessful, calls the error handler to decide on fallback behavior
+//  3. If unsuccessful, calls the error handler to implement the logger's fallback strategy
+//
+// The onError handler determines the fallback behavior. See "Initialization Pattern for Logger Types"
+// documentation above for details on fallback strategies:
+//   - FileLogger: Falls back to stdout
+//   - MarkdownLogger: Silent fallback (no output)
+//   - JSONLLogger: Returns error (no fallback)
 func initLogger[T closableLogger](
 	logDir, fileName string,
 	flags int,
