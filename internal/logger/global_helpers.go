@@ -17,9 +17,9 @@ package logger
 import "sync"
 
 // closableLogger is a constraint for types that have a Close method.
-// This is satisfied by *FileLogger, *JSONLLogger, and *MarkdownLogger.
+// This is satisfied by *FileLogger, *JSONLLogger, *MarkdownLogger, and *ServerFileLogger.
 type closableLogger interface {
-	*FileLogger | *JSONLLogger | *MarkdownLogger
+	*FileLogger | *JSONLLogger | *MarkdownLogger | *ServerFileLogger
 	Close() error
 }
 
@@ -112,4 +112,14 @@ func initGlobalMarkdownLogger(logger *MarkdownLogger) {
 // closeGlobalMarkdownLogger closes the global MarkdownLogger using the generic helper.
 func closeGlobalMarkdownLogger() error {
 	return closeGlobalLogger(&globalMarkdownMu, &globalMarkdownLogger)
+}
+
+// initGlobalServerFileLogger initializes the global ServerFileLogger using the generic helper.
+func initGlobalServerFileLogger(logger *ServerFileLogger) {
+	initGlobalLogger(&globalServerLoggerMu, &globalServerFileLogger, logger)
+}
+
+// closeGlobalServerFileLogger closes the global ServerFileLogger using the generic helper.
+func closeGlobalServerFileLogger() error {
+	return closeGlobalLogger(&globalServerLoggerMu, &globalServerFileLogger)
 }

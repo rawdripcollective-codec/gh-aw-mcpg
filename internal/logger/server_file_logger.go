@@ -212,24 +212,5 @@ func LogDebugWithServer(serverID, category, format string, args ...interface{}) 
 
 // CloseServerFileLogger closes the global server file logger
 func CloseServerFileLogger() error {
-	globalServerLoggerMu.Lock()
-	defer globalServerLoggerMu.Unlock()
-
-	if globalServerFileLogger != nil {
-		err := globalServerFileLogger.Close()
-		globalServerFileLogger = nil
-		return err
-	}
-	return nil
-}
-
-// Helper function for initializing the global server file logger
-func initGlobalServerFileLogger(logger *ServerFileLogger) {
-	globalServerLoggerMu.Lock()
-	defer globalServerLoggerMu.Unlock()
-
-	if globalServerFileLogger != nil {
-		globalServerFileLogger.Close()
-	}
-	globalServerFileLogger = logger
+	return closeGlobalServerFileLogger()
 }
