@@ -127,7 +127,9 @@ For the complete JSON configuration specification with all validation rules, see
     "apiKey": "your-api-key",
     "domain": "localhost",
     "startupTimeout": 30,
-    "toolTimeout": 60
+    "toolTimeout": 60,
+    "payloadDir": "/tmp/jq-payloads",
+    "payloadSizeThreshold": 1024
   }
 }
 ```
@@ -194,6 +196,12 @@ See **[Configuration Specification](https://github.com/github/gh-aw/blob/main/do
   - Must be positive integer
 - **`toolTimeout`** (optional): Seconds to wait for tool execution (default: 120)
   - Must be positive integer
+- **`payloadDir`** (optional): Directory for storing large payload files (default: `/tmp/jq-payloads`)
+  - Payloads are organized by session: `{payloadDir}/{sessionID}/{queryID}/payload.json`
+- **`payloadSizeThreshold`** (optional): Size threshold in bytes for payload storage (default: 1024)
+  - Payloads **larger** than this threshold are stored to disk and return metadata
+  - Payloads **smaller than or equal** to this threshold are returned inline
+  - Common values: `512` (aggressive), `1024` (default), `2048` (balanced), `10240` (minimal storage)
 
 **Note**: Gateway configuration fields are validated and parsed but not yet fully implemented.
 
