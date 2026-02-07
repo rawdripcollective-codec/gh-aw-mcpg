@@ -23,6 +23,20 @@ import (
 
 var logConn = logger.New("mcp:connection")
 
+// isHTTPConnectionError checks if an error is a network connection error
+// This helper reduces code duplication for checking common connection error patterns.
+// Note: Uses string matching which is fragile but consistent with existing patterns in the codebase.
+// TODO: Consider using errors.Is() or type assertions (*net.OpError) for more robust error classification.
+func isHTTPConnectionError(err error) bool {
+	if err == nil {
+		return false
+	}
+	errMsg := err.Error()
+	return strings.Contains(errMsg, "connection refused") ||
+		strings.Contains(errMsg, "no such host") ||
+		strings.Contains(errMsg, "network is unreachable")
+}
+
 // parseSSEResponse extracts JSON data from SSE-formatted response
 // SSE format: "event: message\ndata: {json}\n\n"
 func parseSSEResponse(body []byte) ([]byte, error) {
@@ -584,9 +598,7 @@ func (c *Connection) initializeHTTPSession() (string, error) {
 	httpResp, err := c.httpClient.Do(httpReq)
 	if err != nil {
 		// Check if it's a connection error (cannot connect at all)
-		if strings.Contains(err.Error(), "connection refused") ||
-			strings.Contains(err.Error(), "no such host") ||
-			strings.Contains(err.Error(), "network is unreachable") {
+		if isHTTPConnectionError(err) {
 			return "", fmt.Errorf("cannot connect to HTTP backend at %s: %w", c.httpURL, err)
 		}
 		return "", fmt.Errorf("failed to send initialize request to %s: %w", c.httpURL, err)
@@ -698,9 +710,7 @@ func (c *Connection) sendHTTPRequest(ctx context.Context, method string, params 
 	httpResp, err := c.httpClient.Do(httpReq)
 	if err != nil {
 		// Check if it's a connection error (cannot connect at all)
-		if strings.Contains(err.Error(), "connection refused") ||
-			strings.Contains(err.Error(), "no such host") ||
-			strings.Contains(err.Error(), "network is unreachable") {
+		if isHTTPConnectionError(err) {
 			return nil, fmt.Errorf("cannot connect to HTTP backend at %s: %w", c.httpURL, err)
 		}
 		return nil, fmt.Errorf("failed to send HTTP request to %s: %w", c.httpURL, err)

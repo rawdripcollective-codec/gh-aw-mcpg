@@ -320,7 +320,7 @@ func (us *UnifiedServer) registerToolsFromBackend(serverID string) error {
 			toolArgs, err := parseToolArguments(req)
 			if err != nil {
 				logger.LogError("client", "Failed to unmarshal tool arguments, tool=%s, error=%v", toolNameCopy, err)
-				return &sdk.CallToolResult{IsError: true}, nil, err
+				return newErrorCallToolResult(err)
 			}
 
 			// Log the MCP tool call request
@@ -331,7 +331,7 @@ func (us *UnifiedServer) registerToolsFromBackend(serverID string) error {
 			// Check session is initialized
 			if err := us.requireSession(ctx); err != nil {
 				logger.LogError("client", "MCP tool call failed: session not initialized, session=%s, tool=%s", sessionID, toolNameCopy)
-				return &sdk.CallToolResult{IsError: true}, nil, err
+				return newErrorCallToolResult(err)
 			}
 
 			result, data, err := us.callBackendTool(ctx, serverIDCopy, toolNameCopy, toolArgs)
@@ -395,7 +395,7 @@ func (us *UnifiedServer) registerSysTools() error {
 		toolArgs, err := parseToolArguments(req)
 		if err != nil {
 			logger.LogError("client", "Failed to unmarshal sys_init arguments, error=%v", err)
-			return &sdk.CallToolResult{IsError: true}, nil, err
+			return newErrorCallToolResult(err)
 		}
 
 		// Extract token from args
@@ -408,7 +408,7 @@ func (us *UnifiedServer) registerSysTools() error {
 		sessionID := us.getSessionID(ctx)
 		if sessionID == "" {
 			logger.LogError("client", "MCP session initialization failed: no session ID provided")
-			return &sdk.CallToolResult{IsError: true}, nil, fmt.Errorf("no session ID provided")
+			return newErrorCallToolResult(fmt.Errorf("no session ID provided"))
 		}
 
 		logger.LogInfo("client", "MCP session initialization started, session=%s, has_token=%v", sessionID, token != "")
@@ -436,7 +436,7 @@ func (us *UnifiedServer) registerSysTools() error {
 		result, err := us.sysServer.HandleRequest("tools/call", json.RawMessage(params))
 		if err != nil {
 			logger.LogError("client", "MCP session initialization: sys_init call failed, session=%s, error=%v", sessionID, err)
-			return &sdk.CallToolResult{IsError: true}, nil, err
+			return newErrorCallToolResult(err)
 		}
 
 		resultJSON, _ := json.Marshal(result)
@@ -486,7 +486,7 @@ func (us *UnifiedServer) registerSysTools() error {
 		// Check session is initialized
 		if err := us.requireSession(ctx); err != nil {
 			logger.LogError("client", "MCP sys_list_servers failed: session not initialized, session=%s", sessionID)
-			return &sdk.CallToolResult{IsError: true}, nil, err
+			return newErrorCallToolResult(err)
 		}
 
 		params, _ := json.Marshal(map[string]interface{}{
@@ -496,7 +496,7 @@ func (us *UnifiedServer) registerSysTools() error {
 		result, err := us.sysServer.HandleRequest("tools/call", json.RawMessage(params))
 		if err != nil {
 			logger.LogError("client", "MCP sys_list_servers error, session=%s, error=%v", sessionID, err)
-			return &sdk.CallToolResult{IsError: true}, nil, err
+			return newErrorCallToolResult(err)
 		}
 
 		resultJSON, _ := json.Marshal(result)
@@ -657,7 +657,7 @@ func (us *UnifiedServer) callBackendTool(ctx context.Context, serverID, toolName
 	resource, operation, err := g.LabelResource(ctx, toolName, args, backendCaller, us.capabilities)
 	if err != nil {
 		log.Printf("[DIFC] Guard labeling failed: %v", err)
-		return &sdk.CallToolResult{IsError: true}, nil, fmt.Errorf("guard labeling failed: %w", err)
+		return newErrorCallToolResult(fmt.Errorf("guard labeling failed: %w", err))
 	}
 
 	log.Printf("[DIFC] Resource: %s | Operation: %s | Secrecy: %v | Integrity: %v",
@@ -688,7 +688,7 @@ func (us *UnifiedServer) callBackendTool(ctx context.Context, serverID, toolName
 	sessionID := us.getSessionID(ctx)
 	conn, err := launcher.GetOrLaunchForSession(us.launcher, serverID, sessionID)
 	if err != nil {
-		return &sdk.CallToolResult{IsError: true}, nil, fmt.Errorf("failed to connect: %w", err)
+		return newErrorCallToolResult(fmt.Errorf("failed to connect: %w", err))
 	}
 
 	response, err := conn.SendRequestWithServerID(ctx, "tools/call", map[string]interface{}{
@@ -696,25 +696,25 @@ func (us *UnifiedServer) callBackendTool(ctx context.Context, serverID, toolName
 		"arguments": args,
 	}, serverID)
 	if err != nil {
-		return &sdk.CallToolResult{IsError: true}, nil, err
+		return newErrorCallToolResult(err)
 	}
 
 	// Check if the backend returned an error
 	if response.Error != nil {
-		return &sdk.CallToolResult{IsError: true}, nil, fmt.Errorf("backend error: code=%d, message=%s", response.Error.Code, response.Error.Message)
+		return newErrorCallToolResult(fmt.Errorf("backend error: code=%d, message=%s", response.Error.Code, response.Error.Message))
 	}
 
 	// Parse the backend result
 	var backendResult interface{}
 	if err := json.Unmarshal(response.Result, &backendResult); err != nil {
-		return &sdk.CallToolResult{IsError: true}, nil, fmt.Errorf("failed to parse result: %w", err)
+		return newErrorCallToolResult(fmt.Errorf("failed to parse result: %w", err))
 	}
 
 	// **Phase 4: Guard labels the response data (for fine-grained filtering)**
 	labeledData, err := g.LabelResponse(ctx, toolName, backendResult, backendCaller, us.capabilities)
 	if err != nil {
 		log.Printf("[DIFC] Response labeling failed: %v", err)
-		return &sdk.CallToolResult{IsError: true}, nil, fmt.Errorf("response labeling failed: %w", err)
+		return newErrorCallToolResult(fmt.Errorf("response labeling failed: %w", err))
 	}
 
 	// **Phase 5: Reference Monitor performs fine-grained filtering (if applicable)**
@@ -735,13 +735,13 @@ func (us *UnifiedServer) callBackendTool(ctx context.Context, serverID, toolName
 			// Convert filtered data to result
 			finalResult, err = filtered.ToResult()
 			if err != nil {
-				return &sdk.CallToolResult{IsError: true}, nil, fmt.Errorf("failed to convert filtered data: %w", err)
+				return newErrorCallToolResult(fmt.Errorf("failed to convert filtered data: %w", err))
 			}
 		} else {
 			// Simple labeled data - already passed coarse-grained check
 			finalResult, err = labeledData.ToResult()
 			if err != nil {
-				return &sdk.CallToolResult{IsError: true}, nil, fmt.Errorf("failed to convert labeled data: %w", err)
+				return newErrorCallToolResult(fmt.Errorf("failed to convert labeled data: %w", err))
 			}
 		}
 
@@ -767,7 +767,7 @@ func (us *UnifiedServer) callBackendTool(ctx context.Context, serverID, toolName
 	// Convert finalResult to SDK CallToolResult format
 	callResult, err := convertToCallToolResult(finalResult)
 	if err != nil {
-		return &sdk.CallToolResult{IsError: true}, nil, fmt.Errorf("failed to convert result: %w", err)
+		return newErrorCallToolResult(fmt.Errorf("failed to convert result: %w", err))
 	}
 
 	return callResult, finalResult, nil
@@ -777,6 +777,13 @@ func (us *UnifiedServer) callBackendTool(ctx context.Context, serverID, toolName
 func (us *UnifiedServer) Run(transport sdk.Transport) error {
 	log.Println("Starting unified MCP server...")
 	return us.server.Run(us.ctx, transport)
+}
+
+// newErrorCallToolResult creates a standard error CallToolResult
+// This helper reduces code duplication for error returns following the pattern:
+// return &sdk.CallToolResult{IsError: true}, nil, err
+func newErrorCallToolResult(err error) (*sdk.CallToolResult, interface{}, error) {
+	return &sdk.CallToolResult{IsError: true}, nil, err
 }
 
 // parseToolArguments extracts and unmarshals tool arguments from a CallToolRequest
