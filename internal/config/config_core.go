@@ -106,6 +106,9 @@ func LoadFromFile(path string) (*Config, error) {
 	md, err := decoder.Decode(&cfg)
 	if err != nil {
 		// Extract position information from ParseError for better error messages
+		// Note: We use Position.Line, Position.Col, and Message separately to provide
+		// a consistent, precise error format. perr.Error() includes line info but not
+		// column, so we construct our own message with both for better UX.
 		// Try pointer type first (for compatibility)
 		if perr, ok := err.(*toml.ParseError); ok {
 			return nil, fmt.Errorf("failed to parse TOML at line %d, column %d: %s",
