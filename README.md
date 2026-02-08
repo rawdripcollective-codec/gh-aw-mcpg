@@ -137,7 +137,7 @@ For the complete JSON configuration specification with all validation rules, see
 
 - **`type`** (optional): Server transport type
   - `"stdio"` - Standard input/output transport (default)
-  - `"http"` - HTTP transport (not yet implemented)
+  - `"http"` - HTTP transport (fully supported)
   - `"local"` - Alias for `"stdio"` (backward compatibility)
 
 - **`container`** (required for stdio in JSON format): Docker container image (e.g., `"ghcr.io/github/github-mcp-server:latest"`)
