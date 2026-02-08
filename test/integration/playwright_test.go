@@ -82,6 +82,10 @@ func TestPlaywrightMCPServer(t *testing.T) {
 	defer cancel()
 
 	port := "13100"
+
+	// Kill any stale processes on this port from previous test runs
+	killProcessOnPort(t, port)
+
 	cmd := exec.CommandContext(ctx, binaryPath,
 		"--config-stdin",
 		"--listen", "127.0.0.1:"+port,
@@ -421,10 +425,13 @@ CMD ["node", "mock-mcp-server.js"]
 	defer cancel()
 
 	port := "13101"
+
+	// Kill any stale processes on this port from previous test runs
+	killProcessOnPort(t, port)
+
 	cmd := exec.CommandContext(ctx, binaryPath,
 		"--config-stdin",
 		"--listen", "127.0.0.1:"+port,
-		"--unified",
 	)
 
 	cmd.Stdin = bytes.NewReader(configJSON)
@@ -441,10 +448,9 @@ CMD ["node", "mock-mcp-server.js"]
 		if cmd.Process != nil {
 			cmd.Process.Kill()
 		}
-		if t.Failed() {
-			t.Logf("STDOUT:\n%s", stdout.String())
-			t.Logf("STDERR:\n%s", stderr.String())
-		}
+		// Always log output for debugging
+		t.Logf("STDOUT:\n%s", stdout.String())
+		t.Logf("STDERR:\n%s", stderr.String())
 	}()
 
 	// Wait for server to start
@@ -481,7 +487,7 @@ CMD ["node", "mock-mcp-server.js"]
 			},
 		}
 
-		result := sendMCPRequest(t, serverURL+"/mcp", "test-mock-key", initReq)
+		result := sendMCPRequest(t, serverURL+"/mcp/mock-playwright", "test-mock-key", initReq)
 
 		// Verify initialize succeeded
 		if _, ok := result["error"]; ok {
@@ -496,7 +502,7 @@ CMD ["node", "mock-mcp-server.js"]
 			"params":  map[string]interface{}{},
 		}
 
-		result = sendMCPRequest(t, serverURL+"/mcp", "test-mock-key", listReq)
+		result = sendMCPRequest(t, serverURL+"/mcp/mock-playwright", "test-mock-key", listReq)
 
 		// The key test is that we didn't panic, not whether tools/list works perfectly
 		// Check if we got any tools registered (may be zero if backend connection failed)

@@ -19,18 +19,17 @@ var logMiddleware = logger.New("middleware:jqschema")
 
 // PayloadTruncatedInstructions is the message returned to clients when a payload
 // has been truncated and saved to the filesystem
-const PayloadTruncatedInstructions = "The payload was too large for an MCP response. The full response can be accessed through the local file system at the payloadPath."
+const PayloadTruncatedInstructions = "The payload was too large for an MCP response. The payloadSchema approximates the structure of the full payload. The full response can be accessed through the local file system at the payloadPath."
 
 // PayloadMetadata represents the metadata response returned when a payload is too large
 // and has been saved to the filesystem
 type PayloadMetadata struct {
-	QueryID      string      `json:"queryID"`
-	PayloadPath  string      `json:"payloadPath"`
-	Preview      string      `json:"preview"`
-	Schema       interface{} `json:"schema"`
-	OriginalSize int         `json:"originalSize"`
-	Truncated    bool        `json:"truncated"`
-	Instructions string      `json:"instructions"`
+	AgentInstructions string      `json:"agentInstructions"`
+	PayloadPath       string      `json:"payloadPath"`
+	PayloadPreview    string      `json:"payloadPreview"`
+	PayloadSchema     interface{} `json:"payloadSchema"`
+	OriginalSize      int         `json:"originalSize"`
+	QueryID           string      `json:"-"` // Internal use only, not serialized to clients
 }
 
 // jqSchemaFilter is the jq filter that transforms JSON to schema
@@ -303,13 +302,12 @@ func WrapToolHandler(
 
 		// Create rewritten response using the PayloadMetadata struct
 		rewrittenResponse := PayloadMetadata{
-			QueryID:      queryID,
-			PayloadPath:  filePath,
-			Preview:      preview,
-			Schema:       schemaObj,
-			OriginalSize: len(payloadJSON),
-			Truncated:    truncated,
-			Instructions: PayloadTruncatedInstructions,
+			AgentInstructions: PayloadTruncatedInstructions,
+			PayloadPath:       filePath,
+			PayloadPreview:    preview,
+			PayloadSchema:     schemaObj,
+			OriginalSize:      len(payloadJSON),
+			QueryID:           queryID,
 		}
 
 		logMiddleware.Printf("Rewritten response: tool=%s, queryID=%s, sessionID=%s, originalSize=%d, truncated=%v",

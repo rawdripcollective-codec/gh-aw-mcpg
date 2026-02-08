@@ -171,25 +171,17 @@ func TestWrapToolHandler(t *testing.T) {
 	require.NoError(t, err, "Content should be valid JSON")
 
 	// Verify transformed response in Content field
-	assert.Contains(t, contentMap, "queryID", "Content should contain queryID")
 	assert.Contains(t, contentMap, "payloadPath", "Content should contain payloadPath")
-	assert.Contains(t, contentMap, "preview", "Content should contain preview")
-	assert.Contains(t, contentMap, "schema", "Content should contain schema")
+	assert.Contains(t, contentMap, "payloadPreview", "Content should contain payloadPreview")
+	assert.Contains(t, contentMap, "payloadSchema", "Content should contain payloadSchema")
 	assert.Contains(t, contentMap, "originalSize", "Content should contain originalSize")
-	assert.Contains(t, contentMap, "truncated", "Content should contain truncated")
-
-	// Verify queryID is a valid hex string
-	queryID, ok := contentMap["queryID"].(string)
-	require.True(t, ok, "queryID should be a string")
-	assert.NotEmpty(t, queryID, "queryID should not be empty")
 
 	// Verify schema is present
-	schema := contentMap["schema"]
+	schema := contentMap["payloadSchema"]
 	assert.NotNil(t, schema, "Schema should not be nil")
 
 	// Also verify rewritten response in data return value (for internal use)
 	dataMap := payloadMetadataToMap(t, data)
-	assert.Contains(t, dataMap, "queryID", "Data should contain queryID")
 	assert.Contains(t, dataMap, "payloadPath", "Data should contain payloadPath")
 
 	// Clean up test directory
@@ -243,7 +235,7 @@ func TestWrapToolHandler_LongPayload(t *testing.T) {
 	}
 
 	wrapped := WrapToolHandler(mockHandler, "test_tool", baseDir, 100, testGetSessionID)
-	result, data, err := wrapped(context.Background(), &sdk.CallToolRequest{}, map[string]interface{}{})
+	result, _, err := wrapped(context.Background(), &sdk.CallToolRequest{}, map[string]interface{}{})
 
 	require.NoError(t, err, "Should not return error")
 	require.NotNil(t, result, "Result should not be nil")
@@ -258,15 +250,10 @@ func TestWrapToolHandler_LongPayload(t *testing.T) {
 	err = json.Unmarshal([]byte(textContent.Text), &contentMap)
 	require.NoError(t, err, "Content should be valid JSON")
 
-	// Verify truncation in Content field
-	assert.True(t, contentMap["truncated"].(bool), "Should indicate truncation in Content")
-	preview := contentMap["preview"].(string)
+	// Verify preview truncation in Content field
+	preview := contentMap["payloadPreview"].(string)
 	assert.LessOrEqual(t, len(preview), 503, "Preview should be truncated to ~500 chars + '...'")
 	assert.True(t, strings.HasSuffix(preview, "..."), "Preview should end with '...'")
-
-	// Also verify in data return value
-	dataMap := payloadMetadataToMap(t, data)
-	assert.True(t, dataMap["truncated"].(bool), "Should indicate truncation in data")
 }
 
 // TestPayloadStorage_SessionIsolation verifies that payloads are stored in session-specific directories
@@ -360,9 +347,6 @@ func TestPayloadStorage_LargePayloadPreserved(t *testing.T) {
 
 	dataMap := payloadMetadataToMap(t, data)
 
-	// Verify truncation occurred
-	assert.True(t, dataMap["truncated"].(bool), "Large payload should be truncated")
-
 	// Get the payload path
 	payloadPath := dataMap["payloadPath"].(string)
 	assert.FileExists(t, payloadPath, "Payload file should exist")
@@ -410,10 +394,11 @@ func TestPayloadStorage_DirectoryStructure(t *testing.T) {
 	_, data, err := wrapped(context.Background(), &sdk.CallToolRequest{}, map[string]interface{}{})
 	require.NoError(t, err)
 
-	dataMap := payloadMetadataToMap(t, data)
-
-	payloadPath := dataMap["payloadPath"].(string)
-	queryID := dataMap["queryID"].(string)
+	// Access QueryID directly from the struct (it's excluded from JSON via json:"-")
+	pm, ok := data.(PayloadMetadata)
+	require.True(t, ok, "data should be PayloadMetadata")
+	queryID := pm.QueryID
+	payloadPath := pm.PayloadPath
 
 	// Verify the expected directory structure
 	expectedDir := filepath.Join(baseDir, sessionID, queryID)
@@ -451,9 +436,11 @@ func TestPayloadStorage_MultipleRequestsSameSession(t *testing.T) {
 		_, data, err := wrapped(context.Background(), &sdk.CallToolRequest{}, map[string]interface{}{})
 		require.NoError(t, err)
 
-		dataMap := payloadMetadataToMap(t, data)
-		payloadPaths = append(payloadPaths, dataMap["payloadPath"].(string))
-		queryIDs = append(queryIDs, dataMap["queryID"].(string))
+		// Access QueryID directly from the struct (it's excluded from JSON via json:"-")
+		pm, ok := data.(PayloadMetadata)
+		require.True(t, ok, "data should be PayloadMetadata")
+		payloadPaths = append(payloadPaths, pm.PayloadPath)
+		queryIDs = append(queryIDs, pm.QueryID)
 	}
 
 	// Verify all payload paths are unique
@@ -637,7 +624,7 @@ func TestPayloadSizeThreshold_SmallPayload(t *testing.T) {
 	// Verify no PayloadMetadata fields are present
 	assert.NotContains(t, dataMap, "queryID", "Should not have queryID field")
 	assert.NotContains(t, dataMap, "payloadPath", "Should not have payloadPath field")
-	assert.NotContains(t, dataMap, "preview", "Should not have preview field")
+	assert.NotContains(t, dataMap, "payloadPreview", "Should not have payloadPreview field")
 
 	// Verify no files were created in the payload directory
 	entries, err := os.ReadDir(baseDir)
@@ -845,8 +832,8 @@ func TestThresholdBehavior_SmallPayloadsAsIs(t *testing.T) {
 			// Verify no PayloadMetadata fields
 			assert.NotContains(t, dataMap, "queryID", "Should not have queryID field")
 			assert.NotContains(t, dataMap, "payloadPath", "Should not have payloadPath field")
-			assert.NotContains(t, dataMap, "preview", "Should not have preview field")
-			assert.NotContains(t, dataMap, "schema", "Should not have schema field")
+			assert.NotContains(t, dataMap, "payloadPreview", "Should not have payloadPreview field")
+			assert.NotContains(t, dataMap, "payloadSchema", "Should not have payloadSchema field")
 
 			// Verify original data is preserved
 			payloadJSON, _ := json.Marshal(tt.payload)
@@ -924,8 +911,8 @@ func TestThresholdBehavior_LargePayloadsUsePayloadDir(t *testing.T) {
 			// Verify PayloadMetadata fields are present
 			assert.NotEmpty(t, pm.QueryID, "Should have queryID")
 			assert.NotEmpty(t, pm.PayloadPath, "Should have payloadPath")
-			assert.NotEmpty(t, pm.Preview, "Should have preview")
-			assert.NotNil(t, pm.Schema, "Should have schema")
+			assert.NotEmpty(t, pm.PayloadPreview, "Should have payloadPreview")
+			assert.NotNil(t, pm.PayloadSchema, "Should have payloadSchema")
 			assert.True(t, pm.OriginalSize > tt.threshold, "Original size should exceed threshold: %s", tt.comment)
 
 			// Verify file was created at the specified path
