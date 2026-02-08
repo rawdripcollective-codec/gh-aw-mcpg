@@ -33,8 +33,7 @@ mcp-servers:
   filesystem:
     type: stdio
     container: "mcp/filesystem"
-    env:
-      ALLOWED_PATHS: "/tmp,/workspace"
+    entrypointArgs: ["/workspace"]
     mounts:
       - "/tmp/mcp-test-fs:/workspace:rw"
   memory:
@@ -95,7 +94,7 @@ mcp-servers:
     type: stdio
     container: "mcr.microsoft.com/playwright:v1.49.1-noble"
     args: ["--init", "--network", "host"]
-    entrypointArgs: ["--output-dir", "/tmp/gh-aw/mcp-logs/playwright", "--allowed-hosts", "localhost;localhost:*;127.0.0.1;127.0.0.1:*;github.com", "--allowed-origins", "localhost;localhost:*;127.0.0.1;127.0.0.1:*;github.com"]
+    entrypointArgs: ["--output-dir", "/tmp/gh-aw/mcp-logs/playwright", "--allowed-hosts", "localhost:*;127.0.0.1:*;github.com", "--allowed-origins", "localhost:*;127.0.0.1:*;github.com"]
 #    env:
 #      PLAYWRIGHT_BROWSERS_PATH: "/ms-playwright"
       # Launch options to prevent ERR_BLOCKED_BY_CLIENT errors in CI testing
