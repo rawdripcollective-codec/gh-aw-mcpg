@@ -1243,3 +1243,155 @@ args = ["run", "--rm", "-i", "test/container:latest"]
 	// Error should mention the duplicate key
 	assert.Contains(t, err.Error(), "line", "Error should mention line number")
 }
+
+// TestLoadFromStdin_FilesystemServerConfig tests that filesystem server configuration
+// correctly passes directories as entrypointArgs instead of environment variables.
+func TestLoadFromStdin_FilesystemServerConfig(t *testing.T) {
+	jsonConfig := `{
+		"mcpServers": {
+			"filesystem": {
+				"type": "stdio",
+				"container": "mcp/filesystem",
+				"entrypointArgs": ["/workspace"],
+				"mounts": ["/tmp/mcp-test-fs:/workspace:rw"]
+			}
+		},
+		"gateway": {
+			"port": 8080,
+			"domain": "localhost",
+			"apiKey": "test-key"
+		}
+	}`
+
+	r, w, _ := os.Pipe()
+	oldStdin := os.Stdin
+	os.Stdin = r
+	go func() {
+		w.Write([]byte(jsonConfig))
+		w.Close()
+	}()
+
+	cfg, err := LoadFromStdin()
+	os.Stdin = oldStdin
+
+	require.NoError(t, err, "LoadFromStdin() failed")
+	server, ok := cfg.Servers["filesystem"]
+	require.True(t, ok, "Server 'filesystem' not found")
+
+	assert.Equal(t, "docker", server.Command)
+	assert.True(t, contains(server.Args, "mcp/filesystem"), "Container name not found")
+	
+	// Check that mount is present
+	hasMount := false
+	for i := 0; i < len(server.Args)-1; i++ {
+		if server.Args[i] == "-v" && server.Args[i+1] == "/tmp/mcp-test-fs:/workspace:rw" {
+			hasMount = true
+			break
+		}
+	}
+	assert.True(t, hasMount, "Mount not found in args")
+
+	// Check that /workspace is passed as an entrypoint arg (after the container name)
+	containerIdx := -1
+	for i, arg := range server.Args {
+		if arg == "mcp/filesystem" {
+			containerIdx = i
+			break
+		}
+	}
+	require.NotEqual(t, -1, containerIdx, "Container name not found in args")
+	
+	// Verify that /workspace appears after the container name as an entrypoint arg
+	hasWorkspaceArg := false
+	for i := containerIdx + 1; i < len(server.Args); i++ {
+		if server.Args[i] == "/workspace" {
+			hasWorkspaceArg = true
+			break
+		}
+	}
+	assert.True(t, hasWorkspaceArg, "Expected /workspace as entrypoint arg after container name")
+}
+
+// TestLoadFromStdin_PlaywrightServerConfig tests that playwright server configuration
+// correctly separates Docker runtime flags (args) from playwright binary arguments (entrypointArgs).
+func TestLoadFromStdin_PlaywrightServerConfig(t *testing.T) {
+	jsonConfig := `{
+		"mcpServers": {
+			"playwright": {
+				"type": "stdio",
+				"container": "mcr.microsoft.com/playwright:v1.49.1-noble",
+				"args": ["--init", "--network", "host"],
+				"entrypointArgs": [
+					"--output-dir", "/tmp/gh-aw/mcp-logs/playwright",
+					"--allowed-hosts", "localhost:*;127.0.0.1:*",
+					"--allowed-origins", "localhost:*;127.0.0.1:*"
+				]
+			}
+		},
+		"gateway": {
+			"port": 8080,
+			"domain": "localhost",
+			"apiKey": "test-key"
+		}
+	}`
+
+	r, w, _ := os.Pipe()
+	oldStdin := os.Stdin
+	os.Stdin = r
+	go func() {
+		w.Write([]byte(jsonConfig))
+		w.Close()
+	}()
+
+	cfg, err := LoadFromStdin()
+	os.Stdin = oldStdin
+
+	require.NoError(t, err, "LoadFromStdin() failed")
+	server, ok := cfg.Servers["playwright"]
+	require.True(t, ok, "Server 'playwright' not found")
+
+	assert.Equal(t, "docker", server.Command)
+	
+	// Find the container name position in args
+	containerIdx := -1
+	for i, arg := range server.Args {
+		if arg == "mcr.microsoft.com/playwright:v1.49.1-noble" {
+			containerIdx = i
+			break
+		}
+	}
+	require.NotEqual(t, -1, containerIdx, "Container name not found in args")
+
+	// Verify Docker flags (--init, --network host) appear BEFORE the container name
+	hasInitBeforeContainer := false
+	hasNetworkBeforeContainer := false
+	for i := 0; i < containerIdx; i++ {
+		if server.Args[i] == "--init" {
+			hasInitBeforeContainer = true
+		}
+		if server.Args[i] == "--network" && i+1 < containerIdx && server.Args[i+1] == "host" {
+			hasNetworkBeforeContainer = true
+		}
+	}
+	assert.True(t, hasInitBeforeContainer, "Docker flag --init should appear before container name")
+	assert.True(t, hasNetworkBeforeContainer, "Docker flag --network host should appear before container name")
+
+	// Verify playwright binary args appear AFTER the container name
+	hasOutputDirAfterContainer := false
+	hasAllowedHostsAfterContainer := false
+	for i := containerIdx + 1; i < len(server.Args); i++ {
+		if server.Args[i] == "--output-dir" && i+1 < len(server.Args) && server.Args[i+1] == "/tmp/gh-aw/mcp-logs/playwright" {
+			hasOutputDirAfterContainer = true
+		}
+		if server.Args[i] == "--allowed-hosts" {
+			hasAllowedHostsAfterContainer = true
+		}
+	}
+	assert.True(t, hasOutputDirAfterContainer, "Playwright arg --output-dir should appear after container name")
+	assert.True(t, hasAllowedHostsAfterContainer, "Playwright arg --allowed-hosts should appear after container name")
+
+	// Verify Docker flags do NOT appear as duplicate entrypoint args after container
+	for i := containerIdx + 1; i < len(server.Args); i++ {
+		assert.NotEqual(t, "--init", server.Args[i], "Docker flag --init should not appear after container name")
+	}
+}
