@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -596,6 +597,42 @@ func createTempConfig(t *testing.T, servers map[string]interface{}) string {
 	}
 
 	return tmpFile.Name()
+}
+
+// killProcessOnPort kills any process listening on the specified port
+// This helps prevent test interference from stale server processes
+func killProcessOnPort(t *testing.T, port string) {
+	t.Helper()
+
+	// Use lsof to find processes listening on the port (macOS/Linux)
+	cmd := exec.Command("lsof", "-ti", "tcp:"+port)
+	output, err := cmd.Output()
+	if err != nil {
+		// No process found on port, which is fine
+		return
+	}
+
+	// Kill each PID found
+	pids := strings.TrimSpace(string(output))
+	if pids == "" {
+		return
+	}
+
+	for _, pid := range strings.Split(pids, "\n") {
+		pid = strings.TrimSpace(pid)
+		if pid == "" {
+			continue
+		}
+		killCmd := exec.Command("kill", "-9", pid)
+		if err := killCmd.Run(); err != nil {
+			t.Logf("Warning: failed to kill process %s on port %s: %v", pid, port, err)
+		} else {
+			t.Logf("Killed stale process %s on port %s", pid, port)
+		}
+	}
+
+	// Give the OS a moment to release the port
+	time.Sleep(100 * time.Millisecond)
 }
 
 // waitForServer waits for the server to become available

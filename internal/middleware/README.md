@@ -51,10 +51,10 @@ The middleware is automatically applied to all backend MCP server tools (except 
 **Transformed response:**
 ```json
 {
-  "queryID": "a1b2c3d4e5f6...",
+  "agentInstructions": "The payload was too large for an MCP response. The payloadSchema approximates the structure of the full payload. The full response can be accessed through the local file system at the payloadPath.",
   "payloadPath": "/tmp/gh-awmg/tools-calls/a1b2c3d4e5f6.../payload.json",
-  "preview": "{\"total_count\":1000,\"items\":[{\"login\":\"user1\",\"id\":123,\"verified\":true}...",
-  "schema": {
+  "payloadPreview": "{\"total_count\":1000,\"items\":[{\"login\":\"user1\",\"id\":123,\"verified\":true}...",
+  "payloadSchema": {
     "total_count": "number",
     "items": [
       {
@@ -64,8 +64,7 @@ The middleware is automatically applied to all backend MCP server tools (except 
       }
     ]
   },
-  "originalSize": 234,
-  "truncated": false
+  "originalSize": 234
 }
 ```
 

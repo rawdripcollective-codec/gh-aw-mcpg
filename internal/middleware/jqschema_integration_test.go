@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
@@ -90,39 +91,24 @@ func TestMiddlewareIntegration(t *testing.T) {
 	err = json.Unmarshal([]byte(textContent.Text), &contentMap)
 	require.NoError(t, err, "Content should be valid JSON")
 
-	// Verify all required fields exist in Content
-	assert.Contains(t, contentMap, "queryID", "Content should contain queryID")
+	// Verify all required fields exist in Content (queryID is excluded from JSON via json:"-")
 	assert.Contains(t, contentMap, "payloadPath", "Content should contain payloadPath")
-	assert.Contains(t, contentMap, "preview", "Content should contain preview")
-	assert.Contains(t, contentMap, "schema", "Content should contain schema")
+	assert.Contains(t, contentMap, "payloadPreview", "Content should contain payloadPreview")
+	assert.Contains(t, contentMap, "payloadSchema", "Content should contain payloadSchema")
 	assert.Contains(t, contentMap, "originalSize", "Content should contain originalSize")
-	assert.Contains(t, contentMap, "truncated", "Content should contain truncated")
-
-	// Verify queryID format in Content
-	queryIDFromContent := contentMap["queryID"].(string)
-	assert.Len(t, queryIDFromContent, 32, "QueryID should be 32 hex characters")
+	assert.NotContains(t, contentMap, "queryID", "Content should NOT contain queryID (excluded from JSON)")
 
 	// Verify response structure in data return value (for internal use)
-	dataMap := integrationPayloadMetadataToMap(t, data)
-
-	// Check all required fields exist
-	assert.Contains(t, dataMap, "queryID")
-	assert.Contains(t, dataMap, "payloadPath")
-	assert.Contains(t, dataMap, "preview")
-	assert.Contains(t, dataMap, "schema")
-	assert.Contains(t, dataMap, "originalSize")
-	assert.Contains(t, dataMap, "truncated")
-
-	// Verify queryID format
-	queryID := dataMap["queryID"].(string)
-	assert.Len(t, queryID, 32, "QueryID should be 32 hex characters")
+	// Access QueryID directly from the struct since it's excluded from JSON
+	pm, ok := data.(PayloadMetadata)
+	require.True(t, ok, "data should be PayloadMetadata")
+	assert.Len(t, pm.QueryID, 32, "QueryID should be 32 hex characters")
 
 	// Verify payload was saved
-	payloadPath := dataMap["payloadPath"].(string)
-	assert.FileExists(t, payloadPath, "Payload file should exist")
+	assert.FileExists(t, pm.PayloadPath, "Payload file should exist")
 
 	// Verify payload content
-	payloadContent, err := os.ReadFile(payloadPath)
+	payloadContent, err := os.ReadFile(pm.PayloadPath)
 	require.NoError(t, err, "Should read payload file")
 
 	var originalData map[string]interface{}
@@ -134,11 +120,10 @@ func TestMiddlewareIntegration(t *testing.T) {
 	assert.NotNil(t, originalData["items"])
 
 	// Verify schema structure
-	schemaObj := dataMap["schema"]
-	assert.NotNil(t, schemaObj, "Schema should not be nil")
+	assert.NotNil(t, pm.PayloadSchema, "Schema should not be nil")
 
 	// Convert schema to JSON string for inspection
-	schemaJSON, err := json.Marshal(schemaObj)
+	schemaJSON, err := json.Marshal(pm.PayloadSchema)
 	require.NoError(t, err, "Schema should be marshallable")
 
 	var schema map[string]interface{}
@@ -180,12 +165,8 @@ func TestMiddlewareIntegration(t *testing.T) {
 	assert.Equal(t, "string", ownerSchema["login"])
 	assert.Equal(t, "number", ownerSchema["id"])
 
-	// Verify truncation flag
-	assert.False(t, dataMap["truncated"].(bool), "Should not be truncated for small payloads")
-
 	// Verify originalSize
-	originalSize := int(dataMap["originalSize"].(float64))
-	assert.Greater(t, originalSize, 0, "Original size should be positive")
+	assert.Greater(t, pm.OriginalSize, 0, "Original size should be positive")
 }
 
 // TestMiddlewareWithLargePayload tests truncation behavior
@@ -226,25 +207,19 @@ func TestMiddlewareWithLargePayload(t *testing.T) {
 	err = json.Unmarshal([]byte(textContent.Text), &contentMap)
 	require.NoError(t, err, "Content should be valid JSON")
 
-	// Verify truncation in Content field
-	truncatedInContent := contentMap["truncated"].(bool)
-	previewInContent := contentMap["preview"].(string)
-
-	if truncatedInContent {
+	// Verify preview truncation in Content field (preview ends with ... when truncated)
+	previewInContent := contentMap["payloadPreview"].(string)
+	if strings.HasSuffix(previewInContent, "...") {
 		assert.True(t, len(previewInContent) <= 503, "Preview in Content should be truncated")
-		assert.Contains(t, previewInContent, "...", "Truncated preview in Content should end with ...")
 	}
 
 	// Also check data return value
 	dataMap := integrationPayloadMetadataToMap(t, data)
 
-	// Verify truncation occurred
-	truncated := dataMap["truncated"].(bool)
-	preview := dataMap["preview"].(string)
-
-	if truncated {
+	// Verify preview truncation (check if it ends with ...)
+	preview := dataMap["payloadPreview"].(string)
+	if strings.HasSuffix(preview, "...") {
 		assert.True(t, len(preview) <= 503, "Preview should be truncated")
-		assert.Contains(t, preview, "...", "Truncated preview should end with ...")
 	}
 
 	// Verify payload file has complete data
@@ -279,7 +254,7 @@ func TestMiddlewareDirectoryCreation(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, result)
 
-	// Verify Content field
+	// Verify Content field (queryID is excluded from JSON)
 	require.NotEmpty(t, result.Content, "Result should have Content")
 	textContent, ok := result.Content[0].(*sdk.TextContent)
 	require.True(t, ok, "Content should be TextContent")
@@ -288,19 +263,18 @@ func TestMiddlewareDirectoryCreation(t *testing.T) {
 	err = json.Unmarshal([]byte(textContent.Text), &contentMap)
 	require.NoError(t, err, "Content should be valid JSON")
 
-	queryIDFromContent := contentMap["queryID"].(string)
+	// queryID should NOT be in the JSON response
+	assert.NotContains(t, contentMap, "queryID", "Content should NOT contain queryID (excluded from JSON)")
 
-	// Also check data return value
-	dataMap := integrationPayloadMetadataToMap(t, data)
-	queryID := dataMap["queryID"].(string)
-
-	// Both should match
-	assert.Equal(t, queryID, queryIDFromContent, "QueryID should match in both data and Content")
+	// Access QueryID directly from the struct for internal verification
+	pm, ok := data.(PayloadMetadata)
+	require.True(t, ok, "data should be PayloadMetadata")
+	queryID := pm.QueryID
 
 	// Verify directory structure with session ID
 	expectedDir := filepath.Join(baseDir, sessionID, queryID)
 	assert.DirExists(t, expectedDir, "Query directory should exist")
 
-	payloadPath := dataMap["payloadPath"].(string)
+	payloadPath := pm.PayloadPath
 	assert.Equal(t, filepath.Join(expectedDir, "payload.json"), payloadPath, "Payload path should match expected structure")
 }
