@@ -57,3 +57,4 @@ scripts/rebase-github-difc.sh
 
 # Serena cache directories
 .serena/
+.DS_Store
