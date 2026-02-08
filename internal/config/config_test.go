@@ -1280,7 +1280,7 @@ func TestLoadFromStdin_FilesystemServerConfig(t *testing.T) {
 
 	assert.Equal(t, "docker", server.Command)
 	assert.True(t, contains(server.Args, "mcp/filesystem"), "Container name not found")
-	
+
 	// Check that mount is present
 	hasMount := false
 	for i := 0; i < len(server.Args)-1; i++ {
@@ -1300,7 +1300,7 @@ func TestLoadFromStdin_FilesystemServerConfig(t *testing.T) {
 		}
 	}
 	require.NotEqual(t, -1, containerIdx, "Container name not found in args")
-	
+
 	// Verify that /workspace appears after the container name as an entrypoint arg
 	hasWorkspaceArg := false
 	for i := containerIdx + 1; i < len(server.Args); i++ {
@@ -1351,7 +1351,7 @@ func TestLoadFromStdin_PlaywrightServerConfig(t *testing.T) {
 	require.True(t, ok, "Server 'playwright' not found")
 
 	assert.Equal(t, "docker", server.Command)
-	
+
 	// Find the container name position in args
 	containerIdx := -1
 	for i, arg := range server.Args {
