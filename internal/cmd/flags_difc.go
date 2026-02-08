@@ -20,6 +20,7 @@ var (
 func init() {
 	RegisterFlag(func(cmd *cobra.Command) {
 		cmd.Flags().BoolVar(&enableDIFC, "enable-difc", getDefaultEnableDIFC(), "Enable DIFC enforcement for information flow control")
+		cmd.Flags().MarkHidden("enable-difc")
 	})
 }
 
