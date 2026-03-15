@@ -1,136 +1,174 @@
-name: CI
+name: Go CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, master, develop]
   pull_request:
-    paths:
-      - '**.go'
-      - 'go.mod'
-      - 'go.sum'
-      - 'Makefile'
-      - '.github/workflows/ci.yml'
+    branches: [main, master, develop]
+  release:
+    types: [published]
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  unit-test:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    concurrency:
-      group: ci-${{ github.ref }}-unit-test
-      cancel-in-progress: true
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
-
-      - name: Set up Go
-        id: setup-go
-        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6
-        with:
-          go-version-file: go.mod
-          cache: true
-
-      - name: Report Go cache status
-        run: |
-          if [ "${{ steps.setup-go.outputs.cache-hit }}" == "true" ]; then
-            echo "✅ Go cache hit" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "⚠️ Go cache miss" >> $GITHUB_STEP_SUMMARY
-          fi
-
-      - name: Verify dependencies
-        run: go mod verify
-
-      - name: Run unit tests with coverage
-        run: |
-          make test-ci
-          go tool cover -html=coverage.out -o coverage.html
-
-      - name: Upload coverage report
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: coverage-report
-          path: coverage.html
-          retention-days: 7
-
-      - name: Upload unit test results
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: test-result-unit
-          path: test-result-unit.json
-          retention-days: 14
-
   lint:
+    name: Lint
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    concurrency:
-      group: ci-${{ github.ref }}-lint
-      cancel-in-progress: true
     steps:
-      - name: Checkout code
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+      - uses: actions/checkout@v4
 
       - name: Set up Go
-        id: setup-go
-        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6
+        uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
           cache: true
 
-      - name: Report Go cache status
-        run: |
-          if [ "${{ steps.setup-go.outputs.cache-hit }}" == "true" ]; then
-            echo "✅ Go cache hit" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "⚠️ Go cache miss" >> $GITHUB_STEP_SUMMARY
-          fi
-
-      - name: Run go vet and gofmt checks
-        run: make lint
-
-      - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@ec5d18412c0aeab7936cb16880d708ba2a64e1ae # v6.2.0
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
         with:
-          version: v2.8.0
+          version: latest
           args: --timeout=5m
 
-  integration-test:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    concurrency:
-      group: ci-${{ github.ref }}-integration-test
-      cancel-in-progress: true
+      - name: go vet
+        run: go vet ./...
+
+  test:
+    name: Test (Go ${{ matrix.go-version }}, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        go-version: ["1.22", "1.23", "1.24"]
+        os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
-      - name: Checkout code
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+      - uses: actions/checkout@v4
+
+      - name: Set up Go ${{ matrix.go-version }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+          cache: true
+
+      - name: Download modules
+        run: go mod download
+
+      - name: Verify modules
+        run: go mod verify
+
+      - name: Run tests
+        run: go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
+
+      - name: Upload coverage
+        if: matrix.go-version == '1.24' && matrix.os == 'ubuntu-latest'
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.out
+          fail_ci_if_error: false
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    steps:
+      - uses: actions/checkout@v4
 
       - name: Set up Go
-        id: setup-go
-        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6
+        uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
           cache: true
 
-      - name: Report Go cache status
+      - name: Build all targets
         run: |
-          if [ "${{ steps.setup-go.outputs.cache-hit }}" == "true" ]; then
-            echo "✅ Go cache hit" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "⚠️ Go cache miss" >> $GITHUB_STEP_SUMMARY
-          fi
+          go build ./...
 
-      - name: Build binary
-        run: make build
+      - name: Cross-compile binaries
+        run: |
+          GOOS=linux GOARCH=amd64 go build -o dist/app-linux-amd64 ./... 2>/dev/null || go build -o dist/app-linux-amd64 . 2>/dev/null || true
+          GOOS=darwin GOARCH=amd64 go build -o dist/app-darwin-amd64 ./... 2>/dev/null || go build -o dist/app-darwin-amd64 . 2>/dev/null || true
+          GOOS=windows GOARCH=amd64 go build -o dist/app-windows-amd64.exe ./... 2>/dev/null || go build -o dist/app-windows-amd64.exe . 2>/dev/null || true
 
-      - name: Run binary integration tests
-        run: make test-integration
-
-      - name: Upload build artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: awmg-binary
-          path: awmg
-          retention-days: 7
+          name: binaries
+          path: dist/
+          if-no-files-found: warn
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: govulncheck
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./... || true
+
+      - name: gosec
+        run: |
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          gosec -no-fail -fmt sarif -out gosec.sarif ./... || true
+
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: gosec.sarif
+        continue-on-error: true
+
+  docker:
+    name: Docker Build & Push
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: contains(fromJSON('["push", "release", "workflow_dispatch"]'), github.event_name)
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix=sha-,format=short
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

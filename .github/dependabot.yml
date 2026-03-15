@@ -1,0 +1,95 @@
+version: 2
+
+updates:
+  # GitHub Actions
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/New_York
+    commit-message:
+      prefix: "ci"
+    labels:
+      - dependencies
+      - github-actions
+    open-pull-requests-limit: 5
+
+  # npm / Node.js / TypeScript
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/New_York
+    commit-message:
+      prefix: "chore(deps)"
+    labels:
+      - dependencies
+      - javascript
+    open-pull-requests-limit: 10
+    groups:
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # Python / pip
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/New_York
+    commit-message:
+      prefix: "chore(deps)"
+    labels:
+      - dependencies
+      - python
+    open-pull-requests-limit: 10
+    groups:
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+
+  # Go modules
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/New_York
+    commit-message:
+      prefix: "chore(deps)"
+    labels:
+      - dependencies
+      - go
+    open-pull-requests-limit: 10
+    groups:
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+
+  # Docker
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/New_York
+    commit-message:
+      prefix: "chore(docker)"
+    labels:
+      - dependencies
+      - docker
+    open-pull-requests-limit: 5
