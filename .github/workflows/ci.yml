@@ -58,6 +58,9 @@ jobs:
       - name: Verify modules
         run: go mod verify
 
+      - name: Build binary for integration tests
+        run: make build
+
       - name: Run tests
         run: go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
 
